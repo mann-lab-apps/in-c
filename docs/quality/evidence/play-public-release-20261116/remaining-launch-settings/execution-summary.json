@@ -1,0 +1,31 @@
+{
+  "originalApprovalPlanSha256": "6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1",
+  "adaptedRequestSha256": "57148a731c7610c9acb301508f002cf42b491e68fabaae02f8460a1a492fe0e3",
+  "partialApplyRun": 43818551473,
+  "partialReadOnlyRun": 43818862707,
+  "continuedApplyRun": 43819563157,
+  "finalReadOnlyRun": 43819775297,
+  "finalReadOnlyCommit": "0034b391bbf1ea85caf97886a94350b300423428",
+  "verifiedSettings": {
+    "copyright": "2026 MannLab",
+    "selectedBuildId": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e",
+    "price": {
+      "configured": true,
+      "baseTerritory": "KOR",
+      "customerPrice": "0"
+    },
+    "availability": {
+      "configured": true,
+      "availableTerritories": [
+        "KOR"
+      ],
+      "availableInNewTerritories": false,
+      "preOrderEnabled": false
+    }
+  },
+  "verifiedTerritoryCount": 175,
+  "disabledTerritoryCount": 174,
+  "publicReleasePerformed": false,
+  "reviewSubmitted": false,
+  "operatorQaReceived": false
+}

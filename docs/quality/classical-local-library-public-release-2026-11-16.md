@@ -84,4 +84,14 @@ Apple의 기기/locale별 최대10장 규칙에 따라 기존12 scene 중7개만
 
 bundle은 증분이며 base f57602c18ce55031833faabf37a073da437453b9가 필요하다. 기존 저장소에서 bundle verify를 통과했으며 독립 전체 clone으로 설명하지 않는다. scoped source와 실제 signed artifact/metadata/media runtime을 별도로 보관했다. 복구는 외부 RESTORE.md를 따르고 기존 dirty tree에 덮어쓰지 않는다. .p8·issuer·인증서 비밀키·심사 연락처 실제 값은 포함하지 않는다.
 
-이 작업의 미리보기 서버3개·촬영 simulator9개·일회성 capture checkout2개를 소유/경로 확인 후 정리했다. 사용자의 지속 worktree와 기존 QA simulator, 새 제품 빌드 checkout은 유지한다. 다른 작업 공간의 동시 커밋/변경은 되돌리지 않았다. 최종 판정은 공개 출시 No-Go이며 목표는 공개 전까지 미완료다. 준비된 자료와 승인된 원격 반영을 사람의 QA·운영 설문/연락처·가격/지역 실제 설정·공개 후보 연결·최종 제출/출시 승인으로 대체하지 않는다.
+이 작업의 미리보기 서버3개·촬영 simulator9개·일회성 capture checkout2개를 소유/경로 확인 후 정리했다. 사용자의 지속 worktree와 기존 QA simulator, 새 제품 빌드 checkout은 유지한다. 다른 작업 공간의 동시 커밋/변경은 되돌리지 않았다. 이 시점 판정은 공개 출시 No-Go이며 목표는 공개 전까지 미완료다. 준비된 자료와 승인된 원격 반영을 사람의 QA·운영 설문/연락처·최종 제출/출시 승인으로 대체하지 않는다. 아래 후속 승인으로 가격/지역과 공개 후보 연결은 해결했다.
+
+## 후속 승인: 저작권·공개 후보·무료·한국만 배포
+
+사용자가 정확한 네 설정을 승인했다. 원본 승인 계획 SHA256은 `6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1`이다. [43818551473](https://github.com/mann-lab-apps/in-c/actions/runs/43818551473)에서 copyright2026 MannLab·공개1.0.0의build5·KOR기준0원을 저장했다. 지역 요청은 다른174개 지역을 명시하라는409로 실패했으며 부분 성공을 전체 성공으로 기록하지 않았다.
+
+공식 OpenAPI4.6과 실제175개 지역 목록을 대조해 KOR만 활성/나머지174개 비활성으로 요청 인코딩을 보완했다. 별도 request SHA256 `57148a731c7610c9acb301508f002cf42b491e68fabaae02f8460a1a492fe0e3`는 원본 승인 범위와 구분한다. [43819563157](https://github.com/mann-lab-apps/in-c/actions/runs/43819563157)은 이미 저장된 세 설정을 건너뛰고 지역만 생성했다. 네 설정 전체의 read-back PASS를 확인했고 신규 국가 자동 추가/예약 주문=false·출시일 없음·PREPARE_FOR_SUBMISSION/MANUAL을 유지했다. 제품2814dbd3와 IPA/build5는 바뀌지 않았다.
+
+읽기 전용43816884187에서 IAP·구독 그룹·App Clips0개/custom EULA 없음도 확인했다. 기본 EULA 적용 근거와 함께 해당 manual, 실제 가격/지역과 후보 선택만 verified로 갱신한다. 개인정보/권리/등급 설문·운영 계약·연락처·접근성/물리 QA·최종 심사/출시 승인은 계속 미완료다. 원본 실패·재조회·계속 실행·입력/도구 hash를 remaining-launch-settings 증거로 보존한다.
+
+[최종 독립 읽기43819775297](https://github.com/mann-lab-apps/in-c/actions/runs/43819775297)은175개 전체의 KOR1개 활성/174개 비활성·예약 주문0개·출시일 지정0개를 확인했다. HTTP 쓰기를 거부하는 inspector로 진단 ref를 복구했다. metadata check PASS, metadata Ruby13개/40 assertions PASS, 실제 서명 IPA preflight PASS26/BLOCKED5/FAIL0이다. 이번에는 앱 소스/의존성/서명 artifact를 변경하지 않아 앞의830개 host와 native 결과를 새로 실행한 것처럼 표시하지 않는다. 수동 확인 목록에서 해결된 가격/지역·후보 선택·IAP/EULA/App Clips만 제외했으며 공개 출시 No-Go는 유지한다.

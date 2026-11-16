@@ -1,0 +1,3830 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-11-16T06:27:47Z",
+  "preparedAtUtc": "2026-11-16T06:46:33.002450+00:00",
+  "appId": "6828809673",
+  "bundleId": "com.mannlab.ddirori.play",
+  "version": "1.0.0",
+  "buildId": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e",
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "currentReadSha256": "94a9a47ddca268207b1eb7113495031fca643dc8fb27c6b7f70a87a25681a258",
+  "officialOpenApiVersion": "4.6",
+  "officialOpenApiUrl": "https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip",
+  "selectedRequestSchemasChecked": true,
+  "executed": false,
+  "requiresSeparateApproval": true,
+  "existingUserDecisions": {
+    "price": "free",
+    "territories": [
+      "KOR"
+    ]
+  },
+  "readBeforeWriteGuards": [
+    "exact app/bundle/version and PREPARE_FOR_SUBMISSION/MANUAL",
+    "build5 owner/version/VALID/APP_STORE_ELIGIBLE",
+    "free price point owner/territory/customerPrice0",
+    "no competing selected build/copyright/price schedule/availability",
+    "do not overwrite concurrent user changes"
+  ],
+  "readBackRequirements": [
+    "copyright equals2026 MannLab",
+    "selected build exact5",
+    "KOR customerPrice0",
+    "only KOR available; new territories false; preorder false; no release date",
+    "version remains PREPARE_FOR_SUBMISSION/MANUAL"
+  ],
+  "operations": [
+    {
+      "method": "PATCH",
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567",
+      "body": {
+        "data": {
+          "type": "appStoreVersions",
+          "id": "423cf385-e335-43a4-9429-1759b9cee567",
+          "attributes": {
+            "copyright": "2026 MannLab"
+          }
+        }
+      },
+      "schema": "AppStoreVersionUpdateRequest"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/relationships/build",
+      "body": {
+        "data": {
+          "type": "builds",
+          "id": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e"
+        }
+      },
+      "schema": "AppStoreVersionBuildLinkageRequest"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/appPriceSchedules",
+      "body": {
+        "data": {
+          "type": "appPriceSchedules",
+          "relationships": {
+            "app": {
+              "data": {
+                "type": "apps",
+                "id": "6828809673"
+              }
+            },
+            "baseTerritory": {
+              "data": {
+                "type": "territories",
+                "id": "KOR"
+              }
+            },
+            "manualPrices": {
+              "data": [
+                {
+                  "type": "appPrices",
+                  "id": "${play-free-kor}"
+                }
+              ]
+            }
+          }
+        },
+        "included": [
+          {
+            "type": "appPrices",
+            "id": "${play-free-kor}",
+            "attributes": {
+              "startDate": null,
+              "endDate": null
+            },
+            "relationships": {
+              "appPricePoint": {
+                "data": {
+                  "type": "appPricePoints",
+                  "id": "eyJzIjoiNjgyODgwOTY3MyIsInQiOiJLT1IiLCJwIjoiMTAwMDAifQ"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "schema": "AppPriceScheduleCreateRequest"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/appAvailabilities",
+      "body": {
+        "data": {
+          "type": "appAvailabilities",
+          "attributes": {
+            "availableInNewTerritories": false
+          },
+          "relationships": {
+            "app": {
+              "data": {
+                "type": "apps",
+                "id": "6828809673"
+              }
+            },
+            "territoryAvailabilities": {
+              "data": [
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-AFG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-AGO}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-AIA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ALB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ARE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ARG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ARM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ATG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-AUS}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-AUT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-AZE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BEL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BEN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BFA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BGR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BHR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BHS}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BIH}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BLR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BLZ}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BMU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BOL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BRA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BRB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BRN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BTN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-BWA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CAN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CHE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CHL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CHN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CIV}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CMR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-COD}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-COG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-COL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CPV}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CRI}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CYM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CYP}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-CZE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-DEU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-DMA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-DNK}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-DOM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-DZA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ECU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-EGY}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ESP}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-EST}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-FIN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-FJI}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-FRA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-FSM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GAB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GBR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GEO}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GHA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GMB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GNB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GRC}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GRD}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GTM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-GUY}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-HKG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-HND}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-HRV}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-HUN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-IDN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-IND}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-IRL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-IRQ}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ISL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ISR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ITA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-JAM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-JOR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-JPN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KAZ}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KEN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KGZ}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KHM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KNA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KOR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-KWT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LAO}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LBN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LBR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LBY}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LCA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LKA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LTU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LUX}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-LVA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MAC}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MAR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MDA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MDG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MDV}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MEX}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MKD}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MLI}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MLT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MMR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MNE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MNG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MOZ}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MRT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MSR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MUS}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MWI}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-MYS}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NAM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NER}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NGA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NIC}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NLD}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NOR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NPL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NRU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-NZL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-OMN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PAK}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PAN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PER}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PHL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PLW}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PNG}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-POL}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PRT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-PRY}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-QAT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ROU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-RUS}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-RWA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SAU}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SEN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SGP}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SLB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SLE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SLV}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SRB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-STP}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SUR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SVK}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SVN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SWE}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SWZ}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-SYC}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TCA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TCD}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-THA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TJK}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TKM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TON}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TTO}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TUN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TUR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TWN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-TZA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-UGA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-UKR}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-URY}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-USA}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-UZB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-VCT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-VEN}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-VGB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-VNM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-VUT}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-XKS}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-YEM}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ZAF}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ZMB}"
+                },
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-area-ZWE}"
+                }
+              ]
+            }
+          }
+        },
+        "included": [
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-AFG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "AFG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-AGO}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "AGO"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-AIA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "AIA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ALB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ALB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ARE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ARE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ARG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ARG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ARM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ARM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ATG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ATG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-AUS}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "AUS"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-AUT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "AUT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-AZE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "AZE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BEL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BEL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BEN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BEN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BFA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BFA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BGR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BGR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BHR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BHR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BHS}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BHS"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BIH}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BIH"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BLR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BLR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BLZ}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BLZ"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BMU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BMU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BOL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BOL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BRA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BRA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BRB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BRB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BRN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BRN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BTN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BTN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-BWA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "BWA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CAN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CAN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CHE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CHE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CHL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CHL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CHN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CHN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CIV}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CIV"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CMR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CMR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-COD}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "COD"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-COG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "COG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-COL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "COL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CPV}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CPV"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CRI}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CRI"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CYM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CYM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CYP}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CYP"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-CZE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "CZE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-DEU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "DEU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-DMA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "DMA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-DNK}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "DNK"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-DOM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "DOM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-DZA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "DZA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ECU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ECU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-EGY}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "EGY"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ESP}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ESP"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-EST}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "EST"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-FIN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "FIN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-FJI}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "FJI"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-FRA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "FRA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-FSM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "FSM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GAB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GAB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GBR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GBR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GEO}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GEO"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GHA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GHA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GMB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GMB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GNB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GNB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GRC}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GRC"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GRD}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GRD"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GTM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GTM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-GUY}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "GUY"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-HKG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "HKG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-HND}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "HND"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-HRV}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "HRV"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-HUN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "HUN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-IDN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "IDN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-IND}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "IND"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-IRL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "IRL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-IRQ}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "IRQ"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ISL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ISL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ISR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ISR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ITA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ITA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-JAM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "JAM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-JOR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "JOR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-JPN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "JPN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KAZ}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KAZ"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KEN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KEN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KGZ}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KGZ"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KHM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KHM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KNA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KNA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KOR}",
+            "attributes": {
+              "available": true,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KOR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-KWT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KWT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LAO}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LAO"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LBN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LBN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LBR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LBR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LBY}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LBY"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LCA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LCA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LKA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LKA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LTU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LTU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LUX}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LUX"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-LVA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "LVA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MAC}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MAC"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MAR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MAR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MDA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MDA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MDG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MDG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MDV}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MDV"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MEX}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MEX"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MKD}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MKD"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MLI}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MLI"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MLT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MLT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MMR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MMR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MNE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MNE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MNG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MNG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MOZ}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MOZ"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MRT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MRT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MSR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MSR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MUS}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MUS"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MWI}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MWI"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-MYS}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "MYS"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NAM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NAM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NER}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NER"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NGA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NGA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NIC}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NIC"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NLD}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NLD"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NOR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NOR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NPL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NPL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NRU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NRU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-NZL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "NZL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-OMN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "OMN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PAK}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PAK"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PAN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PAN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PER}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PER"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PHL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PHL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PLW}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PLW"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PNG}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PNG"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-POL}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "POL"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PRT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PRT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-PRY}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "PRY"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-QAT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "QAT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ROU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ROU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-RUS}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "RUS"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-RWA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "RWA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SAU}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SAU"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SEN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SEN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SGP}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SGP"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SLB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SLB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SLE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SLE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SLV}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SLV"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SRB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SRB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-STP}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "STP"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SUR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SUR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SVK}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SVK"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SVN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SVN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SWE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SWE"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SWZ}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SWZ"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-SYC}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "SYC"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TCA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TCA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TCD}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TCD"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-THA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "THA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TJK}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TJK"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TKM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TKM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TON}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TON"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TTO}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TTO"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TUN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TUN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TUR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TUR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TWN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TWN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-TZA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "TZA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-UGA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "UGA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-UKR}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "UKR"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-URY}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "URY"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-USA}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "USA"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-UZB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "UZB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-VCT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "VCT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-VEN}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "VEN"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-VGB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "VGB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-VNM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "VNM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-VUT}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "VUT"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-XKS}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "XKS"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-YEM}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "YEM"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ZAF}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ZAF"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ZMB}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ZMB"
+                }
+              }
+            }
+          },
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-area-ZWE}",
+            "attributes": {
+              "available": false,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "ZWE"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "schema": "AppAvailabilityV2CreateRequest"
+    }
+  ],
+  "excluded": [
+    "review contacts",
+    "survey answers",
+    "submission",
+    "release",
+    "tester invitations",
+    "binary upload"
+  ],
+  "requestRevision": 2,
+  "approvalScopePlanSha256": "6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1",
+  "technicalChange": "Enumerate all175 current territories explicitly; only KOR enabled; other174 disabled",
+  "settingsScopeUnchanged": true,
+  "territoryCatalogueReadRun": 43818862707,
+  "territoryCatalogueReadSha256": "497a33e8d0fd44e8660dbb77762e62d6349c6aafe91868061128716fc5529529",
+  "continuationAfterPartialRun": 43818551473
+}

@@ -1,0 +1,23 @@
+{
+  "operation": "Play four remaining launch settings",
+  "observedAtUtc": "2026-11-16T06:37:57Z",
+  "appId": "6828809673",
+  "planSha256": "6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1",
+  "mode": "dry-run",
+  "mutations": false,
+  "operations": [],
+  "reviewSubmitted": false,
+  "released": false,
+  "preconditionsPassed": true,
+  "before": {
+    "copyright": null,
+    "selectedBuildId": null,
+    "price": {
+      "configured": false
+    },
+    "availability": {
+      "configured": false
+    }
+  },
+  "passed": true
+}

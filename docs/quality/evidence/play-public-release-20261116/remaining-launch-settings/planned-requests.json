@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-11-16T06:27:47Z",
+  "preparedAtUtc": "2026-11-16T06:31:30.361284+00:00",
+  "appId": "6828809673",
+  "bundleId": "com.mannlab.ddirori.play",
+  "version": "1.0.0",
+  "buildId": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e",
+  "sourceCommit": "2814dbd30aa5764ec70544772d6fcd418260367f",
+  "currentReadSha256": "94a9a47ddca268207b1eb7113495031fca643dc8fb27c6b7f70a87a25681a258",
+  "officialOpenApiVersion": "4.6",
+  "officialOpenApiUrl": "https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip",
+  "selectedRequestSchemasChecked": true,
+  "executed": false,
+  "requiresSeparateApproval": true,
+  "existingUserDecisions": {
+    "price": "free",
+    "territories": [
+      "KOR"
+    ]
+  },
+  "readBeforeWriteGuards": [
+    "exact app/bundle/version and PREPARE_FOR_SUBMISSION/MANUAL",
+    "build5 owner/version/VALID/APP_STORE_ELIGIBLE",
+    "free price point owner/territory/customerPrice0",
+    "no competing selected build/copyright/price schedule/availability",
+    "do not overwrite concurrent user changes"
+  ],
+  "readBackRequirements": [
+    "copyright equals2026 MannLab",
+    "selected build exact5",
+    "KOR customerPrice0",
+    "only KOR available; new territories false; preorder false; no release date",
+    "version remains PREPARE_FOR_SUBMISSION/MANUAL"
+  ],
+  "operations": [
+    {
+      "method": "PATCH",
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567",
+      "body": {
+        "data": {
+          "type": "appStoreVersions",
+          "id": "423cf385-e335-43a4-9429-1759b9cee567",
+          "attributes": {
+            "copyright": "2026 MannLab"
+          }
+        }
+      },
+      "schema": "AppStoreVersionUpdateRequest"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/relationships/build",
+      "body": {
+        "data": {
+          "type": "builds",
+          "id": "21fe8804-716b-4e6f-bba0-62ff7ed6b99e"
+        }
+      },
+      "schema": "AppStoreVersionBuildLinkageRequest"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/appPriceSchedules",
+      "body": {
+        "data": {
+          "type": "appPriceSchedules",
+          "relationships": {
+            "app": {
+              "data": {
+                "type": "apps",
+                "id": "6828809673"
+              }
+            },
+            "baseTerritory": {
+              "data": {
+                "type": "territories",
+                "id": "KOR"
+              }
+            },
+            "manualPrices": {
+              "data": [
+                {
+                  "type": "appPrices",
+                  "id": "${play-free-kor}"
+                }
+              ]
+            }
+          }
+        },
+        "included": [
+          {
+            "type": "appPrices",
+            "id": "${play-free-kor}",
+            "attributes": {
+              "startDate": null,
+              "endDate": null
+            },
+            "relationships": {
+              "appPricePoint": {
+                "data": {
+                  "type": "appPricePoints",
+                  "id": "eyJzIjoiNjgyODgwOTY3MyIsInQiOiJLT1IiLCJwIjoiMTAwMDAifQ"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "schema": "AppPriceScheduleCreateRequest"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/appAvailabilities",
+      "body": {
+        "data": {
+          "type": "appAvailabilities",
+          "attributes": {
+            "availableInNewTerritories": false
+          },
+          "relationships": {
+            "app": {
+              "data": {
+                "type": "apps",
+                "id": "6828809673"
+              }
+            },
+            "territoryAvailabilities": {
+              "data": [
+                {
+                  "type": "territoryAvailabilities",
+                  "id": "${play-kor-only}"
+                }
+              ]
+            }
+          }
+        },
+        "included": [
+          {
+            "type": "territoryAvailabilities",
+            "id": "${play-kor-only}",
+            "attributes": {
+              "available": true,
+              "releaseDate": null,
+              "preOrderEnabled": false
+            },
+            "relationships": {
+              "territory": {
+                "data": {
+                  "type": "territories",
+                  "id": "KOR"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "schema": "AppAvailabilityV2CreateRequest"
+    }
+  ],
+  "excluded": [
+    "review contacts",
+    "survey answers",
+    "submission",
+    "release",
+    "tester invitations",
+    "binary upload"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "ciRunId": 43816884187,
+  "ciSourceCommitPrefix": "299b180ba",
+  "readOnly": true,
+  "resultRecoveredFromTrustedSelfHostedRunner": true,
+  "artifactUploadPathMismatch": true,
+  "recoveredFileMatchesJobOutputSummary": true,
+  "mutations": false,
+  "operatorQaReceived": false
+}

@@ -1,0 +1,17 @@
+{
+  "generatedAtUtc": "2026-11-16T06:55:30.803528+00:00",
+  "evidenceHashesVerified": 15,
+  "originalAndAdaptedFirstThreeRequestsIdentical": true,
+  "failedPartialRunPreserved": true,
+  "continuedRunSkippedExistingThreeSettings": true,
+  "independentReadonlyVerifiedAll175Territories": true,
+  "productSourceMatchesBuild5Commit": true,
+  "gitDiffCheckPassed": true,
+  "newPhysicalQaReceived": false,
+  "preflightCounts": {
+    "pass": 26,
+    "warning": 0,
+    "blocked": 5,
+    "fail": 0
+  }
+}

@@ -1,0 +1,512 @@
+{
+  "officialVersion": "4.6",
+  "sourceUrl": "https://developer.apple.com/sample-code/app-store-connect/app-store-connect-openapi-specification.zip",
+  "zipSha256": "f41ed4489c78bf1488cd2291f23394565364fe37b402130f48c3e3c3f5ea1acd",
+  "schemas": {
+    "AppPriceScheduleCreateRequest": {
+      "type": "object",
+      "title": "AppPriceScheduleCreateRequest",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "appPriceSchedules"
+              ]
+            },
+            "relationships": {
+              "type": "object",
+              "properties": {
+                "app": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "apps"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "baseTerritory": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "territories"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "manualPrices": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "appPrices"
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              },
+              "required": [
+                "app",
+                "manualPrices",
+                "baseTerritory"
+              ]
+            }
+          },
+          "required": [
+            "relationships",
+            "type"
+          ]
+        },
+        "included": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AppPriceV2InlineCreate"
+              },
+              {
+                "$ref": "#/components/schemas/TerritoryInlineCreate"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "AppPriceV2InlineCreate": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "appPrices"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "startDate": {
+              "type": "string",
+              "format": "date",
+              "nullable": true
+            },
+            "endDate": {
+              "type": "string",
+              "format": "date",
+              "nullable": true
+            }
+          }
+        },
+        "relationships": {
+          "type": "object",
+          "properties": {
+            "appPricePoint": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "appPricePoints"
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "AppAvailabilityV2CreateRequest": {
+      "type": "object",
+      "title": "AppAvailabilityV2CreateRequest",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "appAvailabilities"
+              ]
+            },
+            "attributes": {
+              "type": "object",
+              "properties": {
+                "availableInNewTerritories": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "availableInNewTerritories"
+              ]
+            },
+            "relationships": {
+              "type": "object",
+              "properties": {
+                "app": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "apps"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "territoryAvailabilities": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "territoryAvailabilities"
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              },
+              "required": [
+                "app",
+                "territoryAvailabilities"
+              ]
+            }
+          },
+          "required": [
+            "relationships",
+            "attributes",
+            "type"
+          ]
+        },
+        "included": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/TerritoryAvailabilityInlineCreate"
+          }
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "TerritoryAvailabilityInlineCreate": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "territoryAvailabilities"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "releaseDate": {
+              "type": "string",
+              "format": "date",
+              "nullable": true
+            },
+            "preOrderEnabled": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        },
+        "relationships": {
+          "type": "object",
+          "properties": {
+            "territory": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "territories"
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "AppStoreVersionBuildLinkageRequest": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "builds"
+              ]
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "type"
+          ]
+        }
+      },
+      "required": [
+        "data"
+      ]
+    },
+    "AppStoreVersionUpdateRequest": {
+      "type": "object",
+      "title": "AppStoreVersionUpdateRequest",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "appStoreVersions"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "attributes": {
+              "type": "object",
+              "properties": {
+                "versionString": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "copyright": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "reviewType": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "APP_STORE",
+                    "NOTARIZATION"
+                  ]
+                },
+                "releaseType": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": [
+                    "MANUAL",
+                    "AFTER_APPROVAL",
+                    "SCHEDULED"
+                  ]
+                },
+                "earliestReleaseDate": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
+                },
+                "usesIdfa": {
+                  "type": "boolean",
+                  "deprecated": true,
+                  "nullable": true
+                },
+                "downloadable": {
+                  "type": "boolean",
+                  "nullable": true
+                }
+              }
+            },
+            "relationships": {
+              "type": "object",
+              "properties": {
+                "build": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "builds"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type"
+                      ]
+                    }
+                  }
+                },
+                "appClipDefaultExperience": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "appClipDefaultExperiences"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "id",
+            "type"
+          ]
+        }
+      },
+      "required": [
+        "data"
+      ]
+    }
+  }
+}

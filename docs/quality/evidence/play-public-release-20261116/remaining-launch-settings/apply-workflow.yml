@@ -1,0 +1,33 @@
+name: Play approved four launch settings
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Approved launch settings execution label
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  approved-settings:
+    runs-on: [self-hosted, macOS, ARM64, in-c-release]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Apply exact approved free-Korea and candidate settings with read-back
+        working-directory: deployment
+        env:
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          PLAY_APPROVED_LAUNCH_PLAN_SHA256: 6bb375fce5ccc3a1f7d6754fdd595685462547985c127d7e9c8b21ef53ee7ce1
+          BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
+          BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
+        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby launch_play_settings.rb --apply
+      - name: Preserve public-field-only read-back result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-launch-settings-${{ github.run_id }}
+          path: deployment/play-launch-settings-result.json
+          retention-days: 14

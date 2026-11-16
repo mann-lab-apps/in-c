@@ -1,0 +1,204 @@
+{
+  "operation": "Read-only remaining Play launch inputs",
+  "observedAtUtc": "2026-11-16T06:27:47Z",
+  "appId": "6828809673",
+  "mutations": false,
+  "requests": [
+    {
+      "path": "/v1/apps/6828809673",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/build",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/apps/6828809673/appPriceSchedule",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appPriceSchedules/6828809673/baseTerritory",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appPriceSchedules/6828809673/manualPrices",
+      "httpStatus": 404,
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "title": "The specified resource does not exist",
+          "detail": "There is no resource of type 'null' with id '6828809673'"
+        }
+      ]
+    },
+    {
+      "path": "/v1/appPriceSchedules/6828809673/automaticPrices",
+      "httpStatus": 404,
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "title": "The specified resource does not exist",
+          "detail": "There is no resource of type 'null' with id '6828809673'"
+        }
+      ]
+    },
+    {
+      "path": "/v1/apps/6828809673/appPricePoints?filter%5Bterritory%5D=KOR&include=territory&limit=200",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/apps/6828809673/appAvailabilityV2",
+      "httpStatus": 404,
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "title": "The specified resource does not exist",
+          "detail": "There is no resource of type 'appAvailabilities' with id '6828809673'"
+        }
+      ]
+    },
+    {
+      "path": "/v1/apps/6828809673/appClips",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/apps/6828809673/inAppPurchasesV2",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/apps/6828809673/subscriptionGroups",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/apps/6828809673/endUserLicenseAgreement",
+      "httpStatus": 200
+    },
+    {
+      "path": "/v1/appStoreVersions/423cf385-e335-43a4-9429-1759b9cee567/appStoreReviewDetail",
+      "httpStatus": 200
+    }
+  ],
+  "app": {
+    "name": "띠로리 플레이",
+    "bundleId": "com.mannlab.ddirori.play",
+    "primaryLocale": "ko",
+    "contentRightsDeclaration": null,
+    "isOrEverWasMadeForKids": false
+  },
+  "version": {
+    "versionString": "1.0.0",
+    "appStoreState": "PREPARE_FOR_SUBMISSION",
+    "appVersionState": "PREPARE_FOR_SUBMISSION",
+    "releaseType": "MANUAL",
+    "copyright": null
+  },
+  "selectedBuild": null,
+  "schedule": {
+    "data": {
+      "type": "appPriceSchedules",
+      "id": "6828809673",
+      "relationships": {
+        "baseTerritory": {
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/relationships/baseTerritory",
+            "related": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/baseTerritory"
+          }
+        },
+        "manualPrices": {
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/relationships/manualPrices",
+            "related": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/manualPrices"
+          }
+        },
+        "automaticPrices": {
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/relationships/automaticPrices",
+            "related": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/automaticPrices"
+          }
+        }
+      },
+      "links": {
+        "self": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673"
+      }
+    },
+    "links": {
+      "self": "https://api.appstoreconnect.apple.com/v1/apps/6828809673/appPriceSchedule"
+    }
+  },
+  "baseTerritory": {
+    "data": {
+      "type": "territories",
+      "id": "USA",
+      "attributes": {
+        "currency": "USD"
+      },
+      "links": {
+        "self": "https://api.appstoreconnect.apple.com/v1/territories/USA"
+      }
+    },
+    "links": {
+      "self": "https://api.appstoreconnect.apple.com/v1/appPriceSchedules/6828809673/baseTerritory"
+    }
+  },
+  "manualPrices": null,
+  "automaticPrices": null,
+  "freeKoreanPricePoints": [
+    {
+      "id": "eyJzIjoiNjgyODgwOTY3MyIsInQiOiJLT1IiLCJwIjoiMTAwMDAifQ",
+      "type": "appPricePoints",
+      "attributes": {
+        "customerPrice": "0",
+        "proceeds": "0"
+      },
+      "relationships": {
+        "equalizations": {
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v3/appPricePoints/eyJzIjoiNjgyODgwOTY3MyIsInQiOiJLT1IiLCJwIjoiMTAwMDAifQ/relationships/equalizations",
+            "related": "https://api.appstoreconnect.apple.com/v3/appPricePoints/eyJzIjoiNjgyODgwOTY3MyIsInQiOiJLT1IiLCJwIjoiMTAwMDAifQ/equalizations"
+          }
+        },
+        "territory": {
+          "data": {
+            "type": "territories",
+            "id": "KOR"
+          }
+        }
+      }
+    }
+  ],
+  "pricePointsHasNextPage": true,
+  "availability": null,
+  "appClips": {
+    "configured": true,
+    "count": 0,
+    "hasNextPage": false
+  },
+  "inAppPurchasesV2": {
+    "configured": true,
+    "count": 0,
+    "hasNextPage": false
+  },
+  "subscriptionGroups": {
+    "configured": true,
+    "count": 0,
+    "hasNextPage": false
+  },
+  "customEulaConfigured": false,
+  "remoteReviewContactPresence": {
+    "contactFirstName": false,
+    "contactLastName": false,
+    "contactPhone": false,
+    "contactEmail": false
+  },
+  "externalContactFieldsPresent": {
+    "contactFirstName": false,
+    "contactLastName": false,
+    "contactPhone": false,
+    "contactEmail": false
+  },
+  "passed": true
+}
