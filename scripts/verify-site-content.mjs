@@ -199,10 +199,30 @@ function verifyDownloadManifest() {
     source.signing?.Windows?.includes('미서명'),
     'download manifest must show the unsigned Windows notice'
   )
+  const linux = source.downloads.find(download => download.platform === 'Linux')
   assert(
-    /post-v1|후속/i.test(source.signing?.Linux ?? ''),
-    'download manifest must show Linux as a post-V1 target'
+    linux?.available
+      ? /AppImage/.test(source.signing?.Linux ?? '')
+      : /post-v1|후속/i.test(source.signing?.Linux ?? ''),
+    'download manifest must explain the current Linux distribution status'
   )
+
+  const studioPage = readFileSync(resolve(outSiteRoot, 'chromatics.html'), 'utf8')
+  assert(
+    studioPage.includes(`data-release-version>${source.releaseTag}</dd>`),
+    'the Studio page version must match the manifest before JavaScript loads'
+  )
+  assert(
+    studioPage.includes(`data-release-date>${source.releaseDate}</dd>`),
+    'the Studio page release date must match the manifest before JavaScript loads'
+  )
+  for (const href of [
+    source.releaseUrl,
+    source.checksumsUrl,
+    ...source.downloads.filter(download => download.available).map(download => download.url)
+  ]) {
+    assert(studioPage.includes(`href="${href}"`), `Studio static download link is missing: ${href}`)
+  }
 }
 
 function verifyCompositions() {
