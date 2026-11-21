@@ -1,8 +1,8 @@
 # 띠로리 Studio 사용 안내와 단축키
 
-기능 기준 alpha.40의 빠른 진입 안내입니다. 전체 정본은 [사용설명서 목차](studio-manual/README.md), [기능 색인](studio-manual/feature-index.md), [단축키 전체 참고](studio-manual/10-shortcuts.md)입니다.
+기능 기준 alpha.41의 빠른 진입 안내입니다. 전체 정본은 [사용설명서 목차](studio-manual/README.md), [기능 색인](studio-manual/feature-index.md), [단축키 전체 참고](studio-manual/10-shortcuts.md)입니다.
 
-**도움말 → 사용설명서** 메뉴에서 alpha.40의 전체 설명서를 열 수 있습니다. 단축키만 확인하려면 **도움말 → 단축키 도움말**을 선택하세요.
+**도움말 → 사용설명서** 메뉴에서 alpha.41의 전체 설명서를 열 수 있습니다. 단축키만 확인하려면 **도움말 → 단축키 도움말**을 선택하세요.
 
 ## 음높이·옥타브 이동
 

@@ -802,7 +802,7 @@ const openStudioWorkspace = (label: string) => {
     '가사':['추가','가사 및 코드'], '내보내기':['파일','내보내기 설정'], '재생':['도구','재생 도구']
   }
   const [menu,item]=mapping[label]!
-  const nav=within(screen.getByRole('navigation',{name:'앱 메뉴'}))
+  const nav=within(document.querySelector<HTMLElement>('nav[aria-label="앱 메뉴"]')!)
   fireEvent.click(nav.getByRole('button',{name:menu}))
   fireEvent.click(nav.getByRole('menuitem',{name:item}))
 }
@@ -817,7 +817,7 @@ const openNotationSettings = (entry:'clef'|'range'|'repeat') => {
 }
 
 const openSpanFinder = () => {
-  const nav=within(screen.getByRole('navigation',{name:'앱 메뉴'}))
+  const nav=within(document.querySelector<HTMLElement>('nav[aria-label="앱 메뉴"]')!)
   fireEvent.click(nav.getByRole('button',{name:'도구'}))
   fireEvent.click(nav.getByRole('menuitem',{name:'범위 표기 찾기'}))
 }
@@ -903,7 +903,8 @@ const chooseSpanReference = (value:string) => {
   const references=listSpans(playbackMockState.lastScore!)
   const index=references.findIndex(reference=>`${reference.kind}:${reference.id}`===value)
   expect(index).toBeGreaterThanOrEqual(0)
-  fireEvent.click(screen.getByRole('combobox',{name:'표기 객체 선택'}))
+  const properties = within(document.querySelector<HTMLElement>('aside[aria-label="속성 도크"]')!)
+  fireEvent.click(properties.getByRole('combobox',{name:'표기 객체 선택'}))
   fireEvent.click(within(screen.getByRole('listbox',{name:'표기 객체 선택'})).getAllByRole('option')[index+1]!)
 }
 

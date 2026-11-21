@@ -1392,18 +1392,20 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.open).mockResolvedValue({filePath:'/scores/order.chromatics',fileName:'order.chromatics',contents:encodeNativeProject(createNativeProject(source))})
     vi.mocked(window.inC.midi.save).mockResolvedValueOnce({fileName:'prior.mid'})
     const { App } = await import('./App');render(<App />)
-    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
+    const fileTools = () => within(document.querySelector<HTMLElement>('section[aria-label="파일 및 선택 도구"]')!)
+    const exportTools = () => within(document.querySelector<HTMLElement>('section[aria-label="내보내기 작업"]')!)
+    openStudioWorkspace('파일');fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 열기'}))
     await screen.findByText(source.title);await act(async () => {})
-    openStudioWorkspace('내보내기');fireEvent.click(screen.getByRole('button',{name:'MIDI 내보내기'}))
-    await screen.findByRole('region',{name:'MIDI 경고 상세'})
+    openStudioWorkspace('내보내기');fireEvent.click(exportTools().getByRole('button',{name:'MIDI 내보내기'}))
+    await waitFor(() => expect(document.querySelector('section[aria-label="MIDI 경고 상세"]')).toBeVisible())
     fireEvent.click(screen.getByRole('button',{name:'악보 제목 수정'}))
     fireEvent.change(screen.getByLabelText('악보 제목'),{target:{value:'내보내기 순서 검사'}})
     fireEvent.keyDown(screen.getByLabelText('악보 제목'),{key:'Enter'})
     const pending: {resolve:(value:{fileName:string}|null)=>void;reject:(error:Error)=>void}[] = []
     vi.mocked(window.inC.midi.save).mockReset().mockImplementation(() => new Promise((resolve,reject)=>pending.push({resolve,reject})))
     openStudioWorkspace('내보내기')
-    fireEvent.click(screen.getByRole('button',{name:'MIDI 내보내기'}))
-    fireEvent.click(screen.getByRole('button',{name:'MIDI 내보내기'}))
+    fireEvent.click(exportTools().getByRole('button',{name:'MIDI 내보내기'}))
+    fireEvent.click(exportTools().getByRole('button',{name:'MIDI 내보내기'}))
     await waitFor(()=>expect(pending).toHaveLength(2))
     const status=()=>document.querySelector('.editor-status > span:last-child')!.textContent
     const priorStatus=status(), selection=screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')
@@ -1416,7 +1418,7 @@ describe('App component shell', () => {
     if(first==='older') {
       await complete(0,firstResult!)
       expect(status()).toBe(priorStatus)
-      expect(within(screen.getByRole('region',{name:'MIDI 경고 상세'})).getByText('prior.mid')).toBeVisible()
+      expect(within(document.querySelector<HTMLElement>('section[aria-label="MIDI 경고 상세"]')!).getByText('prior.mid')).toBeVisible()
       await complete(1,lastResult!)
     } else {
       await complete(1,firstResult!)
@@ -1425,7 +1427,7 @@ describe('App component shell', () => {
       expect(status()).toBe(latestStatus)
     }
     const latest=first==='newer'?firstResult:lastResult
-    expect(within(screen.getByRole('region',{name:'MIDI 경고 상세'})).getByText(latest==='success'?'newer.mid':'prior.mid')).toBeVisible()
+    expect(within(document.querySelector<HTMLElement>('section[aria-label="MIDI 경고 상세"]')!).getByText(latest==='success'?'newer.mid':'prior.mid')).toBeVisible()
     if(latest==='error') {
       expect(status()).toBe('MIDI 내보내기를 완료하지 못했습니다. 다시 시도하거나 기술 정보를 확인해 주세요.')
       const error=within(screen.getByRole('region',{name:'MIDI 오류 상세'}))
@@ -1437,7 +1439,7 @@ describe('App component shell', () => {
     expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-address',selection)
     expect(vi.mocked(window.inC.midi.save).mock.calls.map(call=>call[0].contents)).toEqual(bytes)
-    openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
+    openStudioWorkspace('파일');fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 저장'}))
     await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(1))
     expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual({...source,title:'내보내기 순서 검사'})
     fireEvent.keyDown(window,{code:'KeyZ',ctrlKey:true});fireEvent.keyDown(window,{code:'KeyS',ctrlKey:true})

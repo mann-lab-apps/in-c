@@ -58,7 +58,7 @@ for (const row of rows) {
   developer += `\n## ${row.id} · ${row.title}\n\n- 현재: ${row.current}\n- 남은 범위: ${row.gap}\n- 정책 변경 검토: ${row.requiresPolicy ? '필요. 기존 승인 범위를 넘는 부분만 별도 제안하고 독립 작업은 계속한다.' : '기존 계약을 유지하는 작은 범위부터 조사한다.'}\n- 의존성: ${row.dependencies.join(', ') || '없음'}\n- 소스: ${row.sourceEvidence.map(item => `[${item.path}](../../${item.path})`).join(', ')}\n- 공식 근거: ${row.officialUrls.map((url, i) => `[참고 ${i+1}](${url})`).join(', ')}\n\n수용 기준:\n\n${row.acceptance.map(text => `- ${text}`).join('\n')}\n\n검증:\n\n${row.verification.map(text => `- ${text}`).join('\n')}\n`
   if (row.evidence.length) developer += `\n기록: ${row.evidence.map(file => `[${file}](../../${file})`).join(', ')}\n`
 }
-let manual = '# MuseScore와의 차이\n\n현재 지원과 앞으로의 작업을 구분합니다. 기준은 띠로리 Studio alpha.40입니다. 아래 목록은 출시 일정이나 지원 약속이 아닙니다. 목록에 없는 기능도 모든 세부 동작까지 동일하다는 뜻은 아닙니다.\n\n지원 중인 작업은 [기능 색인](feature-index.md)과 [단축키](10-shortcuts.md)를 확인하세요. 예를 들어 일반 타이·슬러, 꾸밈음 붙이기/변환, 도돌이표·볼타, MIDI·MusicXML·PDF·PNG 출력은 이미 제공하며 아래의 추가 범위와 다릅니다.\n'
+let manual = '# MuseScore와의 차이\n\n현재 지원과 앞으로의 작업을 구분합니다. 기준은 띠로리 Studio alpha.41입니다. 아래 목록은 출시 일정이나 지원 약속이 아닙니다. 목록에 없는 기능도 모든 세부 동작까지 동일하다는 뜻은 아닙니다.\n\n지원 중인 작업은 [기능 색인](feature-index.md)과 [단축키](10-shortcuts.md)를 확인하세요. 예를 들어 일반 타이·슬러, 꾸밈음 붙이기/변환, 도돌이표·볼타, MIDI·MusicXML·PDF·PNG 출력은 이미 제공하며 아래의 추가 범위와 다릅니다.\n'
 
 for (const [i, category] of categories.entries()) {
   manual += `\n<a id="gaps-${i+1}"></a>\n## ${category}\n\n`

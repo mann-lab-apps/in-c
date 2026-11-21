@@ -20,7 +20,10 @@ it('explains each ornament performance scope in the actual Help handbook without
     expect(row).toHaveTextContent('표기·저장 지원')
   }
   expect(within(article).getByRole('row', { name: /^트릴 / })).toHaveTextContent('보조음과 교대')
-  expect(article).toHaveTextContent('미배포 작업본의 MIDI 손실 안내')
+  const midiHelp = within(article).getByRole('link', { name: 'MIDI 손실 안내' })
+  expect(midiHelp).toHaveAttribute('href', '#manual-files-midi')
+  fireEvent.click(midiHelp)
+  expect(article.querySelector('[data-manual-anchor="midi"]')).toBeInTheDocument()
   fireEvent.keyDown(dialog, { key: 'Escape' })
   expect(playbackMockState.lastScore).toEqual(before)
   expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')

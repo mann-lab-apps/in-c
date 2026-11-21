@@ -19,9 +19,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing v-prefixed tag to publish, or preflight to check the selected branch without publication
+        description: Version tag to publish, or preflight to check the selected branch without publication
         required: true
         type: string
+      candidate:
+        description: Build the selected release branch commit and create its tag after all package jobs succeed
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -87,11 +91,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Checkout workflow dispatch tag
+      - name: Checkout workflow dispatch source
         if: github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.candidate && github.sha || inputs.tag }}
 
       - name: Checkout release tag
         if: github.event_name == 'push'
@@ -181,7 +185,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ inputs.candidate && github.sha || env.RELEASE_TAG }}
 
       - uses: actions/download-artifact@v8
         with:
@@ -193,6 +197,23 @@ jobs:
         run: |
           cd release
           sha256sum * > SHA256SUMS.txt
+
+      - name: Tag the verified candidate
+        if: github.event_name == 'workflow_dispatch' && inputs.candidate
+        run: |
+          [[ "$GITHUB_REF" == refs/heads/release/* ]]
+          npm run verify:release-tag
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
+            git fetch origin "refs/tags/$RELEASE_TAG"
+            test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$(git rev-parse HEAD)"
+          else
+            status=$?
+            test "$status" -eq 2
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a "$RELEASE_TAG" -m "띠로리 Studio ${RELEASE_TAG#v}"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
 
       - name: Publish prerelease
         run: |

@@ -1400,7 +1400,7 @@
     "entry": "도움말 → 사용설명서 / 단축키 도움말",
     "shortcut": "Escape",
     "scope": "본문은 앱에 번들되며 외부 참고 링크를 제외한 읽기에 인터넷이 필요 없습니다. 단축키 표는 기존 도움말과 같은 원본입니다.",
-    "disabled": "전체 설명서는 alpha.40부터 앱에 포함됩니다. 배포된 alpha.39에는 기존 단축키 도움말만 있습니다.",
+    "disabled": "전체 설명서는 alpha.41부터 앱에 포함됩니다. 배포된 alpha.39에는 기존 단축키 도움말만 있습니다.",
     "sources": [
       "src/renderer/src/StudioManual.tsx"
     ],

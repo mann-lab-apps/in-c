@@ -573,7 +573,7 @@
       ],
       "lastReviewed": "2026-11-08",
       "referenceReview": "linked-chapter body must be re-read before implementing details; current comparison includes official index and selected primary chapters",
-      "publicSummary": "기존3:2와alpha.40의 고정2:3/5:4/7:4입력이있습니다. 임의비율·중첩·전용속성편집은아직없습니다."
+      "publicSummary": "기존3:2와alpha.41의 고정2:3/5:4/7:4입력이있습니다. 임의비율·중첩·전용속성편집은아직없습니다."
     },
     {
       "id": "SMG-006-001",
@@ -3905,7 +3905,7 @@
       ],
       "lastReviewed": "2026-11-04",
       "referenceReview": "Official arpeggios-and-glissandos body directly read; W3C element descriptions and pinned XSD checked. Diagnostics only, no arpeggiation/glide model.",
-      "publicSummary": "alpha.40에서는 아르페지오·동시화음괄호·글리산도·슬라이드지시의가져오기손실을안내합니다. 직접편집/표시·원본재생보존은지원하지않으므로원본MusicXML을보관하세요."
+      "publicSummary": "alpha.41에서는 아르페지오·동시화음괄호·글리산도·슬라이드지시의가져오기손실을안내합니다. 직접편집/표시·원본재생보존은지원하지않으므로원본MusicXML을보관하세요."
     },
     {
       "id": "SMG-023-003",
@@ -3953,7 +3953,7 @@
       ],
       "lastReviewed": "2026-11-04",
       "referenceReview": "Official measure-and-multimeasure-rests body and W3C multiple-rest description/pinned XSD read. Diagnostics only, not grouped-rest authoring or empty-staff hiding.",
-      "publicSummary": "alpha.40에서는 원본의쉼표묶음지시손실을안내하며현재각마디의쉼표로표시합니다. 여러마디묶기/자동분할·빈보표숨김은지원하지않으므로원본MusicXML을보관하세요."
+      "publicSummary": "alpha.41에서는 원본의쉼표묶음지시손실을안내하며현재각마디의쉼표로표시합니다. 여러마디묶기/자동분할·빈보표숨김은지원하지않으므로원본MusicXML을보관하세요."
     },
     {
       "id": "SMG-011-001",
@@ -4003,7 +4003,7 @@
       ],
       "lastReviewed": "2026-11-04",
       "referenceReview": "Official adjusting-elements-directly body directly read. Existing Studio numeric step0.25 retained; not MuseScore0.1 movement, automatic curve handles or rhythmic anchor edits.",
-      "publicSummary": "alpha.40에서는 수동배치된슬러·헤어핀의선에포커스를두고방향키로공통위치를0.25sp격자(Cmd/Ctrl1sp)로옮깁니다. 자동배치·타이·모양핸들·파트별독립위치는미지원입니다. 마우스 공통 이동은 별도002 범위입니다."
+      "publicSummary": "alpha.41에서는 수동배치된슬러·헤어핀의선에포커스를두고방향키로공통위치를0.25sp격자(Cmd/Ctrl1sp)로옮깁니다. 자동배치·타이·모양핸들·파트별독립위치는미지원입니다. 마우스 공통 이동은 별도002 범위입니다."
     },
     {
       "id": "SMG-030-003",
