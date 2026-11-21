@@ -1,0 +1,469 @@
+{
+  "headSha": "24971ce6141a0c91b2e1b40d556297d771bc0ad2",
+  "url": "https://github.com/mann-lab-apps/in-c/actions/runs/44901556389",
+  "conclusion": "success",
+  "shards": [
+    {
+      "name": "Verify macos-15 (4/4)",
+      "id": 136842746988,
+      "files": {
+        "passed": 193,
+        "skipped": 1
+      },
+      "tests": {
+        "passed": 1512,
+        "skipped": 1
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify windows-latest (2/4)",
+      "id": 136842747151,
+      "files": {
+        "passed": 193,
+        "skipped": 1
+      },
+      "tests": {
+        "passed": 1682,
+        "skipped": 11
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify windows-latest (1/4)",
+      "id": 136842747195,
+      "files": {
+        "passed": 193,
+        "skipped": 1
+      },
+      "tests": {
+        "passed": 1912,
+        "skipped": 21
+      },
+      "nodeToolsPassed": 5
+    },
+    {
+      "name": "Verify windows-latest (4/4)",
+      "id": 136842747206,
+      "files": {
+        "passed": 192,
+        "skipped": 2
+      },
+      "tests": {
+        "passed": 1491,
+        "skipped": 22
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify macos-15 (1/4)",
+      "id": 136842747214,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 1933,
+        "skipped": 0
+      },
+      "nodeToolsPassed": 5
+    },
+    {
+      "name": "Verify ubuntu-latest (3/4)",
+      "id": 136842747226,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 2094,
+        "skipped": 111
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify macos-15 (2/4)",
+      "id": 136842747246,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 1693,
+        "skipped": 0
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify macos-15 (3/4)",
+      "id": 136842747261,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 2205,
+        "skipped": 0
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify ubuntu-latest (1/4)",
+      "id": 136842747271,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 1884,
+        "skipped": 49
+      },
+      "nodeToolsPassed": 5
+    },
+    {
+      "name": "Verify windows-latest (3/4)",
+      "id": 136842747283,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 2198,
+        "skipped": 7
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify ubuntu-latest (4/4)",
+      "id": 136842747349,
+      "files": {
+        "passed": 193,
+        "skipped": 1
+      },
+      "tests": {
+        "passed": 1474,
+        "skipped": 39
+      },
+      "nodeToolsPassed": 0
+    },
+    {
+      "name": "Verify ubuntu-latest (2/4)",
+      "id": 136842747413,
+      "files": {
+        "passed": 194,
+        "skipped": 0
+      },
+      "tests": {
+        "passed": 1641,
+        "skipped": 52
+      },
+      "nodeToolsPassed": 0
+    }
+  ],
+  "platforms": {
+    "macos-15": {
+      "vitestFiles": 776,
+      "vitestPassed": 7343,
+      "vitestSkipped": 1,
+      "nodeToolsPassed": 5
+    },
+    "windows-latest": {
+      "vitestFiles": 776,
+      "vitestPassed": 7283,
+      "vitestSkipped": 61,
+      "nodeToolsPassed": 5
+    },
+    "ubuntu-latest": {
+      "vitestFiles": 776,
+      "vitestPassed": 7093,
+      "vitestSkipped": 251,
+      "nodeToolsPassed": 5
+    }
+  },
+  "packagesAndPublication": [
+    {
+      "name": "Package Windows",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout pull request head",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Checkout workflow dispatch source",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout release tag",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run actions/setup-node@v6",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run verify:release-tag",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run piano:verify",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify macOS signing secrets",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Prepare macOS notarization key",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Package app",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify macOS Developer ID signing",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run npm run verify:artifacts",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify packaged app",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify packaged app on Linux",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Upload package artifacts",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@v6",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout workflow dispatch source",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Package macOS",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout pull request head",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Checkout workflow dispatch source",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout release tag",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run actions/setup-node@v6",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run verify:release-tag",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run piano:verify",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify macOS signing secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Prepare macOS notarization key",
+          "conclusion": "success"
+        },
+        {
+          "name": "Package app",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify macOS Developer ID signing",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run verify:artifacts",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify packaged app",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify packaged app on Linux",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Upload package artifacts",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@v6",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout workflow dispatch source",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Package Linux",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout pull request head",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Checkout workflow dispatch source",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout release tag",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run actions/setup-node@v6",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run verify:release-tag",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run piano:verify",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify macOS signing secrets",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Prepare macOS notarization key",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Package app",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify macOS Developer ID signing",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run npm run verify:artifacts",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify packaged app",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Verify packaged app on Linux",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload package artifacts",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@v6",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout workflow dispatch source",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Publish GitHub prerelease",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/download-artifact@v8",
+          "conclusion": "success"
+        },
+        {
+          "name": "Create checksums",
+          "conclusion": "success"
+        },
+        {
+          "name": "Tag the verified candidate",
+          "conclusion": "success"
+        },
+        {
+          "name": "Publish prerelease",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

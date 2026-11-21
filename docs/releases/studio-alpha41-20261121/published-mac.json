@@ -1,0 +1,70 @@
+{
+  "version": "0.1.0-alpha.41",
+  "dmgSha256": "4948517267e1b43fc9305a45f6aa9bac64cbe75fd588115c66c2c464f6eea46b",
+  "checks": {
+    "attach": "passed",
+    "architectures": "passed",
+    "codesign": "passed",
+    "signing-identity": "passed",
+    "stapler": "passed",
+    "gatekeeper": "passed",
+    "smoke": "passed",
+    "detach": "passed"
+  },
+  "bundle": {
+    "CFBundleDisplayName": "띠로리 Studio",
+    "CFBundleIdentifier": "com.mannlab.inc",
+    "CFBundleShortVersionString": "0.1.0-alpha.41"
+  },
+  "architectures": [
+    "x86_64",
+    "arm64"
+  ],
+  "packagedSmoke": {
+    "appName": "띠로리 Studio",
+    "hasMusicXmlBridge": true,
+    "hasPdfBridge": true,
+    "hasMidiBridge": true,
+    "hasAutosaveBridge": true,
+    "hasRecentBridge": true,
+    "hasPromotionsBridge": true,
+    "hasStartScreen": true,
+    "hasStartActions": true,
+    "partViewPdfTarget": {
+      "labels": [],
+      "pagePartId": "cello",
+      "pageViewMode": "part",
+      "pdfPageMarginMm": "6",
+      "pdfPageOrientation": "portrait",
+      "pdfPageSize": "a4",
+      "pdfStaffSizePercent": "90",
+      "pdfSystemSpacingPercent": "90",
+      "partTitle": "Cello",
+      "partTitlePartId": "cello",
+      "status": true,
+      "visiblePartIds": [
+        "cello"
+      ]
+    },
+    "hasScoreWorkspace": true,
+    "hasScoreTitle": true,
+    "hasNotationSvg": true,
+    "hasMusicXmlFileWrite": true,
+    "hasRecentOpenRoundTrip": true,
+    "hasMxlRoundTrip": true,
+    "hasExportCopyRoundTrip": true,
+    "hasNativeProjectRoundTrip": true,
+    "hasNativeRecoveryRoundTrip": true,
+    "hasNativeBackupUiRecovery": true,
+    "hasNativePartLayout": true,
+    "hasNativePartTitleEdit": true,
+    "hasPartXmlLayout": true,
+    "hasScoreWideMeasureEdit": true,
+    "hasPdfFileWrite": true,
+    "hasPartViewPdfTarget": true,
+    "hasPartViewPdfFileWrite": true,
+    "hasMidiFileWrite": true,
+    "hasAutosaveRoundTrip": true
+  },
+  "status": "passed"
+}
