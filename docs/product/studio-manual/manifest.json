@@ -1,6 +1,6 @@
 {
   "title": "띠로리 Studio 사용설명서",
-  "productVersion": "0.1.0-alpha.41",
+  "productVersion": "0.1.0-alpha.42",
   "manualUiStatus": "앱에 포함",
   "chapters": [
     {
@@ -79,5 +79,5 @@
       "title": "MuseScore와의 차이"
     }
   ],
-  "sourceRef": "v0.1.0-alpha.41"
+  "sourceRef": "v0.1.0-alpha.42"
 }

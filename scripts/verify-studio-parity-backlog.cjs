@@ -8,6 +8,7 @@ const base = path.join(root, 'docs/product')
 const read = name => fs.readFileSync(path.join(base, name), 'utf8')
 const backlog = JSON.parse(read('studio-musescore-gap-backlog-20261104.json'))
 const index = JSON.parse(read('studio-musescore-handbook-topics-20261104.json'))
+const { chapters, productVersion } = JSON.parse(read('studio-manual/manifest.json'))
 const rows = backlog.entries, ids = new Set(rows.map(row => row.id))
 assert.equal(ids.size, rows.length, 'Duplicate gap IDs')
 const states = ['partial', 'preservation-only', 'no-public-ui', 'not-audited', 'not-verified', 'external-qa', 'scope-decision']
@@ -52,13 +53,13 @@ for (const topic of index.topics) for (const id of topic.gapIds) {
 const labels = {partial:'일부 지원', 'preservation-only':'보존 경로만 있음', 'no-public-ui':'직접 UI 없음', 'not-audited':'추가 조사 필요', 'not-verified':'실제 검수 미완', 'external-qa':'외부 검증 미완', 'scope-decision':'별도 제품 범위 결정'}
 const linked = index.topics.filter(topic => topic.gapIds.length).length
 const parentCount=rows.filter(row=>/^SMG-\d{3}$/.test(row.id)).length, childCount=rows.length-parentCount
-let developer = `# Studio · MuseScore 기능 차이 실행 백로그\n\n기준 ${backlog.checkedDate} · ${backlog.productVersion} · HEAD ${backlog.sourceHead}. 새 도움말 UI는 미배포다.\n\n정본은 같은 이름의 JSON이다. 이 문서와 앱의 지원 차이 장은 검증 스크립트가 생성·대조한다. 공식 [핸드북](https://handbook.musescore.org/)과 [목차](https://handbook.musescore.org/llms.txt)의 US/UK 중복을 제외한 ${index.topics.length}개 항목 중 ${linked}개를 아래 ${parentCount}개 상위 작업 묶음에 연결했다. 별도로 ${childCount}개 하위 슬라이스를 추적한다. 나머지 ${index.topics.length-linked}개는 상세 대조 대기이며 미지원이라고 판정하지 않았다. 목차 항목 수와 원자적 기능 수는 다르다.\n\n현재 소스·공개 UI와 가져온 값 보존/내부 재생/교환 출력은 서로 구분한다. queued는 자동 완성 약속이 아니라 현행 확인 후 작은 구현을 선택할 후보이며, needs-design은 기존 승인 정책을 바꾸기 전 범위를 정해야 한다. 외부·물리 검수 미완은 기능 부재가 아니다. 기존 로컬 roadmap/work-queue ID로 중복을 연결했고 원격 이슈는 만들지 않았다.\n\n[연속 실행 프롬프트](studio-musescore-next-goal-20261104.md) · [현재 설명서](studio-manual/README.md) · [공식 목차 대조 상태](studio-musescore-handbook-topics-20261104.json)\n\n| ID | 우선순위 | 작업 | 현재 지원 | 실행 상태 | 기존 백로그 |\n| --- | --- | --- | --- | --- | --- |\n`
+let developer = `# Studio · MuseScore 기능 차이 실행 백로그\n\n기준 ${backlog.checkedDate} · ${backlog.productVersion} · HEAD ${backlog.sourceHead}. 현재 배포의 기능 범위는 앱 사용설명서에서 확인한다.\n\n정본은 같은 이름의 JSON이다. 이 문서와 앱의 지원 차이 장은 검증 스크립트가 생성·대조한다. 공식 [핸드북](https://handbook.musescore.org/)과 [목차](https://handbook.musescore.org/llms.txt)의 US/UK 중복을 제외한 ${index.topics.length}개 항목 중 ${linked}개를 아래 ${parentCount}개 상위 작업 묶음에 연결했다. 별도로 ${childCount}개 하위 슬라이스를 추적한다. 나머지 ${index.topics.length-linked}개는 상세 대조 대기이며 미지원이라고 판정하지 않았다. 목차 항목 수와 원자적 기능 수는 다르다.\n\n현재 소스·공개 UI와 가져온 값 보존/내부 재생/교환 출력은 서로 구분한다. queued는 자동 완성 약속이 아니라 현행 확인 후 작은 구현을 선택할 후보이며, needs-design은 기존 승인 정책을 바꾸기 전 범위를 정해야 한다. 외부·물리 검수 미완은 기능 부재가 아니다. 기존 로컬 roadmap/work-queue ID로 중복을 연결했고 원격 이슈는 만들지 않았다.\n\n[연속 실행 프롬프트](studio-musescore-next-goal-20261104.md) · [현재 설명서](studio-manual/README.md) · [공식 목차 대조 상태](studio-musescore-handbook-topics-20261104.json)\n\n| ID | 우선순위 | 작업 | 현재 지원 | 실행 상태 | 기존 백로그 |\n| --- | --- | --- | --- | --- | --- |\n`
 for (const row of rows) developer += `| ${row.id} | ${row.priority} | ${row.title} | ${labels[row.featureState]} | ${row.status} | ${row.existingIds.join(', ') || '직접 연결 없음'} |\n`
 for (const row of rows) {
   developer += `\n## ${row.id} · ${row.title}\n\n- 현재: ${row.current}\n- 남은 범위: ${row.gap}\n- 정책 변경 검토: ${row.requiresPolicy ? '필요. 기존 승인 범위를 넘는 부분만 별도 제안하고 독립 작업은 계속한다.' : '기존 계약을 유지하는 작은 범위부터 조사한다.'}\n- 의존성: ${row.dependencies.join(', ') || '없음'}\n- 소스: ${row.sourceEvidence.map(item => `[${item.path}](../../${item.path})`).join(', ')}\n- 공식 근거: ${row.officialUrls.map((url, i) => `[참고 ${i+1}](${url})`).join(', ')}\n\n수용 기준:\n\n${row.acceptance.map(text => `- ${text}`).join('\n')}\n\n검증:\n\n${row.verification.map(text => `- ${text}`).join('\n')}\n`
   if (row.evidence.length) developer += `\n기록: ${row.evidence.map(file => `[${file}](../../${file})`).join(', ')}\n`
 }
-let manual = '# MuseScore와의 차이\n\n현재 지원과 앞으로의 작업을 구분합니다. 기준은 띠로리 Studio alpha.41입니다. 아래 목록은 출시 일정이나 지원 약속이 아닙니다. 목록에 없는 기능도 모든 세부 동작까지 동일하다는 뜻은 아닙니다.\n\n지원 중인 작업은 [기능 색인](feature-index.md)과 [단축키](10-shortcuts.md)를 확인하세요. 예를 들어 일반 타이·슬러, 꾸밈음 붙이기/변환, 도돌이표·볼타, MIDI·MusicXML·PDF·PNG 출력은 이미 제공하며 아래의 추가 범위와 다릅니다.\n'
+let manual = `# MuseScore와의 차이\n\n현재 지원과 앞으로의 작업을 구분합니다. 기준은 띠로리 Studio ${productVersion}입니다. 아래 목록은 출시 일정이나 지원 약속이 아닙니다. 목록에 없는 기능도 모든 세부 동작까지 동일하다는 뜻은 아닙니다.\n\n지원 중인 작업은 [기능 색인](feature-index.md)과 [단축키](10-shortcuts.md)를 확인하세요. 예를 들어 일반 타이·슬러, 꾸밈음 붙이기/변환, 도돌이표·볼타, MIDI·MusicXML·PDF·PNG 출력은 이미 제공하며 아래의 추가 범위와 다릅니다.\n`
 
 for (const [i, category] of categories.entries()) {
   manual += `\n<a id="gaps-${i+1}"></a>\n## ${category}\n\n`
@@ -76,6 +77,5 @@ for (const [file, expected] of outputs) {
   if (process.argv.includes('--write')) fs.writeFileSync(path.join(base, file), expected)
   assert.equal(read(file), expected, `Regenerate explicitly: node scripts/verify-studio-parity-backlog.cjs --write (${file})`)
 }
-const chapters = JSON.parse(read('studio-manual/manifest.json')).chapters
 assert(chapters.some(chapter => chapter.file === '14-musescore-differences.md'), 'Support gaps must be readable in the offline app, not just a developer file')
 console.log(JSON.stringify({status:'passed', workGroups:parentCount, trackedEntries:rows.length, childSlices:childCount, officialIndexTopics:index.topics.length, linkedTopics:linked, topicAuditsPending:index.topics.length-linked, featureParityApproval:false, publicEntries:publicUserRows.length, publicUnresolvedEntries:publicUserRows.filter(row=>row.status!=='done').length, publicResolvedEntries:publicUserRows.filter(row=>row.status==='done').length, helpMetadataExcluded:rows.length-publicUserRows.length, statuses:rows.reduce((result, row) => ({...result,[row.status]:(result[row.status]||0)+1}),{})},null,2))

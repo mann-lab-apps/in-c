@@ -1,5 +1,9 @@
 > Current work: [live checkpoint and execution index](studio-active-work.md). Older Current/Latest headings below are historical evidence.
 
+## 2026-11-22 — alpha.41 이후 PNG 진단과 재출력
+
+같은 PNG 진단이 상태줄과 내보내기 설정 사이를 이동할 때 읽던 글자와 레이블·본문에 걸친 양방향 선택을 보존한다. 새 필드 초점과 진단 밖 수동 이동이 우선한다. 이전 문서의 진단이나 재시도로 끝난 진단은 다시 열리지 않는다. 격리 Electron·재출력 41경로와 전체 Vitest 775파일·7,347검사, Node-native 5검사를 통과했다. 외부 앱 opt-in 1검사는 건너뛰었다. 후속 실제 OS 파일 대화상자와 스크린리더 검증에는 별도 전면 입력 환경이 필요하다. [구현·검증 인계](../releases/studio-post-alpha41-20261122/handoff.md), [실행 큐](../releases/studio-post-alpha41-20261122/execution-queue.md)
+
 ## 2026-11-03 — 별도 desktop-brand worktree / 사용자 피드백
 
 `feature/studio-desktop-brand-20261103`, base653497ac, 미커밋 로컬 구현이다. 띠로리 Studio 이름/blue-pencil 패키지·데이터 경로 보존, 빠르기 draft, 꾸밈음 노출/변환, 명시적 음가 덮어쓰기, 실제 단축키 도움말, MuseScore식 방향키, tapered 슬러와 한 마디 박자표 진입을 검증했다. 원본 작업 공간과 기존 설치/게시물은 바꾸지 않았다.

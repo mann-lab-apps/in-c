@@ -45,3 +45,25 @@ export function ownsReportTextSelection(target: EventTarget | null): boolean {
   }
   return true
 }
+
+/** The visible location is a text offset. A moved disclosure can wrap its
+ * message differently and belong to a different scrolling surface.
+ */
+export function visibleReportTextOffset(message: Element, text: Node): number | undefined {
+  if (!isReadable(message)) return
+  const document = message.ownerDocument
+  const range = document.createRange()
+  range.selectNodeContents(text)
+  const width = document.defaultView?.innerWidth ?? 0
+  for (const rect of range.getClientRects?.() ?? []) {
+    const left = Math.max(0, rect.left)
+    const right = Math.min(width, rect.right)
+    if (right <= left || !rect.height) continue
+    const x = (left + right) / 2
+    const y = (rect.top + rect.bottom) / 2
+    // Check actual clipping by both the document and a sticky status bar.
+    if (document.elementFromPoint(x, y) !== message) continue
+    const caret = document.caretPositionFromPoint?.(x, y)
+    if (caret?.offsetNode === text) return caret.offset
+  }
+}

@@ -1,0 +1,267 @@
+{
+  "base": "24971ce6141a0c91b2e1b40d556297d771bc0ad2",
+  "branch": "feature/studio-post-alpha41-20261122",
+  "workspaceState": "uncommitted",
+  "source": [
+    {
+      "path": "src/renderer/src/App.tsx",
+      "bytes": 569474,
+      "sha256": "d72efb4f50417b05af209edf1b55d957e18de9a90439272427fad48aec9b6e33"
+    },
+    {
+      "path": "src/renderer/src/App.png-export.test.tsx",
+      "bytes": 22852,
+      "sha256": "1d416f489257b5e007eb1678e92dc26db8b10837b6a4b487af2f16ba51af7d2c"
+    },
+    {
+      "path": "src/renderer/src/editor/report-text-selection.ts",
+      "bytes": 3188,
+      "sha256": "8e052743228e104cdabb0f98662f35be55f78755923439225fc9ca1c1b09aea4"
+    },
+    {
+      "path": "docs/releases/studio-post-alpha41-20261122/qa/reader-source.chromatics",
+      "bytes": 1939,
+      "sha256": "a7f6bb80d3098bc1ebe400b82fdb8fe5b59490363015d114c7b48cef687ea899"
+    },
+    {
+      "path": "docs/releases/studio-post-alpha41-20261122/qa/verify-png-reader.cjs",
+      "bytes": 33963,
+      "sha256": "a62f68b008e5d5c317971f86fbe927b7be81db916d004e425f1f83be23cc5432"
+    }
+  ],
+  "build": [
+    {
+      "path": "out/post-alpha41-png/reader-scope-build/main/index.js",
+      "bytes": 106840,
+      "sha256": "e6e21a3684acb6feed6f665722e8956d0f15acc2ac2a2133614d70a20e0aa670"
+    },
+    {
+      "path": "out/post-alpha41-png/reader-scope-build/preload/index.js",
+      "bytes": 2511,
+      "sha256": "f73483be74a1ab3bfdb85c5bd054c96f15a36c8cfb06cc5d79ba4a2e0e3d93e6"
+    },
+    {
+      "path": "out/post-alpha41-png/reader-scope-build/renderer/assets/index-Dj5zz4RK.css",
+      "bytes": 110981,
+      "sha256": "239ab08d5b8bcb5faa67ceb64ffc1d5ae1278ee842b605e1588a49aa3b040e54"
+    },
+    {
+      "path": "out/post-alpha41-png/reader-scope-build/renderer/assets/index-DtNlKu2U.js",
+      "bytes": 4589508,
+      "sha256": "534f5aa6e2d39d18df37df47f1d8d301dd0a9785ab16bdc802d3eed4a8e272ac"
+    }
+  ],
+  "redLogs": [
+    {
+      "path": "out/post-alpha41-png/red-scroll.log",
+      "bytes": 10539,
+      "sha256": "8efcfb04605b4955394a9e5a2260e54da1959e49ab769374d58acea276dc5500"
+    },
+    {
+      "path": "out/post-alpha41-png/unit-red-range.log",
+      "bytes": 249425,
+      "sha256": "c5a6319bbbc3442414ffe4846f575605e603aa3ff636496a726681112d37fcfc"
+    },
+    {
+      "path": "out/post-alpha41-png/red-outside.log",
+      "bytes": 4750,
+      "sha256": "3e3c7677f6d22edfd28a20fe1b2cf68438ffb8b71bfc8ce564a750fc370b6169"
+    }
+  ],
+  "runs": [
+    {
+      "name": "verified-scroll",
+      "cases": 12,
+      "log": {
+        "path": "out/post-alpha41-png/verified-scroll.log",
+        "bytes": 53110,
+        "sha256": "91e2567f602e7500b1223281c72519c1f45699d91476053b1e3ef6259196b380"
+      },
+      "receipt": {
+        "path": "out/post-alpha41-png/verified-scroll/results.json",
+        "bytes": 29290,
+        "sha256": "a71240a376c42f25b6d85b2b25bd16fce384ed6457183536576803068c014ca5"
+      },
+      "outputSizes": [
+        [
+          1240,
+          1754,
+          5906
+        ]
+      ],
+      "checksSpaceFromScore": 0
+    },
+    {
+      "name": "all-range",
+      "cases": 24,
+      "log": {
+        "path": "out/post-alpha41-png/all-range.log",
+        "bytes": 111380,
+        "sha256": "49519402ad60367f275facb754279c455e6291aee90c4d16cdb1eb7f710a4e2b"
+      },
+      "receipt": {
+        "path": "out/post-alpha41-png/all-range/results.json",
+        "bytes": 63964,
+        "sha256": "8dfe1b5f961808dc45b396836feeff6a7a921f7dc6014c5fb4d5c8c77a1308d0"
+      },
+      "outputSizes": [
+        [
+          1240,
+          1754,
+          5906
+        ]
+      ],
+      "checksSpaceFromScore": 2
+    },
+    {
+      "name": "all-outside",
+      "cases": 1,
+      "log": {
+        "path": "out/post-alpha41-png/all-outside.log",
+        "bytes": 4882,
+        "sha256": "3148628f415b2b09822922e1787da01fdf166240eb09b552e51be46ea4d347ae"
+      },
+      "receipt": {
+        "path": "out/post-alpha41-png/all-outside/results.json",
+        "bytes": 2470,
+        "sha256": "419fe3c5a4881d9148f8a8bdfd932e89e15ca035a8994de15f097bf408df0c38"
+      },
+      "outputSizes": [
+        [
+          1240,
+          1754,
+          5906
+        ]
+      ],
+      "checksSpaceFromScore": 0
+    },
+    {
+      "name": "all-replacement",
+      "cases": 2,
+      "log": {
+        "path": "out/post-alpha41-png/all-replacement.log",
+        "bytes": 16012,
+        "sha256": "0977a095beb79ad5fa3e4167dc8e6503104ae7513a7b1a518f69d1a23495a2ec"
+      },
+      "receipt": {
+        "path": "out/post-alpha41-png/all-replacement/results.json",
+        "bytes": 4732,
+        "sha256": "1b94878d493d6abd23d273c685cefeef48620a7864662e0f58a56c795ce45208"
+      },
+      "outputSizes": [
+        [
+          1240,
+          1754,
+          5906
+        ]
+      ],
+      "checksSpaceFromScore": 0
+    },
+    {
+      "name": "verified-help-960",
+      "cases": 1,
+      "log": {
+        "path": "out/post-alpha41-png/verified-help-960.log",
+        "bytes": 3869,
+        "sha256": "e8780186f85a710e2651bd8e7889381e39dbc5883cbd78a2db1d76a106c1e111"
+      },
+      "receipt": {
+        "path": "out/post-alpha41-png/verified-help-960/results.json",
+        "bytes": 2098,
+        "sha256": "8a205a80d930ee0b06e2c1cd91c86b384ee82db2e2ca3538920faed012eb447b"
+      },
+      "outputSizes": [
+        [
+          2480,
+          3508,
+          11811
+        ]
+      ],
+      "checksSpaceFromScore": 0
+    },
+    {
+      "name": "verified-help-1400",
+      "cases": 1,
+      "log": {
+        "path": "out/post-alpha41-png/verified-help-1400.log",
+        "bytes": 3879,
+        "sha256": "02605860b0e1eb6c1f026555e757fc3cc36ac7c1cd20823c694f255501a84f5a"
+      },
+      "receipt": {
+        "path": "out/post-alpha41-png/verified-help-1400/results.json",
+        "bytes": 2085,
+        "sha256": "923ea16a28b8a29b3116ab5e5716e027e8b27ffcb4e185d94b0cd73dcc6027fa"
+      },
+      "outputSizes": [
+        [
+          2480,
+          3508,
+          11811
+        ]
+      ],
+      "checksSpaceFromScore": 0
+    }
+  ],
+  "reviewedCaptures": [
+    {
+      "path": "out/post-alpha41-png/verified-scroll/1400-xml-cancel-reading-after.png",
+      "bytes": 253869,
+      "sha256": "a3ef44028224940593790797b376ac4f449f015f6771d7ec284e3fcbde3765db"
+    },
+    {
+      "path": "out/post-alpha41-png/all-range/1400-xml-cancel-backward-after.png",
+      "bytes": 201186,
+      "sha256": "5a37b25331d1d5f5390da14ca051246ad92a4291840275adc7000ebfa3ca7c94"
+    },
+    {
+      "path": "out/post-alpha41-png/qa-outside/960-pdf-error-reading-before.png",
+      "bytes": 207372,
+      "sha256": "a8285f8100736667087dcd21bed4d2618c3768c2eadfb5c01ea329a6437c0f2d"
+    },
+    {
+      "path": "out/post-alpha41-png/qa-outside/960-pdf-error-reading-after.png",
+      "bytes": 124294,
+      "sha256": "abbed6b5e17ed43028ab70a347c8cc7634ae32f16dc375f3dd5a2bdcbe5182ba"
+    },
+    {
+      "path": "out/post-alpha41-png/verified-help-960/960-help-retry-help-manual.png",
+      "bytes": 216866,
+      "sha256": "94d69b6379f21783183c1c0eb13256d058bc023272305af23d4b5f2fc2e80b04"
+    }
+  ],
+  "isolatedAppCases": 41,
+  "testAll": {
+    "command": "npm run test:all",
+    "exit": 0,
+    "elapsedSeconds": 1722,
+    "vitest": {
+      "filesPassed": 775,
+      "filesSkipped": 1,
+      "testsPassed": 7347,
+      "testsSkipped": 1
+    },
+    "nodeNative": {
+      "testsPassed": 5
+    },
+    "scopeLock": {
+      "paths": 1805,
+      "sha256": "938d2ed9a8df9bab03bda59b701243c55713fd1b259b96e5abf6d17e004e4abb",
+      "verifiedAfterExit": true
+    },
+    "log": {
+      "path": "out/post-alpha41-png/test-all.log",
+      "bytes": 1596497,
+      "sha256": "21a19ddd91c281d2cf62354673c1bc3fc44dfafb219441023ddd5e3d61eeb5d8"
+    },
+    "originalExit": {
+      "path": "out/post-alpha41-png/original-exit.json",
+      "bytes": 26,
+      "sha256": "90ce05e36cf0070c7c4030a76660899673547407273d3868b207adc8ed1a0946"
+    },
+    "independentCheck": {
+      "path": "out/post-alpha41-png/frozen-after.log",
+      "bytes": 91,
+      "sha256": "8e7c6d4de5391069893ac9ea99a8a3ce6bb8f846b323aae4407bf342b21a81d4"
+    }
+  }
+}

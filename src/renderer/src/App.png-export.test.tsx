@@ -152,7 +152,7 @@ describe('PNG file output ownership',()=>{
     if (format === 'MIDI') expect(other.getByText(otherError)).toBeVisible()
   }, 15_000)
 
-  it.each(['PNG text', 'PDF field'] as const)('preserves the active reader when a late MIDI success moves PNG details with %s active', async owner => {
+  it.each(['PNG text', 'forward range', 'backward range', 'foreign range', 'PDF field', 'outside scroll'] as const)('preserves the active reader when a late MIDI success moves PNG details with %s active', async owner => {
     const score = await app()
     const diagnostic = 'Could not write the selected PNG page to the destination.'
     let completeMidi!: (value: { fileName: string }) => void
@@ -165,12 +165,26 @@ describe('PNG file output ownership',()=>{
     fireEvent.click(original.getByRole('button', { name: '기술 정보' }))
     const originalMessage = original.getByText(diagnostic)
     expect(originalMessage).toBeVisible()
+    const meta = original.getByText('PNG 출력 진단')
+    expect(meta).toBeVisible()
     const selection = document.getSelection()!
-    act(() => {
-      retry.blur()
-      selection.setBaseAndExtent(originalMessage.firstChild!, 15, originalMessage.firstChild!, 4)
-    })
-    expect(selection.toString()).toBe(diagnostic.slice(4, 15))
+    if (owner === 'outside scroll') {
+      const toggle = original.getByRole('button', { name: '기술 정보' })
+      act(() => toggle.focus())
+      fireEvent.wheel(document.querySelector('.score-canvas')!, { deltaY: -135 })
+      expect(toggle).toHaveFocus()
+    } else {
+      act(() => {
+        retry.blur()
+        if (owner === 'forward range') selection.setBaseAndExtent(meta.firstChild!, 4, originalMessage.firstChild!, 15)
+        else if (owner === 'backward range') selection.setBaseAndExtent(originalMessage.firstChild!, 15, meta.firstChild!, 4)
+        else if (owner === 'foreign range') selection.setBaseAndExtent(originalMessage.firstChild!, 15, document.querySelector('.studio-status__result')!.firstChild!, 4)
+        else selection.setBaseAndExtent(originalMessage.firstChild!, 15, originalMessage.firstChild!, 4)
+      })
+    }
+    const originalText = selection.toString()
+    if (owner === 'PNG text' || owner === 'PDF field') expect(originalText).toBe(diagnostic.slice(4, 15))
+    else if (owner !== 'outside scroll') expect(originalText.length).toBeGreaterThan(0)
 
     const field = screen.getByRole('spinbutton', { name: 'PDF 목표 장수' })
     if (owner === 'PDF field') act(() => field.focus())
@@ -182,22 +196,29 @@ describe('PNG file output ownership',()=>{
     const replacement = local.getByText(diagnostic)
     expect(replacement).toBeVisible()
     expect(replacement).not.toBe(originalMessage)
-    if (owner === 'PNG text') {
-      expect(selection.toString()).toBe(diagnostic.slice(4, 15))
-      expect(selection.anchorNode).toBe(replacement.firstChild)
-      expect(selection.anchorOffset).toBe(15)
-      expect(selection.focusNode).toBe(replacement.firstChild)
-      expect(selection.focusOffset).toBe(4)
-      expect(document.body).toHaveFocus()
-    } else {
+    if (owner === 'foreign range') {
+      expect(replacement.parentElement).not.toContainElement(selection.anchorNode?.parentElement ?? null)
+      expect(replacement.parentElement).not.toContainElement(selection.focusNode?.parentElement ?? null)
+    } else if (owner === 'PDF field') {
       expect(selection.toString()).toBe('')
       expect(field).toHaveFocus()
+    } else if (owner === 'outside scroll') {
+      expect(document.body).toHaveFocus()
+      expect(selection.toString()).toBe('')
+    } else {
+      const metaText = local.getByText('PNG 출력 진단').firstChild
+      expect(selection.toString()).toBe(originalText)
+      expect(selection.anchorNode).toBe(owner === 'forward range' ? metaText : replacement.firstChild)
+      expect(selection.anchorOffset).toBe(owner === 'forward range' ? 4 : 15)
+      expect(selection.focusNode).toBe(owner === 'backward range' ? metaText : replacement.firstChild)
+      expect(selection.focusOffset).toBe(owner === 'forward range' ? 15 : 4)
+      expect(document.body).toHaveFocus()
     }
 
     vi.mocked(window.inC.png.save).mockResolvedValueOnce({ filePath: '/tmp/retry.png', fileName: 'retry.png', pageCount: 1, kind: 'file' })
     fireEvent.click(retry)
     await waitFor(() => expect(document.querySelector('.studio-status__result')).toHaveTextContent('retry.png'))
-    expect(selection.toString()).toBe('')
+    if (owner !== 'foreign range') expect(selection.toString()).toBe('')
     expect(screen.queryByRole('group', { name: 'PNG 출력 기술 정보' })).toBeNull()
     expect(playbackMockState.lastScore).toEqual(score)
   }, 15_000)

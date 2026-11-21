@@ -294,7 +294,11 @@ import {
   resolvePitchKeyboardAction,
   resolvePitchShortcut
 } from './editor/keyboard-input'
-import { isReportNavigationKey, ownsReportTextSelection } from './editor/report-text-selection'
+import {
+  isReportNavigationKey,
+  ownsReportTextSelection,
+  visibleReportTextOffset
+} from './editor/report-text-selection'
 import {
   beginTupletInput,
   buildSequentialInput,
@@ -437,7 +441,9 @@ interface MidiReportPanelState {
   warnings: MidiExportWarning[]
 }
 
-const pngStatusDiagnosticSelector = '.studio-status__technical [aria-label="PNG 출력 기술 정보"]'
+const pngDiagnosticSelector = '[aria-label="PNG 출력 기술 정보"]'
+const pngStatusDiagnosticSelector = `.studio-status__technical ${pngDiagnosticSelector}`
+type DiagnosticTextPoint = { part: 'meta' | 'message'; offset: number }
 const midiExportFailureMessage = 'MIDI 내보내기를 완료하지 못했습니다. 다시 시도하거나 기술 정보를 확인해 주세요.'
 const quintupletPreset = {actualNotes:5,normalNotes:4,durationValue:'16th' as const,label:'다섯잇단음표'}
 const dupletPreset = {actualNotes:2,normalNotes:3,durationValue:'eighth' as const,label:'2연음'}
@@ -858,6 +864,11 @@ export const App = () => {
   const scoreViewportFollowing = useRef(true)
   const playbackViewportRunning = useRef(false)
   const workspaceViewportIntent = useRef(0)
+  const pngManualReader = useRef<{ group: Element; intent: number; insideDiagnostic: boolean } | undefined>(undefined)
+  const isPngManualReader = (target: Element) => {
+    const reader = pngManualReader.current
+    return reader?.intent === workspaceViewportIntent.current && reader.group.contains(target)
+  }
   const paletteMeasureDrag = useRef<{ owner: object; token: string; kind: keyof typeof paletteMeasureMimes; presetId: string } | undefined>(undefined)
   const [paletteDropHighlight, setPaletteDropHighlight] = useState<{ rect?: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>; label: string; kind: keyof typeof paletteMeasureMimes }>()
   const clearPaletteMeasureDrag = useCallback(() => {
@@ -1086,7 +1097,7 @@ export const App = () => {
         // A cleared reading selection resumes cursor following. Do not let a
         // later dock/footer resize pull that same old reader back into view.
         const cursorOwnsReader=playbackViewportRunning.current&&releasedReader===target&&!ownsReportTextSelection(target)
-        if(target instanceof Element && !cursorOwnsReader && (
+        if(target instanceof Element && !cursorOwnsReader && !isPngManualReader(target) && (
           (dockWorkspace.current?.contains(target) && (target.closest('aside') || target.matches('.notation-event,.notation-span-target,.notation-rehearsal-mark[role="button"],.notation-system-text-target[role="button"],.notation-staff-text-target[role="button"],.notation-expression-text-target[role="button"],.notation-dynamic-target[role="button"],.notation-harmony-target[role="button"]'))) ||
           target.closest(`.studio-part-mixer,.studio-warning-report,.studio-export-tools,.studio-page-setup,.studio-tempo-event,.studio-part-labels,.studio-repeat-tools,.studio-metadata-editor,.studio-input-target,.studio-score-view,${pngStatusDiagnosticSelector}`)))
           revealWorkspaceTarget(target)
@@ -1102,6 +1113,7 @@ export const App = () => {
     const trackSurfaceFocus=()=>{
       if(isRestoringNotationFocus(document.activeElement))return
       selectedReader=null;releasedReader=null
+      pngManualReader.current = undefined
       following=true
       scoreViewportFollowing.current=true
       const target=document.activeElement
@@ -1137,12 +1149,19 @@ export const App = () => {
     // destination. Sticky-pane resizing is not a request to scroll back to
     // the old focused field/note. Keep input/playback following independent.
     const suspend=()=>{workspaceViewportIntent.current+=1;following=false;window.cancelAnimationFrame(frame);validationReveal.current=undefined}
+    const rememberPngScroll = (target: EventTarget | null) => {
+      const origin = target instanceof Element ? target.closest(pngDiagnosticSelector) : null
+      const group = origin ?? document.activeElement?.closest(pngDiagnosticSelector) ?? pngManualReader.current?.group
+      pngManualReader.current = group
+        ? { group, intent: workspaceViewportIntent.current, insideDiagnostic: origin === group } : undefined
+    }
     const scrollTracker=createViewportScrollTracker()
     const wheel=(event:WheelEvent|TouchEvent)=>{
       if(event instanceof WheelEvent&&!event.deltaX&&!event.deltaY)return
       const canvas=scoreCanvas.current
       if(!canvas||!scrollTracker.isInternalScroll(event,canvas))scoreViewportFollowing.current=false
       suspend()
+      if (!(event instanceof WheelEvent) || event.deltaY) rememberPngScroll(event.target)
     }
     const navigation=(event:KeyboardEvent)=>{
       // A pending field's explicit Save requests its confirmation guidance,
@@ -1157,9 +1176,14 @@ export const App = () => {
         const canvas=scoreCanvas.current
         if(event.target===document.body||event.target===canvas||event.target instanceof Element&&canvas?.contains(event.target))scoreViewportFollowing.current=false
         suspend()
+        rememberPngScroll(event.target)
       }
     }
-    const stopScrollbarObservation=observeDocumentScrollbarIntent(()=>{scoreViewportFollowing.current=false;suspend()})
+    const stopScrollbarObservation=observeDocumentScrollbarIntent(()=>{
+      scoreViewportFollowing.current=false
+      suspend()
+      rememberPngScroll(null)
+    })
     window.addEventListener('wheel',wheel,{capture:true,passive:true})
     window.addEventListener('touchstart',scrollTracker.touchStart,{capture:true,passive:true})
     window.addEventListener('touchmove',wheel,{capture:true,passive:true})
@@ -7108,56 +7132,92 @@ export const App = () => {
   const currentPngDiagnostic = currentPngNotice?.details
   const pngDetailsInTools = currentPngDiagnostic === visibleFileStatus?.details ? undefined : currentPngDiagnostic
 
-  // When the same PNG error moves, preserve the active toggle or the selected
-  // portion of its raw message. Only this commit can hand off the reader.
+  // A relocated PNG error gets one handoff within the current commit.
   const detachedPngReader = useRef<{
     diagnostic: StudioOperationDiagnostic
-    selection?: { anchor: number; focus: number }
+    selection?: { anchor: DiagnosticTextPoint; focus: DiagnosticTextPoint; reveal: boolean }
+    scrollOffset?: number
+    toggleFocused: boolean
   } | undefined>(undefined)
   const pngDiagnosticRef = useCallback((group: HTMLDivElement | null) => {
     if (!group || !currentPngDiagnostic) return
     const document = group.ownerDocument
     const toggle = group.querySelector<HTMLButtonElement>('button[aria-expanded]')
     const message = group.querySelector('.studio-warning-technical__message')
-    const text = message?.firstChild
+    const nodes = {
+      meta: group.querySelector('.studio-warning-technical__meta')?.firstChild,
+      message: message?.firstChild
+    }
     const selection = document.getSelection()
+    const point = (node: Node | null, offset: number): DiagnosticTextPoint | undefined => {
+      if (node && node === nodes.meta) return { part: 'meta', offset }
+      if (node && node === nodes.message) return { part: 'message', offset }
+    }
     const detached = detachedPngReader.current
     if (detached?.diagnostic === currentPngDiagnostic && document.activeElement === document.body) {
       if (detached.selection) {
-        if (message && text && selection?.isCollapsed && toggle?.getAttribute('aria-expanded') === 'true') {
-          const { anchor, focus } = detached.selection
-          selection.setBaseAndExtent(text, anchor, text, focus)
+        const { anchor, focus } = detached.selection
+        const anchorNode = nodes[anchor.part], focusNode = nodes[focus.part]
+        if (anchorNode && focusNode && selection?.isCollapsed && toggle?.getAttribute('aria-expanded') === 'true') {
+          selection.setBaseAndExtent(anchorNode, anchor.offset, focusNode, focus.offset)
           const intent = workspaceViewportIntent.current
-          window.requestAnimationFrame(() => {
-            if (intent !== workspaceViewportIntent.current || document.activeElement !== document.body ||
-                selection.anchorNode !== text || selection.anchorOffset !== anchor ||
-                selection.focusNode !== text || selection.focusOffset !== focus) return
+          if (detached.selection.reveal) window.requestAnimationFrame(() => {
+            const focusTarget = focusNode.parentElement
+            if (!focusTarget || intent !== workspaceViewportIntent.current || document.activeElement !== document.body ||
+                selection.anchorNode !== anchorNode || selection.anchorOffset !== anchor.offset ||
+                selection.focusNode !== focusNode || selection.focusOffset !== focus.offset) return
             const position = document.createRange()
-            position.setStart(text, focus)
+            position.setStart(focusNode, focus.offset)
             position.collapse(true)
-            scrollWorkspaceTargetIntoView(message, position)
+            scrollWorkspaceTargetIntoView(focusTarget, position)
           })
         }
-      } else if (toggle) {
+      } else if (detached.scrollOffset !== undefined && nodes.message && message && selection?.isCollapsed &&
+                 toggle?.getAttribute('aria-expanded') === 'true') {
+        const position = document.createRange()
+        position.setStart(nodes.message, detached.scrollOffset)
+        position.collapse(true)
+        if (detached.toggleFocused) toggle.focus({ preventScroll: true })
+        const focus = document.activeElement
+        const reader = { group, intent: workspaceViewportIntent.current, insideDiagnostic: true }
+        pngManualReader.current = reader
+        window.requestAnimationFrame(() => {
+          if (pngManualReader.current === reader && reader.intent === workspaceViewportIntent.current &&
+              document.activeElement === focus && selection.isCollapsed) scrollWorkspaceTargetIntoView(message, position)
+        })
+      } else if (detached.toggleFocused && toggle) {
         toggle.focus()
         revealWorkspaceTarget(toggle)
       }
     }
     return () => {
-      if (text && selection && !selection.isCollapsed && selection.anchorNode === text &&
-          selection.focusNode === text && ownsReportTextSelection(document.activeElement)) {
-        detachedPngReader.current = {
-          diagnostic: currentPngDiagnostic,
-          selection: { anchor: selection.anchorOffset, focus: selection.focusOffset }
+      const active = document.activeElement
+      const toggleFocused = active === toggle
+      const reader = pngManualReader.current
+      const manuallyMoved = reader?.group === group && reader.intent === workspaceViewportIntent.current
+      const movedOutside = manuallyMoved && !reader.insideDiagnostic
+      if (reader?.group === group) pngManualReader.current = undefined
+      if (selection && !selection.isCollapsed && ownsReportTextSelection(active)) {
+        const anchor = point(selection.anchorNode, selection.anchorOffset)
+        const focus = point(selection.focusNode, selection.focusOffset)
+        if (anchor && focus) {
+          detachedPngReader.current = {
+            diagnostic: currentPngDiagnostic,
+            selection: { anchor, focus, reveal: !movedOutside },
+            toggleFocused
+          }
+          return
         }
-      } else if (toggle && document.activeElement === toggle) {
-        detachedPngReader.current = { diagnostic: currentPngDiagnostic }
       }
+      if (movedOutside) return
+      const scrollOffset = manuallyMoved && (toggleFocused || active === document.body) && selection?.isCollapsed && message && nodes.message
+          ? visibleReportTextOffset(message, nodes.message) : undefined
+      if (toggleFocused || scrollOffset !== undefined)
+        detachedPngReader.current = { diagnostic: currentPngDiagnostic, scrollOffset, toggleFocused }
     }
   }, [currentPngDiagnostic])
   useLayoutEffect(() => {
-    // No matching destination means the settings were hidden or the error
-    // ended. Reopening later must not revive its previous reader.
+    // A hidden or replaced error has no matching destination in this commit.
     detachedPngReader.current = undefined
   })
   // Replacing the footer with another format must detach the PNG group before
@@ -7298,7 +7358,7 @@ export const App = () => {
         // viewport navigation cancels this deferred reveal.
         if (target.closest('.studio-warning-report,.studio-export-tools,.studio-input-target,.studio-measure-tools')) {
           const intent=workspaceViewportIntent.current
-          window.requestAnimationFrame(() => { if(intent===workspaceViewportIntent.current)revealWorkspaceTarget(target) })
+          window.requestAnimationFrame(() => { if(intent===workspaceViewportIntent.current&&!isPngManualReader(target))revealWorkspaceTarget(target) })
         }
         if (target.matches('.notation-event,.notation-span-target,.notation-rehearsal-mark[role="button"],.notation-system-text-target[role="button"],.notation-staff-text-target[role="button"],.notation-expression-text-target[role="button"],.notation-dynamic-target[role="button"],.notation-harmony-target[role="button"]') && target.closest('.score-canvas')) menuScoreFocusOrigin.current = target
         else if (!target.closest('.studio-application-menu')) menuScoreFocusOrigin.current = null
