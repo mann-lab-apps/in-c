@@ -1,5 +1,5 @@
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { createHash } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { RecentFileStore } from './recent-files'
@@ -50,7 +50,7 @@ it.each((['write','rename'] as const).flatMap(stage=>(['add','remove'] as const)
   let passed=false
   try {
     await fs.writeFile(path,original)
-    fault.stage=stage;fault.root=directory+'/';fault.index=path
+    fault.stage=stage;fault.root=directory+sep;fault.index=path
     const store=new RecentFileStore(()=>path)
     const attempted={filePath:'/fixture/not-committed.musicxml',fileName:'not-committed.musicxml'}
     const failed=operation==='add'?store.add(attempted):store.remove(native.filePath)

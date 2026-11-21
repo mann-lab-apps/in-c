@@ -37,14 +37,19 @@ it.skipIf(!validatorAvailable).each(cases)('preserves $field $kind with an indep
   const dir = mkdtempSync(join(tmpdir(), 'studio-line-end-xsd-'))
   try {
     const file = join(dir, 'score.musicxml'), schema = resolve('src/musicxml/schema/musicxml-4.0')
-    writeFileSync(file, serializeMusicXmlWithReport(score).contents)
+    const { contents } = serializeMusicXmlWithReport(score)
+    writeFileSync(file, contents)
     const env = { ...process.env, XML_CATALOG_FILES: join(schema, 'catalog.xml') }
     const validated = spawnSync('xmllint', ['--nonet', '--noout', '--schema', join(schema, 'musicxml.xsd'), file], { encoding: 'utf8', env })
     expect(validated.status, validated.stderr).toBe(0)
     const xpath = field === 'title' ? '/score-partwise/work/work-title' : '/score-partwise/identification/creator'
-    const parsed = spawnSync('xmllint', ['--nonet', '--xpath', `string(${xpath})`, file], { encoding: 'utf8', env })
+    // Compare both strings inside libxml2. Windows CLI text mode otherwise
+    // translates literal LF bytes in the extracted value to CRLF on stdout.
+    const expected = Array.from(value, char => `&#${char.codePointAt(0)};`).join('')
+    const comparison = join(dir, 'comparison.xml')
+    writeFileSync(comparison, contents.replace('</score-partwise>', `<expected>${expected}</expected></score-partwise>`))
+    const parsed = spawnSync('xmllint', ['--nonet', '--xpath', `string(${xpath}) = string(/score-partwise/expected)`, comparison], { encoding: 'utf8', env })
     expect(parsed.status, parsed.stderr).toBe(0)
-    // xmllint appends one CLI line terminator; the field itself ends in 뒤.
-    expect(parsed.stdout.replace(/\n$/, '')).toBe(value)
+    expect(parsed.stdout.trim()).toBe('true')
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })

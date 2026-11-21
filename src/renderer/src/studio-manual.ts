@@ -4,7 +4,7 @@ import { studioShortcutMarkdown } from './studio-shortcuts'
 // Local, build-time documents only. No network, filesystem bridge or raw HTML.
 const documents = import.meta.glob('../../../docs/product/studio-manual/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 export const manualChapters = manifest.chapters.map(chapter => ({ ...chapter,
-  content: documents[`../../../docs/product/studio-manual/${chapter.file}`] ?? ''
+  content: (documents[`../../../docs/product/studio-manual/${chapter.file}`] ?? '').replace(/\r\n/g, '\n')
 }))
 export const manualVersion = manifest.productVersion
 export const shortcutMarkdown = studioShortcutMarkdown()

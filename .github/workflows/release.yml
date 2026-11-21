@@ -59,6 +59,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run piano:verify
+      - name: Verify platform-sensitive release behavior
+        run: >-
+          npm test --
+          --maxWorkers=2
+          scripts/desktop-brand.test.mjs
+          scripts/studio-native-drag-input.test.mjs
+          src/main/project-sync-failure.test.ts
+          src/main/recent-files.failure.test.ts
+          src/musicxml/serialize-line-endings.test.ts
+          src/renderer/src/App.manual.test.tsx
+          src/renderer/src/App.ornament-manual.test.tsx
+          src/renderer/src/App.part-page-setup-key-ownership.test.tsx
+          src/renderer/src/App.part-span-reset.test.tsx
+          StudioManual
       - run: npm run package:dir
       - run: ${{ matrix.smoke }}
 

@@ -12,7 +12,7 @@ vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
   return { ...actual, open: vi.fn(async (...args: Parameters<typeof actual.open>) => {
     const handle = await actual.open(...args)
-    if (fault.directory && String(args[0]).startsWith(`${fault.directory}/.chromatics-`)) {
+    if (fault.directory && String(args[0]).startsWith(join(fault.directory, '.chromatics-'))) {
       const sync = handle.sync.bind(handle), close = handle.close.bind(handle)
       handle.sync = async () => {
         fault.calls++

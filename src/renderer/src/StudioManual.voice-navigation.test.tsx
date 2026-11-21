@@ -3,6 +3,12 @@ import '@testing-library/jest-dom/vitest'
 import {cleanup,fireEvent,render,screen,within} from '@testing-library/react'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {StudioManual} from './StudioManual'
+
+// Protect the bundled heading and anchor parser with Windows-style line endings.
+vi.mock('../../../docs/product/studio-manual/03-notes.md?raw', async importOriginal => {
+ const { default: text } = await importOriginal<{ default: string }>()
+ return { default: text.replace(/\r?\n/g, '\r\n') }
+})
 beforeEach(()=>{
  Object.defineProperty(HTMLDialogElement.prototype,'showModal',{configurable:true,value(this:HTMLDialogElement){this.setAttribute('open','')}})
  Object.defineProperty(HTMLDialogElement.prototype,'close',{configurable:true,value(this:HTMLDialogElement){this.removeAttribute('open')}})
