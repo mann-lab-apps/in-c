@@ -1,3 +1,4 @@
+import fallbackManifest from './download-manifest.json'
 import { bindTrackedLinks, configureAnalytics } from './analytics.js'
 import { initAuthNavigation } from './auth-nav.js'
 import { initGlobalBanner } from './global-banner.js'
@@ -11,55 +12,6 @@ const platformMatchers = [
   { id: 'windows', patterns: ['Windows', 'Win32', 'Win64'] },
   { id: 'linux', patterns: ['Linux', 'X11'] }
 ]
-
-const fallbackManifest = {
-  version: '0.1.0-alpha.34',
-  releaseTag: 'v0.1.0-alpha.34',
-  releaseDate: '2026-10-21',
-  releasePublished: true,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.34',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.34/SHA256SUMS.txt',
-  signing: {
-    macOS: 'Developer ID 서명 및 Apple 공증 완료.',
-    Windows: '미서명 prerelease. SmartScreen 경고가 표시될 수 있습니다.',
-    Linux: 'V1 public release target이 아닙니다. Linux package는 post-V1 follow-up입니다.'
-  },
-  downloads: [
-    {
-      id: 'macos',
-      platform: 'macOS',
-      label: 'macOS',
-      architecture: 'Universal',
-      format: 'DMG',
-      available: true,
-      fileName: 'in-C-0.1.0-alpha.34-mac-universal.dmg',
-      size: '230.1 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.34/in-C-0.1.0-alpha.34-mac-universal.dmg'
-    },
-    {
-      id: 'windows',
-      platform: 'Windows',
-      label: 'Windows',
-      architecture: 'x64',
-      format: 'NSIS installer',
-      available: true,
-      fileName: 'in-C-0.1.0-alpha.34-windows-x64-setup.exe',
-      size: '112.7 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.34/in-C-0.1.0-alpha.34-windows-x64-setup.exe'
-    },
-    {
-      id: 'linux',
-      platform: 'Linux',
-      label: 'Linux',
-      architecture: 'x86_64',
-      format: 'AppImage',
-      available: true,
-      fileName: 'in-C-0.1.0-alpha.34-linux-x86_64.AppImage',
-      size: '141.0 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.34/in-C-0.1.0-alpha.34-linux-x86_64.AppImage'
-    }
-  ]
-}
 
 const formatValue = (value, fallback = '릴리즈 대기 중') => value ?? fallback
 
@@ -117,6 +69,7 @@ const renderDownloads = (manifest) => {
   const releaseVersion = document.querySelector('[data-release-version]')
   const releaseDate = document.querySelector('[data-release-date]')
   const checksumLink = document.querySelector('[data-checksums]')
+  const releaseNotes = document.querySelector('[data-release-notes]')
 
   if (!downloads) {
     return
@@ -153,7 +106,7 @@ const renderDownloads = (manifest) => {
 
   if (releaseState) {
     releaseState.textContent = manifest.releasePublished
-      ? '다운로드 가능'
+      ? '프리릴리즈 다운로드 가능'
       : '릴리즈 대기 중'
   }
 
@@ -167,6 +120,10 @@ const renderDownloads = (manifest) => {
 
   if (checksumLink) {
     checksumLink.href = manifest.checksumsUrl
+  }
+
+  if (releaseNotes) {
+    releaseNotes.href = manifest.releaseUrl
   }
 }
 
