@@ -1612,7 +1612,7 @@ describe('App component shell', () => {
     }
 
     openStudioWorkspace('내보내기')
-    fireEvent.change(screen.getByLabelText('PDF 목표 장수'), {
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'PDF 목표 장수' }), {
       target: { value: '2' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
@@ -3344,7 +3344,12 @@ describe('App component shell', () => {
     fireEvent.click(menu.getByRole('button',{name:'편집'}))
     expect(menu.getByRole('menuitem',{name:'실행 취소'})).toBeDisabled()
     expect(menu.getByRole('menuitem',{name:'실행 취소'})).toHaveClass('dd-button','dd-button--quiet')
+    expect(menu.getByRole('menuitem',{name:'다시 실행'})).toBeDisabled()
+    const cut=menu.getByRole('menuitem',{name:'선택 음표·쉼표 잘라내기'})
+    expect(cut).toBeEnabled()
     fireEvent.keyDown(menu.getByRole('menuitem',{name:'선택 범위 복사'}),{key:'Home'})
+    expect(cut).toHaveFocus()
+    fireEvent.keyDown(cut,{key:'ArrowDown'})
     expect(menu.getByRole('menuitem',{name:'선택 범위 복사'})).toHaveFocus()
     fireEvent.keyDown(document.activeElement!,{key:'Escape'})
     expect(menu.getByRole('button',{name:'편집'})).toHaveFocus()
@@ -3745,7 +3750,14 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button',{name:'1마디 선택'}));openNotationSettings('clef')
     const field=screen.getByRole('combobox',{name:'선택 마디 음자리표'}),label=sign==='percussion'?'타악기 표기 (현재)':'TAB 표기 (현재)'
     expect(field).toHaveTextContent(label);fireEvent.click(field)
-    expect(screen.getByRole('option',{name:label})).toHaveAttribute('aria-disabled','true')
+    const current=screen.getByRole('option',{name:label})
+    expect(current).not.toHaveAttribute('aria-disabled','true')
+    expect(current).toHaveAttribute('aria-selected','true')
+    expect(current).toHaveAttribute('data-active','true')
+    fireEvent.click(current)
+    expect(playbackMockState.lastScore).toEqual(source)
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+    fireEvent.click(field)
     fireEvent.click(screen.getByRole('option',{name:'높은음자리표'}))
     const expected=structuredClone(source);expected.parts[0]!.staves[0]!.measures[0]!.clef={sign:'G',line:2}
     expect(playbackMockState.lastScore).toEqual(expected)

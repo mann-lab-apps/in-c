@@ -1,4 +1,5 @@
-import { open, readFile, realpath, rename, rm, stat } from 'node:fs/promises'
+import { access, open, readFile, realpath, rename, rm, stat } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { basename, dirname, join, resolve } from 'node:path'
 import { decodeNativeProject, encodeNativeProject, MAX_PROJECT_BYTES, type NativeProject } from '../project/schema'
@@ -56,17 +57,25 @@ export class NativeProjectFileSession {
     }
     const expected = this.revisions.get(path)
     if (expected !== undefined && expected !== existing) throw new Error('Native project changed on disk. Reopen it or save to another file.')
+    // Keep the revision check and original bytes when replacement is not writable.
+    if (existing !== undefined) await access(path, constants.W_OK)
     // The selected filename can already fill the filesystem's component limit.
     // Keep the atomic temporary file in the same directory without appending to it.
     const temporary = join(dirname(path), `.chromatics-${randomUUID()}.tmp`)
+    let created = false
     try {
-      const handle = await open(temporary, 'wx', mode)
-      try { await handle.writeFile(contents, 'utf8'); await handle.sync() } finally { await handle.close() }
+      const handle = await open(temporary, 'wx', 0o600)
+      created = true
+      try {
+        await handle.writeFile(contents, 'utf8')
+        if (existing !== undefined) await handle.chmod(mode)
+        await handle.sync()
+      } finally { await handle.close() }
       await this.backup(path)
       await this.replaceFile(temporary, path)
       this.revisions.set(path, contents)
     } finally {
-      await rm(temporary, { force: true })
+      if (created) await rm(temporary, { force: true })
     }
   }
 }

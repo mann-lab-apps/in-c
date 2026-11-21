@@ -12,12 +12,13 @@ export function tempoSaveDraftFixture(kind: TempoSaveDraftKind) {
   project.score.tempoEvents = kind === 'empty-control' ? [neighbor] : [current, neighbor]
   const draft = kind === 'change' ? '97' : kind === 'remove' || kind === 'empty-control' ? '' : kind === 'clamp-low' ? '0' : kind === 'cancel-high' ? '241' : '96.0'
   const blocked = kind !== 'equal' && kind !== 'empty-control'
-  const confirm = kind !== 'cancel-high'
+  // Keep the historical fixture ID; out-of-range input is now rejected, not clamped.
+  const confirm = kind !== 'cancel-high' && kind !== 'clamp-low'
   const changed = blocked && confirm
   const expected = structuredClone(project)
   if (kind === 'remove') expected.score.tempoEvents = [neighbor]
   // The existing update command keeps unrelated entries in order and appends
   // the replacement with its original identity/anchor; do not invent sorting.
-  if (kind === 'change' || kind === 'clamp-low') expected.score.tempoEvents = [neighbor, { ...current, bpm: kind === 'change' ? 97 : 40 }]
+  if (kind === 'change') expected.score.tempoEvents = [neighbor, { ...current, bpm: 97 }]
   return { project: validateNativeProject(project), expected: validateNativeProject(expected), kind, draft, blocked, confirm, changed, value: kind === 'empty-control' ? undefined : 96, label: '위치별 빠르기 BPM' }
 }

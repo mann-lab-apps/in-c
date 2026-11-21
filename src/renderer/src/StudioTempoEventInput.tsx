@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Input, Select, Text } from '@ddirori/ui'
 import { draftSaveGuidance, isDocumentSaveShortcut } from './editor/draft-save'
 import { useDocumentDraftSaveGuard } from './editor/document-drafts'
+import { parseAuthoredTempoBpm } from './editor/authored-tempo'
 import './studio-tempo-event.css'
 
-// Draft ownership is local to one document/location. App owns normalization,
+// Draft ownership is local to one document/location. App owns validation,
 // inheritance, tempo-event identity and the score command.
 export function StudioTempoEventInput({value,scope,count=1,points,pointValue='',onPointChange,onCommit}: {
   value?: number
@@ -17,17 +18,23 @@ export function StudioTempoEventInput({value,scope,count=1,points,pointValue='',
 }) {
   const [draft,setDraft]=useState(value===undefined?'':String(value))
   const [saveNotice,setSaveNotice]=useState<string>()
+  const [error,setError]=useState<string>()
   const dirty=useRef(false),composing=useRef(false)
-  useEffect(()=>{dirty.current=false;setSaveNotice(undefined);setDraft(value===undefined?'':String(value))},[value])
+  useEffect(()=>{dirty.current=false;setSaveNotice(undefined);setError(undefined);setDraft(value===undefined?'':String(value))},[value])
   const original=value===undefined?'':String(value)
+  const invalidValue=(input:HTMLInputElement)=>input.validity.badInput || (input.value!=='' && parseAuthoredTempoBpm(input.value)===undefined)
+  const invalidMessage='정수로 입력해 주세요. 입력한 값은 자동으로 바뀌지 않습니다.'
   const hasPendingValue=(input:HTMLInputElement)=>{
     const next=input.value===''?undefined:input.valueAsNumber
     return dirty.current&&(!input.validity.valid||next!==value)
   }
   const trackInput=useDocumentDraftSaveGuard({workspace:'measure',hasPendingValue,isComposing:()=>composing.current,onBlocked:()=>setSaveNotice(draftSaveGuidance)})
-  const help=count>1
+  const scopeHelp=count>1
     ? `40–240 BPM · 같은 위치의 지정 ${count}개 중 마지막 값입니다. 비우면 이 지정만 제거하고 앞선 값이 적용됩니다.`
     : '40–240 BPM · 비우면 이 위치의 빠르기 변경을 제거합니다.'
+  const help = value !== undefined && parseAuthoredTempoBpm(String(value)) === undefined
+    ? `기존 ${value} BPM은 수정하지 않으면 그대로 유지됩니다. 새 값은 40–240 사이의 정수로 입력하세요. ${scopeHelp.replace('40–240 BPM · ', '')}`
+    : scopeHelp
   return <section className="studio-tempo-event" aria-label="위치별 빠르기">
     <Text as="h3" variant="itemTitle">위치별 빠르기</Text>
     <Text as="p" variant="description">{scope}</Text>
@@ -35,12 +42,21 @@ export function StudioTempoEventInput({value,scope,count=1,points,pointValue='',
     <Input label="위치별 빠르기 BPM" aria-label="위치별 빠르기 BPM" type="number" min={40} max={240} step={1}
       aria-description={scope}
       placeholder="변경 없음" value={draft} help={saveNotice ? `${saveNotice} ${help}` : help}
-      onChange={event=>{trackInput(event.currentTarget);dirty.current=true;setSaveNotice(undefined);setDraft(event.currentTarget.value)}}
+      error={error ? `${error} ${saveNotice ? `${saveNotice} ` : ''}${help}` : undefined}
+      onChange={event=>{
+        trackInput(event.currentTarget);dirty.current=true;setSaveNotice(undefined);setDraft(event.currentTarget.value)
+        if(!event.currentTarget.validity.badInput && (event.currentTarget.value==='' || parseAuthoredTempoBpm(event.currentTarget.value)!==undefined))setError(undefined)
+      }}
       onCompositionStart={event=>{trackInput(event.currentTarget);composing.current=true}} onCompositionEnd={()=>{composing.current=false}}
       onBlur={event=>{
         setSaveNotice(undefined)
         if(composing.current||!dirty.current)return
+        if(invalidValue(event.currentTarget)){
+          setError(invalidMessage)
+          return
+        }
         dirty.current=false
+        setError(undefined)
         if(event.currentTarget.value!==original)onCommit(event.currentTarget.value)
       }}
       onKeyDown={event=>{
@@ -48,9 +64,13 @@ export function StudioTempoEventInput({value,scope,count=1,points,pointValue='',
         if(isDocumentSaveShortcut(event)&&hasPendingValue(event.currentTarget)){
           event.preventDefault();event.stopPropagation();setSaveNotice(draftSaveGuidance);return
         }
-        if(event.key==='Enter'){event.preventDefault();event.stopPropagation();event.currentTarget.blur()}
+        if(event.key==='Enter'){
+          event.preventDefault();event.stopPropagation()
+          if(invalidValue(event.currentTarget)){setError(invalidMessage);return}
+          event.currentTarget.blur()
+        }
         else if(event.key==='Escape'){
-          event.preventDefault();event.stopPropagation();dirty.current=false;setSaveNotice(undefined)
+          event.preventDefault();event.stopPropagation();dirty.current=false;setSaveNotice(undefined);setError(undefined)
           event.currentTarget.value=original;setDraft(original);event.currentTarget.blur()
         }
       }}/>

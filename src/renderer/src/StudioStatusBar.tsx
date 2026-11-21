@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEventHandler, type ReactNode } from 'react'
 import { Text } from '@ddirori/ui'
-import { StudioOperationDetails, type StudioOperationDiagnostic } from './StudioWarningReport'
 import './studio-status-bar.css'
 
 interface Props {
@@ -15,7 +14,8 @@ interface Props {
   edits: number
   playback: string
   beat: string
-  result?: { tone: string; message: string; details?: StudioOperationDiagnostic }
+  result?: { tone: string; message: string }
+  technicalDetails?: ReactNode
 }
 
 // Presentation only. File-result ownership, dirty state and history stay in App.
@@ -66,8 +66,8 @@ export function StudioStatusBar(props: Props) {
     </Text> : null}
     </div>
     {props.children}
-    {props.result?.details ? <div className="studio-status__technical">
-      <StudioOperationDetails details={props.result.details} />
+    {props.technicalDetails ? <div className="studio-status__technical">
+      {props.technicalDetails}
     </div> : null}
   </section>
 }

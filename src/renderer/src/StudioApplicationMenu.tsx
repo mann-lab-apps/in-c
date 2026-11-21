@@ -6,6 +6,7 @@ import './studio-application-menu.css'
 export interface StudioMenuCommand {
   id: string
   label: string
+  keyShortcuts?: string
   disabled?: boolean
   checked?: boolean
   group?: string
@@ -70,7 +71,7 @@ export function StudioApplicationMenu({ theme, menus, onFocusIntent, onNavigatio
       {menu.commands.map((command, itemIndex) => <div key={command.id} className="studio-application-menu__entry">
         {itemIndex > 0 && menu.commands[itemIndex - 1]?.group !== command.group ? <hr className="studio-application-menu__separator" /> : null}
         <Button kind="quiet" className="studio-application-menu__command" role={command.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
-          aria-checked={command.checked} tabIndex={-1} disabled={command.disabled}
+          aria-keyshortcuts={command.keyShortcuts} aria-checked={command.checked} tabIndex={-1} disabled={command.disabled}
           onClick={() => {
             // Commands capture their origin for async focus return. A menu item
             // disappears on close; give them the persistent trigger instead.

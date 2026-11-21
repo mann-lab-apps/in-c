@@ -197,6 +197,12 @@ export interface RhythmFeelMarking {
   text?: string
 }
 
+// Explicit playback only. The existing rhythmFeel remains a printed marking.
+export interface SwingPlayback {
+  unit: RhythmFeelUnit
+  ratio: '2:1' | '3:2'
+}
+
 export type OctaveShiftType = '8va' | '8vb' | '15ma' | '15mb'
 
 export interface OctaveShift {
@@ -310,6 +316,7 @@ export interface Score {
   tempoEvents?: TempoEvent[]
   pedalEvents?: PedalEvent[]
   rhythmFeel?: RhythmFeelMarking
+  swingPlayback?: SwingPlayback
   octaveShifts?: OctaveShift[]
   harmonies?: HarmonyMark[]
   rehearsalMarks?: RehearsalMark[]
@@ -373,6 +380,10 @@ export type ScoreCommand =
   | {
       type: 'score-rhythm-feel.update'
       rhythmFeel?: RhythmFeelMarking
+    }
+  | {
+      type: 'score-swing-playback.update'
+      swingPlayback?: SwingPlayback
     }
   | {
       type: 'score-octave-shifts.update'

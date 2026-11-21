@@ -1166,7 +1166,9 @@ h2:not(.dd-text) {
   stroke-width: 12;
   pointer-events: stroke;
 }
-.notation-event:focus-visible,
+/* Pointer focus must not paint the SVG font em box with a UA outline.
+   The screen-only :focus-visible rules below keep the themed keyboard ring. */
+.notation-event:focus,
 .notation-span-target:focus-visible { outline: none; }
 @media screen {
   .score-canvas .notation-span-target:is(.is-selected, :focus-visible) :is(.notation-slur, .notation-hairpin) {
@@ -1248,6 +1250,7 @@ h2:not(.dd-text) {
   cursor: pointer;
   font-size: 13px;
   pointer-events: auto;
+  white-space: pre;
 }
 
 .notation-lyric-editor {
@@ -1593,3 +1596,7 @@ h2:not(.dd-text) {
     outline-offset: var(--studio-paper-focus-offset);
   }
 }
+
+.notation-span-target[data-span-draggable="true"] { cursor: grab; }
+.notation-span-target[data-span-dragging="true"] { cursor: grabbing; }
+.notation-span-target[data-span-drag-invalid] { cursor: not-allowed; }

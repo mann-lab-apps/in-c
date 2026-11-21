@@ -22,6 +22,8 @@ import {
   type TempoMarking
 } from '../../../score-core'
 import { createGlobalMeasureResolver } from '../editor/global-measure-reference'
+import { resolveTremoloBeatInterval } from './tremolo-interval'
+import { createSwingBeatMapper, type SwingVoiceScope } from './swing'
 
 const DEFAULT_VELOCITY = 0.16
 const DYNAMIC_VELOCITY = {
@@ -53,6 +55,8 @@ export interface PlaybackEvent {
   frequency?: number
   frequencies?: number[]
   tremolo?: Note['tremolo']
+  // Source subdivision only; not persisted in the score/native schema.
+  tremoloIntervalBeats?: number
   ornaments?: Note['ornaments']
   trillFrequency?: number
   velocityStart: number
@@ -102,9 +106,8 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
     }
   }
 
-  const holdMap = createFermataHoldMap(score, scoreRepeatPlaybackPlan)
-  const performedBeat = (beat: number) => beat + [...holdMap].reduce(
-    (offset, [endBeat, hold]) => endBeat <= beat + 1e-9 ? offset + hold : offset, 0)
+  const performedClock = createPerformedClock(score, scoreRepeatPlaybackPlan)
+  const performedBeat = performedClock()
   const pedalEvents = createPlaybackPedalEvents(score, scoreRepeatPlaybackPlan)
     .map(event => ({ ...event, startBeat: performedBeat(event.startBeat) }))
 
@@ -113,16 +116,46 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
       score,
       events.sort((left, right) => left.startBeat - right.startBeat),
       scoreRepeatPlaybackPlan
-    ).map((event) => ({
-      ...event,
-      startBeat: performedBeat(event.startBeat),
-      durationBeats: performedBeat(event.startBeat + event.durationBeats) - performedBeat(event.startBeat)
-    })),
+    ).map((event) => {
+      const beat = performedClock(event)
+      return { ...event, startBeat: beat(event.startBeat),
+        durationBeats: beat(event.startBeat + event.durationBeats, 'end') - beat(event.startBeat) }
+    }).sort((left, right) => left.startBeat - right.startBeat),
     tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan).map((event) => ({
       ...event, startBeat: performedBeat(event.startBeat)
     })),
     ...(pedalEvents.length ? { pedalEvents } : {}),
-    totalBeats: performedBeat(totalBeats)
+    totalBeats: performedBeat(totalBeats, 'end')
+  }
+}
+
+// Shared performed-time mapping for notes, tempo, pedal and practice clicks.
+type PerformedBeatMapper = (beat: number, edge?: 'end') => number
+
+export function createPerformedBeatMapper(score: Score, repeatPlan?: RepeatPlaybackPlan, scope?: SwingVoiceScope): PerformedBeatMapper {
+  return createPerformedClock(score, repeatPlan)(scope)
+}
+
+function createPerformedClock(score: Score, repeatPlan?: RepeatPlaybackPlan): (scope?: SwingVoiceScope) => PerformedBeatMapper {
+  const key = (scope?: SwingVoiceScope) => scope ? JSON.stringify([scope.partId, scope.staffId, scope.voiceId]) : ''
+  const swings = new Map<string, PerformedBeatMapper>(), clocks = new Map<string, PerformedBeatMapper>()
+  const swingFor = (scope?: SwingVoiceScope) => {
+    const id = key(scope)
+    let swing = swings.get(id)
+    if (!swing) { swing = createSwingBeatMapper(score, repeatPlan, scope); swings.set(id, swing) }
+    return swing
+  }
+  const holdMap = createFermataHoldMap(score, repeatPlan, swingFor)
+  return scope => {
+    const id = key(scope)
+    let clock = clocks.get(id)
+    if (!clock) {
+      const swing = swingFor(scope)
+      clock = (beat, edge) => swing(beat, edge) + [...holdMap].reduce(
+        (offset, [endBeat, hold]) => endBeat <= beat + 1e-9 ? offset + hold : offset, 0)
+      clocks.set(id, clock)
+    }
+    return clock
   }
 }
 
@@ -132,7 +165,7 @@ function createPlaybackPedalEvents(score: Score, plan?: RepeatPlaybackPlan): Non
 
 // A hold is shared by all parts at its ending beat, including every repeat pass.
 // Simultaneous fermatas contribute the longest hold once, not once per voice.
-function createFermataHoldMap(score: Score, repeatPlan?: RepeatPlaybackPlan): Map<number, number> {
+function createFermataHoldMap(score: Score, repeatPlan: RepeatPlaybackPlan | undefined, swingFor: (scope: SwingVoiceScope) => PerformedBeatMapper): Map<number, number> {
   const holds = new Map<number, number>()
   for (const part of score.parts) {
     for (const staff of part.staves) {
@@ -146,9 +179,12 @@ function createFermataHoldMap(score: Score, repeatPlan?: RepeatPlaybackPlan): Ma
         for (const voice of measure.voices) {
           for (const event of voice.events) {
             if (!event.fermata) continue
+            const swingBeat = swingFor({ partId: part.id, staffId: staff.id, voiceId: voice.id })
             const duration = voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
             const endBeat = entry.outputBeat + event.position.tick / TICKS_PER_QUARTER + duration
-            holds.set(endBeat, Math.max(holds.get(endBeat) ?? 0, duration * (FERMATA_DURATION_MULTIPLIER - 1)))
+            const startBeat = endBeat - duration
+            const performedDuration = score.swingPlayback ? swingBeat(endBeat, 'end') - swingBeat(startBeat) : duration
+            holds.set(endBeat, Math.max(holds.get(endBeat) ?? 0, performedDuration * (FERMATA_DURATION_MULTIPLIER - 1)))
           }
         }
       }
@@ -192,6 +228,9 @@ function createStaffPlaybackEvents(
             frequencies && frequencies.length > 0 ? frequencies[0] : undefined,
           frequencies,
           tremolo: event.type === 'note' ? event.tremolo : undefined,
+          ...(event.type === 'note' && event.tremolo ? {
+            tremoloIntervalBeats: resolveTremoloBeatInterval(event.tremolo.marks, event.duration)
+          } : {}),
           ornaments: event.type === 'note' ? event.ornaments : undefined,
           trillFrequency:
             event.type === 'note'

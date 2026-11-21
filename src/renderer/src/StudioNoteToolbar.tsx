@@ -11,7 +11,7 @@ const musicGlyphs = {
   whole: Glyphs.noteWhole, half: Glyphs.noteHalfUp, quarter: Glyphs.noteQuarterUp,
   eighth: Glyphs.note8thUp, '16th': Glyphs.note16thUp,
   '32nd': Glyphs.note32ndUp, '64th': Glyphs.note64thUp,
-  tie: Glyphs.textTie, tuplet: Glyphs.tuplet3, rest: Glyphs.restQuarter,
+  tie: Glyphs.textTie, tuplet: Glyphs.tuplet3, tuplet2: Glyphs.tuplet2, tuplet5: Glyphs.tuplet5, tuplet7: Glyphs.tuplet7, rest: Glyphs.restQuarter,
   flat: Glyphs.accidentalFlat, natural: Glyphs.accidentalNatural, sharp: Glyphs.accidentalSharp
 }
 
@@ -53,6 +53,7 @@ interface Props {
   dotsDisabled: boolean
   tieSelected: boolean
   tieEnabled: boolean
+  tupletNumber?: 2 | 3 | 5 | 7
   tupletActive: boolean
   tupletLabel: string
   restEnabled: boolean
@@ -78,6 +79,7 @@ interface Props {
 }
 
 export function StudioNoteToolbar(props: Props) {
+  const tupletName=props.tupletNumber===2?'2연음':props.tupletNumber===5?'다섯잇단음표':props.tupletNumber===7?'7연음':'셋잇단음표'
   const tieLabel = props.tieSelected ? '타이 해제, 단축키 T' : '타이 추가, 단축키 T'
   return <section className="studio-note-toolbar ddirori" data-theme={props.theme} data-density="compact" aria-label="음표 입력 도구"
     onKeyDownCapture={props.onNavigationKeyDown}
@@ -101,13 +103,13 @@ export function StudioNoteToolbar(props: Props) {
       </Tooltip>
       <Group label="점음표">
         <Text variant="label">점</Text>
-        <Tooltip text={props.dotsDisabled ? '셋잇단음표 입력 중에는 점을 바꿀 수 없습니다.' : '점 줄이기'}>
+        <Tooltip text={props.dotsDisabled ? `${tupletName} 입력 중에는 점을 바꿀 수 없습니다.` : '점 줄이기'}>
           <IconButton label="점 줄이기" disabled={props.rhythmDisabled || props.dotsDisabled || !props.canRemoveDot} onClick={() => props.onDots(-1)}>
             <Minus size={18} strokeWidth={1.75} aria-hidden="true" />
           </IconButton>
         </Tooltip>
         <Text as="output" variant="numeric" aria-label="점 개수">{props.dots}</Text>
-        <Tooltip text={props.dotsDisabled ? '셋잇단음표 입력 중에는 점을 바꿀 수 없습니다.' : '점 추가'}>
+        <Tooltip text={props.dotsDisabled ? `${tupletName} 입력 중에는 점을 바꿀 수 없습니다.` : '점 추가'}>
           <IconButton label="점 추가" disabled={props.rhythmDisabled || props.dotsDisabled || !props.canAddDot} onClick={() => props.onDots(1)}>
             <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
           </IconButton>
@@ -118,7 +120,7 @@ export function StudioNoteToolbar(props: Props) {
           <IconButton label={tieLabel} selected={props.tieSelected} disabled={props.rhythmDisabled || !props.tieEnabled} onClick={props.onTie}><MusicGlyph kind="tie" /></IconButton>
         </Tooltip>
         <Tooltip text={props.tupletLabel}>
-          <IconButton label={props.tupletLabel} disabled={props.rhythmDisabled} selected={props.tupletActive} onClick={props.onTuplet}><MusicGlyph kind="tuplet" /></IconButton>
+          <IconButton label={props.tupletLabel} disabled={props.rhythmDisabled} selected={props.tupletActive} onClick={props.onTuplet}><MusicGlyph kind={props.tupletNumber===2?'tuplet2':props.tupletNumber===5?'tuplet5':props.tupletNumber===7?'tuplet7':'tuplet'} /></IconButton>
         </Tooltip>
       </Group>
       <Tooltip text={props.graceEnabled ? '선택 음표 앞에 음가를 차지하지 않는 꾸밈음을 추가하거나 제거합니다. · Alt+G' : '꾸밈음을 붙일 음표 하나를 선택하세요. 음표 입력 중에는 Esc로 선택 모드로 돌아오세요.'}>

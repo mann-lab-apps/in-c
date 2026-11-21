@@ -9,6 +9,7 @@
 .app-shell--start:has(.studio-start) { background: Canvas; color-scheme: light dark; }
 .studio-start { width: min(1120px, 100%); display: grid; align-items: center; min-width: 0; background: var(--dd-surface); }
 .studio-start__content { display: grid; gap: var(--dd-spacing-xl); min-width: 0; }
+.studio-start__feedback { min-width: 0; }
 .studio-welcome { display: flex; align-items: center; flex-wrap: wrap; gap: var(--dd-spacing-lg); }
 .studio-start .start-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--dd-spacing-md); min-width: 0; }
 .studio-start-action__content { display: grid; align-content: start; justify-items: start; gap: var(--dd-spacing-sm); min-width: 0; text-align: start; }
@@ -56,3 +57,6 @@
 .studio-transfer-steps { padding-left: var(--dd-spacing-xl); }
 .studio-transfer-steps li { margin-block: var(--dd-spacing-md); overflow-wrap: anywhere; }
 @media print { .studio-first-save, .studio-result, .studio-first-use, .studio-transfer, .studio-shortcut-help, .studio-backups { display: none; } }
+
+.studio-new-score-pickup,
+.studio-new-score-custom-meter { grid-column: 1 / -1; display: grid; gap: var(--dd-spacing-md); min-width: 0; }

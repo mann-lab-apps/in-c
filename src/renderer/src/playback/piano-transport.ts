@@ -1,5 +1,8 @@
 import { beatDeltaToSeconds, type PlaybackTimeline } from './timeline'
 import { PianoSampler } from './piano-sampler'
+import { resolveTremoloBeatInterval } from './tremolo-interval'
+import type {PracticeLoopRange} from './practice-loop'
+import {createPracticeLoopClock,PracticeLoopQueue} from './practice-loop-clock'
 
 export interface PianoMixer { [partId: string]: { muted: boolean; solo: boolean; volume: number } }
 export interface PianoCommand {
@@ -24,12 +27,15 @@ export function createPianoCommands(timeline: PlaybackTimeline, fromBeat: number
     const gain = Math.max(0, Math.min(1.5, settings?.volume ?? 1)) / Math.sqrt(frequencies.length)
     if (!gain) continue
     const interval = event.tremolo?.type === 'single'
-      ? ({ 1: 0.5, 2: 0.25, 3: 0.125 } as const)[event.tremolo.marks]
+      ? event.tremoloIntervalBeats ?? resolveTremoloBeatInterval(event.tremolo.marks)
       : event.ornaments?.includes('trill') && event.trillFrequency ? 0.125 : undefined
     const end = event.startBeat + event.durationBeats
     const count = interval ? Math.ceil(event.durationBeats / interval) : 1
     for (let pulse = 0; pulse < count; pulse++) {
       const onset = event.startBeat + (interval ? interval * pulse : 0)
+      // Warped rational durations can round ceil(N) up to N+1. A boundary
+      // attack has no sounding interval and could otherwise outlive its off.
+      if (interval && onset >= end - 1e-9) break
       const keyOff = interval ? Math.min(onset + interval * 0.88, end) : end
       const endBeat = pedalReleaseBeat(timeline, event.partId, keyOff)
       if (endBeat <= fromBeat) continue
@@ -72,26 +78,51 @@ export function pedalReleaseBeat(timeline: PlaybackTimeline, partId: string, key
   return Math.max(keyOff, pedals.find(event => event.startBeat > keyOff + 1e-8 && event.value < 64)?.startBeat ?? timeline.totalBeats)
 }
 
+export function createLoopPianoCommands(timeline:PlaybackTimeline,fromBeat:number,endBeat:number,bpm:number,mixer:PianoMixer):PianoCommand[]{
+  const partIds=[...new Set(timeline.events.map(event=>event.partId))]
+  const bounded:PlaybackTimeline={...timeline,totalBeats:endBeat,
+    events:timeline.events.filter(event=>event.startBeat<endBeat-1e-9).map(event=>({...event,durationBeats:Math.min(event.startBeat+event.durationBeats,endBeat)-event.startBeat})),
+    pedalEvents:[...(timeline.pedalEvents??[]).filter(event=>event.startBeat<endBeat),...partIds.map(partId=>({id:'practice-loop-end-'+partId,partId,startBeat:endBeat,value:0}))]
+  }
+  return createPianoCommands(bounded,fromBeat,bpm,mixer)
+}
+
 export class PianoTransport {
   private timer?: ReturnType<typeof setInterval>
   private cursor = 0
   private commands: PianoCommand[] = []
   private origin = 0
+  private loopQueue?:PracticeLoopQueue<PianoCommand>
 
-  constructor(readonly sampler: PianoSampler) {}
+  constructor(readonly sampler: PianoSampler,private readonly onError?:(error:unknown)=>void) {}
 
-  start(timeline: PlaybackTimeline, fromBeat: number, bpm: number, mixer: PianoMixer, sustain = false) {
+  start(timeline: PlaybackTimeline, fromBeat: number, bpm: number, mixer: PianoMixer, sustain = false,loop?:PracticeLoopRange) {
     this.stop()
-    this.commands = createPianoCommands(timeline, fromBeat, bpm, mixer)
+    if(loop){
+      const clock=createPracticeLoopClock(timeline,loop,fromBeat,bpm)
+      this.loopQueue=new PracticeLoopQueue(clock,(from,end)=>createLoopPianoCommands(timeline,from,end,bpm,mixer))
+    }else this.commands = createPianoCommands(timeline, fromBeat, bpm, mixer)
     this.origin = this.sampler.context.currentTime + 0.03
     this.cursor = 0
     this.sampler.setSustain(sustain)
     this.pump()
-    this.timer = setInterval(() => this.pump(), 20)
+    this.timer = setInterval(() => {
+      try{this.pump()}catch(error){this.stop();if(this.onError)this.onError(error);else throw error}
+    }, 20)
     return this.origin
   }
 
   private pump() {
+    if(this.loopQueue){
+      for(const {command,at,cycle,end} of this.loopQueue.takeDue(this.sampler.context.currentTime-this.origin)){
+        const id=`loop:${cycle}:${command.id}`
+        if(command.type==='on'){
+          this.sampler.noteOn(id,command.pitch,command.velocity,this.origin+at,command.offset)
+          this.sampler.limitNoteAt(id,this.origin+end)
+        }else this.sampler.noteOff(id,this.origin+at)
+      }
+      return
+    }
     // Packaged 1000-note audit observed >400ms notation paints. 750ms protects
     // onset scheduling while stopAll can still cancel every future source.
     const horizon = this.sampler.context.currentTime + 0.75
@@ -112,6 +143,7 @@ export class PianoTransport {
     if (this.timer) clearInterval(this.timer)
     this.timer = undefined
     this.commands = []
+    this.loopQueue=undefined
     this.cursor = 0
     this.sampler.stopAll()
   }

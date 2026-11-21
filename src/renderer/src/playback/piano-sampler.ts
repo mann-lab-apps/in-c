@@ -24,6 +24,7 @@ interface Voice {
   deferred: boolean
   offAt?: number
   naturalEnds: number[]
+  endLimit?: number
 }
 
 const safetyCurve = Float32Array.from({ length: 65537 }, (_, i) => {
@@ -40,6 +41,8 @@ export class PianoSampler {
   decodedBytes = 0
   private buffers = new Map<string, AudioBuffer>()
   private voices = new Map<string, Voice>()
+  // A stolen future voice is still cancelable until its actual source ends.
+  private retiredVoices=new Set<Voice>()
   private master: GainNode
   private compressor: DynamicsCompressorNode
   private limiterInput: GainNode
@@ -203,7 +206,10 @@ export class PianoSampler {
           voice.gains.splice(index, 1)
           voice.naturalEnds.splice(index, 1)
         }
-        if (!voice.sources.length && this.voices.get(id) === voice) this.voices.delete(id)
+        if (!voice.sources.length){
+          if(this.voices.get(id)===voice)this.voices.delete(id)
+          this.retiredVoices.delete(voice)
+        }
       }
       // Resume inside a held note without replaying the recorded hammer attack.
       const offset = Math.max(0, offsetSeconds) * source.playbackRate.value
@@ -229,6 +235,22 @@ export class PianoSampler {
     else this.releaseVoice(voice, at)
   }
 
+  /** Session loop boundary only. Retain ownership until ended so Stop cancels future audio. */
+  limitNoteAt(id:string,at:number){
+    const voice=this.voices.get(id)
+    if(!voice||!Number.isFinite(at))return
+    voice.endLimit=Math.min(voice.endLimit??Infinity,Math.max(voice.startedAt,at))
+    voice.naturalEnds=voice.naturalEnds.map(end=>Math.min(end,voice.endLimit!))
+    this.applyEndLimit(voice)
+  }
+
+  private applyEndLimit(voice:Voice){
+    if(voice.endLimit===undefined)return
+    const end=Math.max(this.context.currentTime,voice.endLimit),fade=Math.max(this.context.currentTime,voice.startedAt,end-.005)
+    for(const gain of voice.gains){gain.gain.cancelAndHoldAtTime(fade);gain.gain.linearRampToValueAtTime(0,end)}
+    voice.sources.forEach((source,index)=>source.stop(Math.min(voice.naturalEnds[index],end)))
+  }
+
   setSustain(down: boolean, at = this.context.currentTime) {
     this.pedalDown = down
     if (down) for (const voice of this.voices.values()) {
@@ -239,6 +261,7 @@ export class PianoSampler {
         voice.sources.forEach((source, i) => source.stop(voice.naturalEnds[i]))
         voice.released = false
         voice.deferred = true
+        this.applyEndLimit(voice)
       }
     }
     if (!down) for (const voice of this.voices.values()) {
@@ -254,7 +277,8 @@ export class PianoSampler {
       gain.gain.cancelAndHoldAtTime(time)
       gain.gain.linearRampToValueAtTime(0, time + 0.22)
     }
-    for (const source of voice.sources) source.stop(time + 0.23)
+    for (const source of voice.sources) source.stop(Math.min(time + 0.23,voice.endLimit??Infinity))
+    this.applyEndLimit(voice)
   }
 
   private stopVoice(voice: Voice | undefined, at: number, fade: number) {
@@ -264,11 +288,12 @@ export class PianoSampler {
       gain.gain.linearRampToValueAtTime(0, at + fade)
     }
     for (const source of voice.sources) { try { source.stop(at + fade + 0.001) } catch { /* ended */ } }
+    if(voice.sources.length)this.retiredVoices.add(voice)
     if (this.voices.get(voice.id) === voice) this.voices.delete(voice.id)
   }
 
   stopAll() {
-    for (const voice of this.voices.values()) this.stopVoice(voice, this.context.currentTime, 0.015)
+    for (const voice of new Set([...this.voices.values(),...this.retiredVoices])) this.stopVoice(voice, this.context.currentTime, 0.015)
     this.pedalDown = false
   }
 

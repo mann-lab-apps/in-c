@@ -1,7 +1,7 @@
 import type { VoiceAddress } from '../../../score-core'
 import { readSvgTextInk } from './staff-ink-spacing'
 
-interface PointerOwner { element: SVGElement; eventId: string; address: VoiceAddress }
+interface PointerOwner { element: SVGElement; eventId: string; address: VoiceAddress; inkElement: SVGTextContentElement }
 
 /** Broad VexFlow rectangles can cover another voice's visible note glyph.
  * Resolve unique head/modifier or flag text; stems and ambiguous ink keep DOM order.
@@ -23,13 +23,13 @@ export function resolveNotePointerOwner(fallback: SVGElement, clientX: number, c
       if (!eventId || !partId || !staffId || !measureId || !voiceId) continue
       const rect = element.getBoundingClientRect()
       if (clientX < rect.left - 2 || clientX > rect.right + 2 || clientY < rect.top - 2 || clientY > rect.bottom + 2) continue
-      const hit = [...element.querySelectorAll<SVGTextContentElement>('.vf-notehead text,.vf-flag text')].some(node => {
+      const hit = [...element.querySelectorAll<SVGTextContentElement>('.vf-notehead text,.vf-flag text')].find(node => {
         const ink = readSvgTextInk(node, context)
         return ink && x >= ink.x && x <= ink.x + ink.width && y >= ink.y && y <= ink.y + ink.height
       })
       if (!hit) continue
       if (owner) return undefined
-      owner = { element, eventId, address: { partId, staffId, measureId, voiceId } }
+      owner = { element, eventId, address: { partId, staffId, measureId, voiceId }, inkElement: hit }
     }
     return owner
   } catch { return undefined }

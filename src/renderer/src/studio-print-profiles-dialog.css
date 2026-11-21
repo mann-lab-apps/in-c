@@ -1,0 +1,3 @@
+/* Local composition only; common controls own density, colors and focus. */
+.studio-print-profiles-dialog form { display: grid; gap: var(--dd-spacing-sm); min-width: 0; }
+.studio-print-profiles-dialog__actions { display: flex; flex-wrap: wrap; justify-content: end; gap: var(--dd-spacing-sm); }

@@ -1,0 +1,234 @@
+{
+  "scope": "Static menu/component/family coverage, not proof all feature runtime paths were performed",
+  "menus": {
+    "file:new": "first-score",
+    "file:open": "project",
+    "file:save": "project",
+    "file:save-as": "project",
+    "file:import": "import",
+    "file:xml-save": "xml-save",
+    "file:export": "pdf",
+    "file:png-tools": "png",
+    "file:backups": "backups",
+    "file:file-tools": "delete",
+    "edit:undo": "history",
+    "edit:redo": "history",
+    "edit:copy": "delete",
+    "edit:paste": "delete",
+    "edit:clear": "delete",
+    "view:palette": "dock",
+    "view:properties": "inspector",
+    "view:mixer": "mixer",
+    "view:score-view": "part-view",
+    "view:guides": "page",
+    "view:score": "focus",
+    "add:notation": "palette",
+    "add:signatures": "clef",
+    "add:dynamics": "dynamics",
+    "add:ranges": "slur",
+    "add:text": "text",
+    "add:repeats": "repeat",
+    "add:lyrics": "lyrics",
+    "format:metadata": "metadata",
+    "format:score-settings": "parts",
+    "format:page-settings": "page",
+    "tools:command-search": "menus",
+    "tools:note-settings": "inspector",
+    "tools:span-finder": "span-find",
+    "tools:playback": "transport",
+    "help:manual": "manual",
+    "help:shortcuts": "shortcut-reference",
+    "add:quintuplet-input": "tuplet",
+    "add:duplet-input": "tuplet",
+    "add:septuplet-input": "tuplet",
+    "format:first-measure": "pickup",
+    "view:dock-layouts": "dock-layouts",
+    "edit:cut": "delete",
+    "edit:shortcut-settings": "editing-shortcuts",
+    "tools:move-note-voice": "voice-move"
+  },
+  "paletteFamilies": {
+    "음자리표·조표·박자표": "clef",
+    "셈여림": "dynamics",
+    "표현 기호": "articulation",
+    "장식음": "ornaments",
+    "정지 기호": "pauses",
+    "범위 기호": "slur",
+    "텍스트": "text",
+    "반복·볼타": "repeat"
+  },
+  "surfaces": {
+    "NativeBackupsDialog.tsx": [
+      "backups"
+    ],
+    "SpanProperties.tsx": [
+      "span-find",
+      "geometry"
+    ],
+    "StudioApplicationMenu.tsx": [
+      "menus"
+    ],
+    "StudioChordProperties.tsx": [
+      "chord",
+      "pitch"
+    ],
+    "StudioCommandSearch.tsx": [
+      "menus"
+    ],
+    "StudioDockHeader.tsx": [
+      "dock"
+    ],
+    "StudioDockResizeHandle.tsx": [
+      "dock"
+    ],
+    "StudioEventMarks.tsx": [
+      "articulation",
+      "pauses"
+    ],
+    "StudioExportTools.tsx": [
+      "pdf",
+      "png",
+      "midi",
+      "xml-save",
+      "xml-expanded"
+    ],
+    "StudioFileTools.tsx": [
+      "project",
+      "filters",
+      "delete",
+      "history"
+    ],
+    "StudioInputTarget.tsx": [
+      "voices"
+    ],
+    "StudioLyricTools.tsx": [
+      "lyrics"
+    ],
+    "StudioManual.tsx": [
+      "manual"
+    ],
+    "StudioMeasureContextMenu.tsx": [
+      "measures",
+      "meter"
+    ],
+    "StudioMeasureNotation.tsx": [
+      "clef",
+      "text",
+      "dynamics"
+    ],
+    "StudioMeasureTools.tsx": [
+      "measures",
+      "key",
+      "meter",
+      "breaks"
+    ],
+    "StudioMetadataActions.tsx": [
+      "metadata"
+    ],
+    "StudioMetadataInput.tsx": [
+      "metadata",
+      "drafts"
+    ],
+    "StudioNotationPalette.tsx": [
+      "palette",
+      "clef",
+      "dynamics",
+      "articulation",
+      "ornaments",
+      "pauses",
+      "slur",
+      "text",
+      "repeat",
+      "key"
+    ],
+    "StudioNoteDecorations.tsx": [
+      "ornaments",
+      "grace"
+    ],
+    "StudioNoteToolbar.tsx": [
+      "input-mode",
+      "duration",
+      "grace",
+      "accidental",
+      "tie",
+      "tuplet"
+    ],
+    "StudioPageSetup.tsx": [
+      "page",
+      "part-reset"
+    ],
+    "StudioPartLabels.tsx": [
+      "part-labels"
+    ],
+    "StudioPartSetup.tsx": [
+      "parts",
+      "part-labels"
+    ],
+    "StudioPiano.tsx": [
+      "piano",
+      "pedal"
+    ],
+    "StudioPlayback.tsx": [
+      "transport",
+      "follow",
+      "mixer",
+      "metronome",
+      "practice-loop"
+    ],
+    "StudioPropertyDisclosure.tsx": [
+      "inspector",
+      "geometry"
+    ],
+    "StudioRangeTools.tsx": [
+      "slur",
+      "hairpin",
+      "octave"
+    ],
+    "StudioRepeatTools.tsx": [
+      "repeat",
+      "volta"
+    ],
+    "StudioScoreView.tsx": [
+      "part-view"
+    ],
+    "StudioSelectedProperties.tsx": [
+      "inspector",
+      "dynamics",
+      "text",
+      "harmony"
+    ],
+    "StudioStatusBar.tsx": [
+      "zoom",
+      "selection"
+    ],
+    "StudioStructureActions.tsx": [
+      "parts"
+    ],
+    "StudioTempoEventInput.tsx": [
+      "tempo-point"
+    ],
+    "StudioTempoTools.tsx": [
+      "tempo"
+    ],
+    "StudioWarningReport.tsx": [
+      "external",
+      "xml-save",
+      "midi"
+    ],
+    "StudioPickupDialog.tsx": [
+      "pickup"
+    ],
+    "StudioDockLayoutDialog.tsx": [
+      "dock-layouts"
+    ],
+    "StudioPrintProfilesDialog.tsx": [
+      "print-profiles"
+    ],
+    "StudioShortcutSettings.tsx": [
+      "editing-shortcuts"
+    ],
+    "StudioVoiceMoveProperties.tsx": [
+      "voice-move"
+    ]
+  }
+}

@@ -1,6 +1,9 @@
+import {resolveLayoutForPrimaryStaff} from '../../../project/layout-measure-reference'
 import { taperedSlurPath } from './slur-profile'
 import { resolveNotePointerOwner } from './note-pointer-owner'
 import { resolveSpanPointerOwner } from './span-pointer-owner'
+import { attachManualSpanPointerDrag } from './manual-span-pointer-drag'
+import type { BeginManualSpanDrag } from '../editor/manual-span-drag'
 import { protectedInkBlocksSlurSide, type SlurSideObstacle } from './protected-slur-ink'
 import { readOwnedMeasureTextInk } from './measure-text-ink'
 import { planSlurNesting, readSlurCurveInk, strictlyContainsSlur } from './slur-nesting'
@@ -12,6 +15,7 @@ import { collectForeignBeamPaths, isForeignStaffVoice } from './tie-voice-ink'
 import { hasManualSpanEngraving } from '../../../project/span-engraving'
 import { applyExpressionInkOffsets, measureExpressionInkOffsets } from './expression-ink-spacing'
 import { resolveFermataInkOffset } from './fermata-ink-spacing'
+import { resolveOrnamentInkOffset } from './ornament-ink-spacing'
 import { resolveNearNoteArticulationOffset } from './articulation-ink-placement'
 import { ornamentGlyphs } from './ornament-glyphs'
 import { resolveSlurFermataCurve, resolveSlurStemAttachment, resolveSlurBeamStemBounds, resolveSlurContinuationStartCurve } from './slur-fermata-spacing'
@@ -21,12 +25,13 @@ import { resolveOctaveInkShift, resolveOctaveStaffSpacing } from './octave-ink-s
 import { measureDynamicInkSpacing } from './dynamic-ink-spacing'
 import { indexMeasureDynamics } from './measure-dynamics'
 import { formatNotationVoices } from './format-voices'
+import { clearSameStaffRestHeadCollisions } from './voice-rest-clearance'
 import { createNotationTuplet } from './create-tuplet'
 import { createSharedRepeatBarlines } from './repeat-barlines'
 import { recordTimedAnnotationAnchor, resolveTimedAnnotationX, type TimedAnnotationAnchor, type TimedAnnotationLayout } from './timed-annotation-position'
 import { memo, useEffect, useRef, useState } from 'react'
 import { usePlaybackInk } from './usePlaybackInk'
-import { isSameNotationFocus, restoreNotationFocus } from './focus-viewport'
+import { isSameNotationFocus, isSpanOffsetOnlyChange, resolveSpanFocusTarget, resolveUnchangedSpanFocusTarget, resolveTabNoteFocusTarget, restoreNotationFocus } from './focus-viewport'
 import { createNotationRangeDrag, type RangeDragAnchor } from './range-drag'
 import { createPortal } from 'react-dom'
 import { StudioInlineLyricInput, type InlineLyricEditor } from './StudioInlineLyricInput'
@@ -39,6 +44,7 @@ import { measureLyricInkSpacing, readStaffMusicInk, readOwnedLyricInk } from './
 import { applyStaffInkSpacing, measureStaffInkSpacing, resolveStaffInkSpacing, readSvgShapeInk, type StaffInk, readSvgTextInk, type MeasureInkOwner } from './staff-ink-spacing'
 import { resolveGlobalAnnotationMeasures } from '../editor/global-measure-reference'
 import { applyTempoStaffAnchors } from './tempo-staff-anchor'
+import { applyStaffTextAnchors } from './staff-text-anchor'
 import {
   Accidental,
   BarlineType,
@@ -132,6 +138,8 @@ export interface NotationPreviewProps {
   harmonyWidths?: HarmonySpacingWidths
   minimumMeasureWidths?: ReadonlyMap<string, number>
   selectedSpan?: { kind: 'slur' | 'hairpin'; id: string }
+  spanMovementDescriptionId?: string
+  onBeginSpanDrag?: BeginManualSpanDrag
   onSelectSpan?: (reference: { kind: 'slur' | 'hairpin'; id: string }) => void
   onSelectRehearsalMark?: (reference:{id:string;measureId:string}) => void
   selectedRehearsalMarkId?:string
@@ -284,7 +292,9 @@ function NotationCanvas({
   harmonyWidths,
   minimumMeasureWidths,
   selectedSpan,
+  spanMovementDescriptionId,
   onSelectSpan,
+  onBeginSpanDrag,
   onSelectRehearsalMark,
   selectedRehearsalMarkId,
   onSelectSystemText,
@@ -323,6 +333,7 @@ function NotationCanvas({
   // A mouse gesture outlives the SVG nodes replaced by selection redraws.
   const [rangeDrag] = useState(createNotationRangeDrag)
   const lastSelectedMarkKey=useRef<string|undefined>(undefined)
+  const lastSelectedSpanKey=useRef<string|undefined>(undefined)
   const [inlinePortal, setInlinePortal] = useState<{ host: HTMLElement; foreignObject: SVGForeignObjectElement; x: number; y: number; editor: InlineLyricEditor; restore: LyricEditorRestore }>()
   const [renderWidth, setRenderWidth] = useState(MIN_RENDER_WIDTH)
   const [draftLayoutRevision, setDraftLayoutRevision] = useState(0)
@@ -374,8 +385,12 @@ function NotationCanvas({
       previousInput.addEventListener('compositionend',resume,{once:true,capture:true})
       return()=>{previousInput.removeEventListener('compositionend',resume,true);if(frame!==undefined)cancelAnimationFrame(frame)}
     }
-    const scoreChanged = paintedScore.current !== score
+    const previousPaintedScore = paintedScore.current
+    const scoreChanged = previousPaintedScore !== score
     paintedScore.current = score
+    const nextSpanKey = selectedSpan ? JSON.stringify([selectedSpan.kind, selectedSpan.id]) : undefined
+    const spanSelectionChanged = nextSpanKey !== lastSelectedSpanKey.current
+    lastSelectedSpanKey.current = nextSpanKey
     const selectedMark=[
       {id:selectedDynamicId,selector:'.notation-dynamic-target',attribute:'data-dynamic-id'},
       {id:selectedHarmonyId,selector:'.notation-harmony-target',attribute:'data-harmony-id'},
@@ -419,6 +434,7 @@ function NotationCanvas({
     const renderedPart = score.parts[0]
     const renderedStaff = renderedPart?.staves[0]
     const measures = renderedStaff?.measures ?? []
+    const resolvedLayout = resolveLayoutForPrimaryStaff(score)
     // System endings and count labels follow the aligned playback sequence,even when
     // native marking ownership is on a secondary staff.Keep drawn note owners.
     const systemRepeatMeasures=scoreRepeatSource(score)?.measures??measures
@@ -474,7 +490,7 @@ function NotationCanvas({
       additionalSystemSpacing,
       minimumMeasureWidths,
       compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
-      layout: score.layout,
+      layout: resolvedLayout,
       lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
       systemHeight,
@@ -785,7 +801,8 @@ function NotationCanvas({
           notationStartX,
           notationEndX,
           staffTopY,
-          displayVolta
+          displayVolta,
+          placement.systemIndex
         )
       }
 
@@ -799,7 +816,8 @@ function NotationCanvas({
           svg,
           placement.x + placement.width - 26,
           stave.getYForLine(0) - 8,
-          repeat.times
+          repeat.times,
+          placement.systemIndex
         )
       }
 
@@ -934,6 +952,7 @@ function NotationCanvas({
           })
         })
 
+        clearSameStaffRestHeadCollisions(voices, stave)
         let firstEventX: number | undefined
         const timedAnchors = new Map<number, TimedAnnotationAnchor>()
 
@@ -1113,16 +1132,6 @@ function NotationCanvas({
               drawFermata(svg, eventX, placement.y, note)
             }
 
-            if (svg && event?.breathMark) {
-              drawBreathMark(
-                svg,
-                eventX,
-                placement.y,
-                event.breathMark,
-                Boolean(event.fermata)
-              )
-            }
-
             if (svg && event?.type === 'note' && event.tremolo) {
               drawTremoloMark(
                 svg,
@@ -1134,6 +1143,19 @@ function NotationCanvas({
 
             if (svg && event?.type === 'note' && event.ornaments?.length) {
               drawOrnaments(svg, eventX, placement.y, event.ornaments, note)
+            }
+
+            if (svg && event?.breathMark) {
+              drawBreathMark(
+                svg,
+                eventX,
+                placement.y,
+                event.breathMark,
+                Boolean(event.fermata),
+                measure.id,
+                event.id,
+                note
+              )
             }
 
             if (svg && event?.type === 'note' && event.lyrics?.length) {
@@ -1167,7 +1189,8 @@ function NotationCanvas({
           firstEventX,
           rhythmLayout,
           stave.getYForLine(0),
-          printLayout?undefined:{onSelectRehearsalMark,selectedRehearsalMarkId,onSelectSystemText,selectedSystemTextId,onSelectStaffText,selectedStaffTextId,onSelectExpressionText,selectedExpressionTextId,onSelectHarmony,selectedHarmonyId,onSelectDynamic,selectedDynamicId}
+          printLayout?undefined:{onSelectRehearsalMark,selectedRehearsalMarkId,onSelectSystemText,selectedSystemTextId,onSelectStaffText,selectedStaffTextId,onSelectExpressionText,selectedExpressionTextId,onSelectHarmony,selectedHarmonyId,onSelectDynamic,selectedDynamicId},
+          stave.getYForLine(1)-stave.getYForLine(0)
         )
         if(!printLayout&&renderedPart&&renderedStaff)drawNoteInputCursor(svg,inputPosition,renderedPart.id,renderedStaff.id,measure,stave,rhythmLayout)
       }
@@ -1305,15 +1328,15 @@ function NotationCanvas({
           const ink=readSvgShapeInk(node);if(ink)correctedTieInk.push({...ink,...owner})
         }
       }
-      if ((score.octaveShifts?.length || svg.querySelector('.notation-ornament,.notation-fermata,.notation-articulation') || (score.slurs ?? []).some(slur => !hasManualSpanEngraving(slur.engraving))) && document.fonts && typeof svg.getCTM === 'function') {
+      if ((score.octaveShifts?.length || svg.querySelector('.notation-ornament,.notation-fermata,.notation-articulation,.notation-breath-mark') || (score.slurs ?? []).some(slur => !hasManualSpanEngraving(slur.engraving))) && document.fonts && typeof svg.getCTM === 'function') {
         const context = document.createElement('canvas').getContext('2d')
         if (context) for (const node of svg.querySelectorAll<SVGTextContentElement>('.vf-clef[data-measure-id] text,.vf-keysignature[data-measure-id] text,.vf-timesignature[data-measure-id] text')) {
           const owner = owners.get(node.closest<SVGElement>('[data-measure-id]')?.dataset.measureId ?? '')
           const ink = readSvgTextInk(node, context)
           if (owner && ink) slurStartSymbolInk.push({ ...ink, ...owner })
         }
-        if (context) for (const node of svg.querySelectorAll<SVGTextContentElement>('.notation-fermata[data-fermata-measure-id],.notation-ornament[data-ornament-measure-id]')) {
-          const owner = owners.get(node.dataset.fermataMeasureId ?? node.dataset.ornamentMeasureId ?? ''), ink = readSvgTextInk(node, context)
+        if (context) for (const node of svg.querySelectorAll<SVGTextContentElement>('.notation-fermata[data-fermata-measure-id],.notation-ornament[data-ornament-measure-id],.notation-breath-mark[data-print-measure-id]')) {
+          const owner = owners.get(node.dataset.fermataMeasureId ?? node.dataset.ornamentMeasureId ?? node.dataset.printMeasureId ?? ''), ink = readSvgTextInk(node, context)
           if (owner && ink) {
             measuredSlurObstacleInk.push({...ink, ...owner})
             decoratedNoteInk.push({...ink, ...owner})
@@ -1558,7 +1581,7 @@ function NotationCanvas({
         const segments = chosen.elements, innerPaint: StaffInk[] = [], targets: SVGElement[] = []
         for (const segment of segments) {
           if (hasManualSpanEngraving(slur.engraving)) manualBounds.push(segment.getBBox())
-          bindSpanSelection(segment, { kind: 'slur', id: slur.id }, selectedSpan, onSelectSpan)
+          bindSpanSelection(segment, { kind: 'slur', id: slur.id }, selectedSpan, onSelectSpan, spanMovementDescriptionId)
           targets.push(segment.closest<SVGElement>('.notation-span-target') ?? segment)
           const owner = start.measureId ? owners.get(start.measureId) : undefined
           const systemIndex = Number(segment.dataset.systemIndex), ink = readSvgShapeInk(segment)
@@ -1632,7 +1655,7 @@ function NotationCanvas({
         }
         for (const segment of segments) {
           if (hasManualSpanEngraving(hairpin.engraving)) manualBounds.push(segment.getBBox())
-          bindSpanSelection(segment, { kind: 'hairpin', id: hairpin.id }, selectedSpan, onSelectSpan)
+          bindSpanSelection(segment, { kind: 'hairpin', id: hairpin.id }, selectedSpan, onSelectSpan, spanMovementDescriptionId)
         }
       }
 
@@ -1696,7 +1719,9 @@ function NotationCanvas({
       }
     }
 
+    let disposeSpanDrag = () => {}
     const cleanup = () => {
+      disposeSpanDrag()
       window.removeEventListener('mouseup', clearDragAnchor)
       window.removeEventListener('blur', clearDragAnchor)
       window.removeEventListener('keydown', cancelDragAnchor)
@@ -1706,6 +1731,7 @@ function NotationCanvas({
     }
     if (svg) {
       applyTempoStaffAnchors(svg, owners)
+      const anchoredStaffTextInk = applyStaffTextAnchors(svg, owners, [...paintedSlurObstacles, ...paintedHairpinObstacles, ...paintedOctaveInk, ...correctedTieInk])
       // A later system's upper text must not detach the current part name from
       // its staff. Keep the global reservation unless final painted ink permits
       // the current-system candidate; authored music/spans never move here.
@@ -1782,7 +1808,7 @@ function NotationCanvas({
         const space=systemVerticalSpace(systemMeasures.get(placement.systemIndex)!,lyricScale,{systemHeight})
         musicFrames.set(placement.systemIndex,{y:placement.y,reservedHeight:systemHeight+space.below,pitchBelow:space.noteBelow})
       }
-      const nextMusicMinimum=resolveSystemMusicMinimum([...measuredMusicInk,...paintedOctaveInk,...correctedTieInk,...relocatedAutomaticSlurInk,...nestedAdjustedSlurInk,...automaticHairpinEnvelopeInk],musicFrames,additionalSystemMusicMinimum)
+      const nextMusicMinimum=resolveSystemMusicMinimum([...measuredMusicInk,...anchoredStaffTextInk,...paintedOctaveInk,...correctedTieInk,...relocatedAutomaticSlurInk,...nestedAdjustedSlurInk,...automaticHairpinEnvelopeInk],musicFrames,additionalSystemMusicMinimum)
       const repeatLayout = pass < 2 && (next !== additionalSystemSpacing || nextStaff !== additionalStaffSpacing || nextHeader !== firstSystemOffset || nextLyrics !== additionalLyricSpacing || nextDynamics !== additionalDynamicSpacing || nextHairpins !== additionalHairpinMinimums || nextMusicMinimum !== additionalSystemMusicMinimum)
       const repeatExpressions = pass < 3 && nextExpressions !== additionalExpressionOffsets
       const repeatMusic=pass<4 && nextMusicMinimum!==additionalSystemMusicMinimum
@@ -1798,7 +1824,7 @@ function NotationCanvas({
         const snapshot=container.closest('.studio-pdf-snapshot,.studio-image-snapshot')
         const host=snapshot?.querySelector<HTMLElement>('.score-page')
         if (host) {
-          const pageBreakIds=new Set(score.layout?.pageBreakBeforeMeasureIds??[])
+          const pageBreakIds=new Set(resolvedLayout?.pageBreakBeforeMeasureIds??[])
           const breaks=new Set(layout.placements.filter(p=>p.isSystemStart&&pageBreakIds.has(p.measure.id)).map(p=>p.systemIndex))
           const result=measurePrintPageLayout(svg,host,snapshot?.querySelector<HTMLElement>('.score-title')??null,
             new Map([...musicFrames].map(([i,f])=>[i,f.y])),measureSystems,breaks,printLayoutPlan.pageSetup,measuredPrintLayout)
@@ -1882,9 +1908,13 @@ function NotationCanvas({
         ?[...container.querySelectorAll<SVGElement>('.notation-event')].find(node=>node.dataset.eventId===selectedEventId&&(!focusAddress||
           node.dataset.partId===focusAddress.partId&&node.dataset.staffId===focusAddress.staffId&&node.dataset.measureId===focusAddress.measureId&&node.dataset.voiceId===focusAddress.voiceId)):undefined
       const changedSelection=leavingMarkSelection?(selectedSpan
-        ?[...container.querySelectorAll<SVGElement>('.notation-span-target')].find(node=>node.dataset.spanId===selectedSpan.id&&node.dataset.spanKind===selectedSpan.kind)
+        ?resolveSpanFocusTarget(container,selectedSpan,previousFocus)
         :selectedEvent??[...container.querySelectorAll<SVGElement>('.notation-measure')].find(node=>node.dataset.measureId===selectedMeasureId)):undefined
-      const target = changedMark??changedSelection??(focusedDynamicId
+      const retainedSpanFocus = resolveUnchangedSpanFocusTarget(container, previousFocus,
+        spanSelectionChanged || previousPaintedScore?.id !== score.id)
+      const retainedNoteFocus = resolveTabNoteFocusTarget(container, previousFocus,
+        Boolean(selectedSpan) && !spanSelectionChanged && previousPaintedScore?.id === score.id)
+      const target = changedMark??changedSelection??retainedSpanFocus??retainedNoteFocus??(focusedDynamicId
         ?[...container.querySelectorAll<SVGElement>('.notation-dynamic-target')].find(node=>node.dataset.dynamicId===focusedDynamicId)
         :focusedHarmonyId
         ?[...container.querySelectorAll<SVGElement>('.notation-harmony-target')].find(node=>node.dataset.harmonyId===focusedHarmonyId)
@@ -1897,8 +1927,7 @@ function NotationCanvas({
         :focusedRehearsalId
         ?[...container.querySelectorAll<SVGElement>('.notation-rehearsal-mark')].find(node=>node.dataset.rehearsalId===focusedRehearsalId)
         :selectedSpan
-        ? [...container.querySelectorAll<SVGElement>('.notation-span-target')].find(node =>
-          node.dataset.spanId === selectedSpan.id && node.dataset.spanKind === selectedSpan.kind)
+        ? resolveSpanFocusTarget(container,selectedSpan,previousFocus)
         : [...container.querySelectorAll<SVGElement>('.notation-event')].find(node =>
           node.dataset.eventId === (selectedEventId ?? focusedEventId) && (!focusAddress ||
             node.dataset.partId === focusAddress.partId && node.dataset.staffId === focusAddress.staffId &&
@@ -1916,12 +1945,20 @@ function NotationCanvas({
       const focusTarget = target?.matches('.notation-measure') ? canvas : target ?? (preview ? canvas : undefined)
       const anchor = target ?? preview
       if (focusTarget && anchor) {
-        const automatic = !scoreChanged && isSameNotationFocus(previousFocus, focusTarget)
+        const sameTarget = isSameNotationFocus(previousFocus, focusTarget)
+        const spanKind = focusTarget.getAttribute('data-span-kind')
+        const positioning = Boolean(sameTarget && focusedSpanId && (spanKind === 'slur' || spanKind === 'hairpin') &&
+          isSpanOffsetOnlyChange(previousPaintedScore, score, {kind: spanKind, id: focusedSpanId}))
+        const automatic = positioning || (!scoreChanged && sameTarget)
         restoreNotationFocus(focusTarget, anchor, focusBox, canvas,
-          !automatic || (shouldRestoreFocusViewport?.() ?? true), automatic)
+          positioning ? false : !automatic || (shouldRestoreFocusViewport?.() ?? true), automatic)
       }
     }
 
+    const selectedEngraving = selectedSpan?.kind === 'slur'
+      ? score.slurs?.find(span => span.id === selectedSpan.id)?.engraving
+      : selectedSpan?.kind === 'hairpin' ? score.hairpins?.find(span => span.id === selectedSpan.id)?.engraving : undefined
+    disposeSpanDrag = attachManualSpanPointerDrag(container, { reference: selectedSpan, engraving: selectedEngraving, begin: onBeginSpanDrag, printLayout })
     return cleanup
     }
     return paint(new Map(), 0)
@@ -1932,6 +1969,7 @@ function NotationCanvas({
     harmonyWidths,
     minimumMeasureWidths,
     onSelectSpan,
+    onBeginSpanDrag,
     onSelectRehearsalMark,
     selectedRehearsalMarkId,
     onSelectSystemText,
@@ -1947,6 +1985,7 @@ function NotationCanvas({
     inputPosition,
     shouldRestoreFocusViewport,
     selectedSpan,
+    spanMovementDescriptionId,
     onSelectEvent,
     onSelectEventRange,
     onSelectLyric,
@@ -2280,7 +2319,8 @@ function drawMeasureAnnotations(
   firstEventX: number | undefined,
   rhythmLayout: TimedAnnotationLayout,
   staffTopY: number,
-  interaction:MeasureTextInteraction={}
+  interaction:MeasureTextInteraction={},
+  staffSpace=10
 ): void {
   if (!svg) {
     return
@@ -2326,7 +2366,8 @@ function drawMeasureAnnotations(
       staffText.text,
       measure.id,
       onSelectStaffText?()=>onSelectStaffText({id:staffText.id,measureId:measure.id}):undefined,
-      {id:staffText.id,selected:staffText.id===selectedStaffTextId}
+      {id:staffText.id,selected:staffText.id===selectedStaffTextId},
+      {x:resolveTimedAnnotationX(0,rhythmLayout),y:staffTopY-staffSpace+(lanes.staffTextYOffsets?.[index]??lanes.staffTextYOffset??STAFF_TEXT_Y_OFFSET)-(lanes.staffTextYOffset??STAFF_TEXT_Y_OFFSET),space:staffSpace,top:staffTopY}
     )
   }
 
@@ -2635,6 +2676,7 @@ function drawPassiveStaffMeasure(
       })
     })
 
+    clearSameStaffRestHeadCollisions(voices, stave)
     let firstEventX: number | undefined
     const timedAnchors = new Map<number, TimedAnnotationAnchor>()
 
@@ -2739,7 +2781,13 @@ function drawPassiveStaffMeasure(
           drawArticulations(svg, eventX, y, event.articulations, measure.id, event.id, note)
         }
         if (svg && event.fermata) drawFermata(svg, eventX, y, note)
+        if (svg && event.type === 'note' && event.tremolo) {
+          drawTremoloMark(svg, y, note, event.tremolo.marks)
+        }
         if (svg && event.type === 'note' && event.ornaments?.length) drawOrnaments(svg, eventX, y, event.ornaments, note)
+        if (svg && event.breathMark) {
+          drawBreathMark(svg, eventX, y, event.breathMark, Boolean(event.fermata), measure.id, event.id, note)
+        }
         if (svg && event.type === 'note' && event.lyrics?.length) {
           drawLyrics(svg, event.id, eventX, y, event.lyrics, interaction.lyricScale, interaction.onSelectLyric, interaction.lyricOffset ?? 0, measure.id)
         }
@@ -2809,7 +2857,8 @@ function drawPassiveStaffMeasure(
       firstEventX,
       rhythmLayout,
       stave.getYForLine(0),
-      interaction
+      interaction,
+      stave.getYForLine(1)-stave.getYForLine(0)
     )
     drawNoteInputCursor(svg,interaction.inputPosition,target.partId,target.staffId,measure,stave,rhythmLayout)
   }
@@ -2987,12 +3036,13 @@ function appendRhythmFeelTripletNotes(
   appendRhythmFeelText(parent, unit === '16th' ? '𝅘𝅥𝅯' : '♪', x + 26, y)
 }
 
-function drawVoltaMark(
+export function drawVoltaMark(
   svg: SVGSVGElement,
   startX: number,
   endX: number,
   staffTopY: number,
-  volta: NonNullable<Measure['volta']>
+  volta: NonNullable<Measure['volta']>,
+  systemIndex: number
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const bracketY = staffTopY - 22
@@ -3002,6 +3052,9 @@ function drawVoltaMark(
   const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   group.classList.add('notation-volta-mark')
+  // The label, horizontal and both hooks belong to the same rendered system.
+  // This metadata enables the existing measured print-page repair.
+  group.setAttribute('data-system-index', String(systemIndex))
   horizontal.setAttribute('x1', String(leftX))
   horizontal.setAttribute('x2', String(rightX))
   horizontal.setAttribute('y1', String(bracketY))
@@ -3038,15 +3091,17 @@ function drawVoltaMark(
   svg.append(group)
 }
 
-function drawRepeatTimes(
+export function drawRepeatTimes(
   svg: SVGSVGElement,
   x: number,
   y: number,
-  times: number
+  times: number,
+  systemIndex: number
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-repeat-times')
+  text.setAttribute('data-system-index', String(systemIndex))
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = `x${times}`
@@ -3100,7 +3155,8 @@ function drawStaffText(
   label: string,
   measureId?: string,
   onSelect?:()=>void,
-  reference?:{id:string;selected:boolean}
+  reference?:{id:string;selected:boolean},
+  anchor?:{x:number;y:number;space:number;top:number}
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
@@ -3112,6 +3168,9 @@ function drawStaffText(
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
+  if(anchor){
+    text.dataset.staffAnchorX=String(anchor.x);text.dataset.staffAnchorY=String(anchor.y);text.dataset.staffAnchorSpace=String(anchor.space);text.dataset.staffAnchorTop=String(anchor.top)
+  }
   drawInteractiveMeasureText(svg,text,'staff-text','보표 글자',onSelect,reference)
 }
 
@@ -3189,7 +3248,7 @@ function drawInteractiveMeasureText(
   })
 }
 
-function drawExpressionText(
+export function drawExpressionText(
   svg: SVGSVGElement,
   x: number,
   y: number,
@@ -3208,6 +3267,16 @@ function drawExpressionText(
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
+  // Fit only an automatic expression whose complete measured ink can fit.
+  // Keep its beat anchor/model and long-text output diagnostics unchanged.
+  svg.append(text)
+  const context = document.createElement('canvas').getContext('2d')
+  const ink = context ? readSvgTextInk(text, context) : undefined
+  const width = Number(svg.getAttribute('width'))
+  if (ink && width > 8 && ink.width <= width - 8) {
+    const shift = ink.x < 4 ? 4 - ink.x : Math.min(0, width - 4 - ink.x - ink.width)
+    if (shift !== 0) text.setAttribute('x', String(x + shift))
+  }
   drawInteractiveMeasureText(svg,text,'expression-text','표현 텍스트',onSelect,reference)
 }
 
@@ -3584,7 +3653,8 @@ function bindSpanSelection(
   element: SVGElement,
   reference: { kind: 'slur' | 'hairpin'; id: string },
   selected: NotationPreviewProps['selectedSpan'],
-  onSelect: NotationPreviewProps['onSelectSpan']
+  onSelect: NotationPreviewProps['onSelectSpan'],
+  descriptionId?: string
 ): void {
   if (!onSelect) return
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -3592,10 +3662,13 @@ function bindSpanSelection(
   group.classList.toggle('is-selected', selected?.kind === reference.kind && selected.id === reference.id)
   group.setAttribute('data-span-id', reference.id)
   group.setAttribute('data-span-kind', reference.kind)
+  const systemIndex = element.getAttribute('data-system-index')
+  if (systemIndex !== null) group.setAttribute('data-system-index', systemIndex)
   group.setAttribute('role', 'button')
   group.setAttribute('tabindex', '0')
   group.setAttribute('aria-label', `${reference.kind === 'slur' ? '슬러' : '헤어핀'} ${reference.id} 선택`)
   group.setAttribute('aria-pressed', String(selected?.kind === reference.kind && selected.id === reference.id))
+  if (descriptionId && selected?.kind === reference.kind && selected.id === reference.id) group.setAttribute('aria-describedby', descriptionId)
   const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   hit.setAttribute('d', element.getAttribute('data-slur-centerline') ?? element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
     `M ${line.getAttribute('x1')} ${line.getAttribute('y1')} L ${line.getAttribute('x2')} ${line.getAttribute('y2')}`).join(' '))
@@ -3791,6 +3864,13 @@ function drawFermata(svg: SVGSVGElement, x: number, staffY: number, note: StaveN
   if (!context) return
   const ink = readSvgTextInk(text, context)
   if (!ink) return
+  const ownedInk = readAboveNoteObstacleInk(svg, note, context)
+  const offset = resolveFermataInkOffset(ink, ownedInk, note.getStave()?.getYForLine(0))
+  if (offset) text.setAttribute('y', String(staffY - 22 + offset))
+}
+
+function readAboveNoteObstacleInk(svg: SVGSVGElement, note: StaveNote, context: CanvasRenderingContext2D) {
+  const measureId = note.getSVGElement()?.dataset.measureId
   const group = note.getSVGElement()
   const ownedInk = [...(group?.querySelectorAll<SVGTextContentElement>('text') ?? [])]
     .flatMap(node => { const bounds = readSvgTextInk(node, context); return bounds ? [bounds] : [] })
@@ -3817,27 +3897,47 @@ function drawFermata(svg: SVGSVGElement, x: number, staffY: number, note: StaveN
       if (bounds) ownedInk.push(bounds)
     }
   }
-  const offset = resolveFermataInkOffset(ink, ownedInk, note.getStave()?.getYForLine(0))
-  if (offset) text.setAttribute('y', String(staffY - 22 + offset))
+  return ownedInk
 }
 
-function drawBreathMark(
+export function drawBreathMark(
   svg: SVGSVGElement,
   x: number,
   staffY: number,
   breathMark: string,
-  hasFermata: boolean
+  hasFermata: boolean,
+  measureId: string,
+  eventId: string,
+  note?: StaveNote
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-breath-mark')
+  text.dataset.printMeasureId = measureId
+  text.dataset.breathEventId = eventId
   text.setAttribute('x', String(x + 14))
   text.setAttribute('y', String(staffY - (hasFermata ? 2 : 16)))
   text.textContent = breathMark === 'caesura' ? '//' : ','
   svg.append(text)
+  if (!note || !document.fonts || typeof svg.getCTM !== 'function') return
+  const context = document.createElement('canvas').getContext('2d')
+  if (!context) return
+  const ink = readSvgTextInk(text, context)
+  if (!ink) return
+  const obstacles = readAboveNoteObstacleInk(svg, note, context)
+  // Ornament layout can lift a fermata. Use its final ink on this same event
+  // and measure, never a similarly named event on another staff.
+  for (const mark of svg.querySelectorAll<SVGTextContentElement>('.notation-fermata,.notation-ornament')) {
+    if ((mark.dataset.fermataEventId ?? mark.dataset.ornamentEventId) !== eventId ||
+        (mark.dataset.fermataMeasureId ?? mark.dataset.ornamentMeasureId) !== measureId) continue
+    const bounds = readSvgTextInk(mark, context)
+    if (bounds) obstacles.push(bounds)
+  }
+  const offset = resolveFermataInkOffset(ink, obstacles, note.getStave()?.getYForLine(0))
+  if (offset) text.setAttribute('y', String(Number(text.getAttribute('y')) + offset))
 }
 
-function drawTremoloMark(
+export function drawTremoloMark(
   svg: SVGSVGElement,
   staffY: number,
   note: StaveNote,
@@ -3849,6 +3949,9 @@ function drawTremoloMark(
   const firstY = centerY - ((marks - 1) * 5) / 2
 
   group.classList.add('notation-tremolo-mark')
+  const event = note.getSVGElement()
+  group.dataset.printMeasureId = event?.dataset.measureId ?? ''
+  group.dataset.tremoloEventId = event?.dataset.eventId ?? ''
 
   for (let index = 0; index < marks; index += 1) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
@@ -3913,8 +4016,7 @@ function drawOrnaments(
   const noteheads = [...(eventElement?.querySelectorAll<SVGTextContentElement>('.vf-notehead text') ?? [])]
     .flatMap(node => { const bounds = readSvgTextInk(node, context); return bounds ? [bounds] : [] })
   const stem = note.hasStem() ? note.getStemExtents() : undefined
-  const top = Math.min(staffY - 6, ...noteheads.map(b => b.y), ...(stem ? [stem.topY, stem.baseY] : []))
-  const shift = Math.min(0, top - 6 - (ink.y + ink.height))
+  const shift = resolveOrnamentInkOffset(ink, [...noteheads.map(b => b.y), ...(stem ? [stem.topY, stem.baseY] : [])], note.getStave()?.getYForLine(0), staffY)
   if (shift) text.setAttribute('y', String(Number(text.getAttribute('y')) + shift))
   ink = readSvgTextInk(text, context)
   if (!ink) return

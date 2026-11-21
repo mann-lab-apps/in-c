@@ -5,7 +5,7 @@ import { expect, it, vi } from 'vitest'
 import { playbackMockState, registerAppTestHooks } from './App.test-harness'
 
 registerAppTestHooks()
-it.each(['footer', 'surface', 'manual', 'newer-focus'] as const)('keeps view-field reflow ownership: %s', async kind => {
+it.each(['footer', 'surface', 'manual', 'newer-focus', 'footer-wheel', 'footer-zero-wheel'] as const)('keeps view-field reflow ownership: %s', async kind => {
   const originalObserver = globalThis.ResizeObserver
   const observers = new Set<{ callback: ResizeObserverCallback; targets: Set<Element> }>()
   vi.stubGlobal('ResizeObserver', class {
@@ -42,8 +42,13 @@ it.each(['footer', 'surface', 'manual', 'newer-focus'] as const)('keeps view-fie
     top = 850
     const surface = kind === 'surface' ? target.closest('.studio-score-view')! : footer
     act(() => { for (const observer of observers) if (observer.targets.has(surface)) observer.callback([], observer as unknown as ResizeObserver) })
+    // Exercise manual intent after reflow has queued its reveal, before that RAF runs.
+    if (kind === 'footer-wheel' || kind === 'footer-zero-wheel') {
+      expect(frames.size).toBeGreaterThan(0)
+      fireEvent.wheel(footer, { deltaX: 0, deltaY: kind === 'footer-wheel' ? -400 : 0 })
+    }
     flush()
-    if (kind === 'manual' || kind === 'newer-focus') {
+    if (kind === 'manual' || kind === 'newer-focus' || kind === 'footer-wheel') {
       expect(target.scrollIntoView).not.toHaveBeenCalled(); expect(scroll).not.toHaveBeenCalled()
     } else {
       expect(target.scrollIntoView).toHaveBeenCalledOnce()

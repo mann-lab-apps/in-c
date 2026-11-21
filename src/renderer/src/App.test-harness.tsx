@@ -14,6 +14,11 @@ import {
 } from '@testing-library/react'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { readPaletteEventInk } from './notation/palette-event-ink'
+
+// The App harness substitutes NotationPreview and has no font canvas. Its
+// explicit geometry boundary represents that mock renderer, not actual ink QA.
+vi.mock('./notation/palette-event-ink', () => ({ readPaletteEventInk: vi.fn() }))
 
 import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?raw'
 
@@ -142,6 +147,7 @@ const playbackMockState = vi.hoisted(() => ({
   readViewportOwnership: undefined as (()=>boolean) | undefined,
   lastPreviewAddress: undefined as {partId:string;staffId:string;measureId:string;voiceId:string} | undefined,
   lastScore: undefined as Parameters<typeof createPlaybackTimeline>[0] | undefined,
+  lastPracticeLoop:undefined as {startBeat:number;endBeat:number;label:string}|undefined,
   lastPreviewScore: undefined as Parameters<typeof createPlaybackTimeline>[0] | undefined,
   jumpToStart: vi.fn(),
   lastPartMixer: {} as Record<
@@ -502,6 +508,18 @@ vi.mock('./notation/NotationPreview', async importOriginal => ({
           type="button"
         />
       ))}
+      {/* Match real passive-staff context targets without renaming existing primary buttons. */}
+      {score.parts.flatMap((part, partIndex) => part.staves.flatMap((staff, staffIndex) =>
+        partIndex === 0 && staffIndex === 0 ? [] : staff.measures.map(measure => (
+          <button key={`${part.id}-${staff.id}-${measure.id}-context`}
+            aria-label={`${part.name} 보표 ${staffIndex + 1} · ${measure.number}마디 선택`}
+            onClick={() => onSelectMeasure(measure.id)}
+            onContextMenu={event => {
+              event.preventDefault()
+              onOpenMeasureContextMenu(measure.id, { x: event.clientX, y: event.clientY })
+            }} type="button" />
+        ))
+      ))}
       {score.parts.flatMap((part) =>
         part.staves.flatMap((staff) =>
           staff.measures.flatMap((measure) =>
@@ -652,9 +670,12 @@ vi.mock('./playback/useScorePlayback', async importOriginal => {
   return {
   useScorePlayback: (
     score: Parameters<typeof createPlaybackTimeline>[0],
-    partMixer?: typeof playbackMockState.lastPartMixer
+    partMixer?: typeof playbackMockState.lastPartMixer,
+    _expression?:unknown,_pianoTimeline?:unknown,_metronomeEnabled?:boolean,
+    practiceLoop?:typeof playbackMockState.lastPracticeLoop
   ) => {
     playbackMockState.lastScore = score
+    playbackMockState.lastPracticeLoop=practiceLoop
     playbackMockState.lastPartMixer = partMixer ?? {}
     const timeline = useMemo(() => createPlaybackTimeline(score), [score])
 
@@ -934,6 +955,7 @@ export function registerAppTestHooks() {
     restorePopoverApi=undefined
   })
   beforeEach(() => {
+    vi.mocked(readPaletteEventInk).mockReset().mockImplementation(node => node.getBoundingClientRect())
     // App integration tests exercise the existing no-Canvas fallback. Delegate
     // other context kinds, and restore after each case; do not fake font ink.
     const originalGetContext = HTMLCanvasElement.prototype.getContext

@@ -20,10 +20,11 @@ interface Props {
   onSelect: (reference?: SpanReference) => void
   onEndpointChange: (patch: Partial<{ startEventId: string; endEventId: string }>) => void
   onDelete: () => void
+  deleteShortcut?: { matches: (event: KeyboardEvent) => boolean; label: string; aria?: string }
   onEngravingChange: (engraving?: SpanEngraving) => void
 }
 
-export function SpanProperties({ theme = 'light', score, partId, scopeLabel, selected, onSelect, onEndpointChange, onDelete, onEngravingChange }: Props) {
+export function SpanProperties({ theme = 'light', score, partId, scopeLabel, selected, onSelect, onEndpointChange, onDelete, deleteShortcut, onEngravingChange }: Props) {
   const root = useRef<HTMLElement>(null)
   const references = listSpans(score, partId)
   const span = selected && findSpan(score, selected)
@@ -45,19 +46,25 @@ export function SpanProperties({ theme = 'light', score, partId, scopeLabel, sel
       onKeyDown={event => {
         // Select owns navigation/commit/cancel; public buttons retain native
         // activation instead of reaching selected-span editor shortcuts.
-        // Modified document shortcuts and composition guards stay with App.
+        // Bound deletion on an action button restores picker focus before the
+        // action disappears; remaining modified document shortcuts reach App.
         const target = event.target as HTMLElement
+        const composing = event.nativeEvent.isComposing || event.keyCode === 229
+        const deletes = deleteShortcut ? deleteShortcut.matches(event.nativeEvent)
+          : !event.metaKey && !event.ctrlKey && !event.altKey && (event.key === 'Delete' || event.key === 'Backspace')
+        if (!event.defaultPrevented && !composing && span && target.closest('button') && !target.closest('[role="combobox"]') && deletes) {
+          event.preventDefault(); event.stopPropagation(); focusObjectPicker(); onDelete(); return
+        }
         if (event.metaKey || event.ctrlKey || event.altKey) return
         if (target.closest('[role="combobox"]')) {
           event.stopPropagation()
         } else if (target.closest('button')) {
           if (event.nativeEvent.isComposing || event.keyCode === 229) return
-          if (span && (event.key === 'Escape' || event.key === 'Delete' || event.key === 'Backspace')) {
+          if (span && event.key === 'Escape') {
             event.preventDefault()
             event.stopPropagation()
             focusObjectPicker()
-            if (event.key === 'Escape') onSelect(undefined)
-            else onDelete()
+            onSelect(undefined)
           } else if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
         }
       }}>
@@ -72,6 +79,11 @@ export function SpanProperties({ theme = 'light', score, partId, scopeLabel, sel
           <div><dt>성부</dt><dd>{options.find(option=>option.id===span.startEventId)?.voiceNumber ?? '?'}</dd></div>
           {scopeLabel ? <div><dt><Text variant="caption">적용 범위</Text></dt><dd><Text variant="description">{scopeLabel}</Text></dd></div> : null}
         </dl>
+        <Text as="p" id="studio-span-direct-guidance" aria-label="표기 직접 이동 안내" variant="caption">
+          {hasManualSpanEngraving(span.engraving)
+            ? '수동 배치: 선택한 선을 마우스로 끌어 공통 이동(이동량 0.25 sp 격자), Escape로 미리보기 취소. 선에 포커스 후 방향키 0.25 sp 격자 · Cmd/Ctrl 1 sp 격자. 총보·파트보의 모든 구간에 공통 적용합니다.'
+            : '자동 배치는 직접 이동하지 않습니다. 속성에서 수동 배치를 설정한 뒤 선에서 방향키를 사용하세요.'}
+        </Text>
         {(['startEventId', 'endEventId'] as const).map(endpoint => {
           const supported = options.some(option => option.id === span[endpoint])
           const opposite = endpoint === 'startEventId' ? endOption : startOption
@@ -91,7 +103,7 @@ export function SpanProperties({ theme = 'light', score, partId, scopeLabel, sel
               {` · ${field === 'offsetX' ? '가로' : field === 'offsetY' ? '세로' : '높이'} ${span.engraving?.[field] === undefined ? '자동' : `${span.engraving[field]} sp`}`}
             </span>)}
           </Text>
-          <Select label="표기 배치" value={span.engraving?.placement ?? 'auto'} options={[{value:'auto',label:'자동'},{value:'above',label:'보표 위'},{value:'below',label:'보표 아래'}]}
+          <Select key={`${selected.kind}:${selected.id}:placement`} label="표기 배치" value={span.engraving?.placement ?? 'auto'} options={[{value:'auto',label:'자동'},{value:'above',label:'보표 위'},{value:'below',label:'보표 아래'}]}
             onChange={value => onEngravingChange({ ...span.engraving, placement: value === 'auto' ? undefined : value as 'above' | 'below' })} />
           {(['offsetX', 'offsetY', 'height'] as const).map(field => <div className="studio-span-properties__field" key={field}>
             <GeometryInput key={`${selected.kind}:${selected.id}:${field}`} label={field === 'offsetX' ? '표기 가로 이동' : field === 'offsetY' ? '표기 세로 이동' : '표기 높이'}
@@ -110,7 +122,7 @@ export function SpanProperties({ theme = 'light', score, partId, scopeLabel, sel
           </Tooltip>
         </StudioPropertyDisclosure>
         <div className="studio-span-properties__actions">
-          <Tooltip text="선택한 표기 삭제"><IconButton label="선택 표기 삭제" onClick={() => {
+          <Tooltip text={`선택한 표기 삭제${deleteShortcut ? ' · ' + deleteShortcut.label : ''}`}><IconButton label="선택 표기 삭제" aria-keyshortcuts={deleteShortcut?.aria} onClick={() => {
             // These actions disappear after dispatch; keep keyboard focus on
             // the surviving public picker without a delayed focus request.
             focusObjectPicker()

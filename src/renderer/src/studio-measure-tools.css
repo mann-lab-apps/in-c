@@ -2,4 +2,8 @@
 .studio-measure-tools { display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: var(--dd-spacing-md) var(--dd-spacing-lg); padding: var(--dd-spacing-sm) var(--dd-spacing-xl); background: var(--dd-surface); border-bottom: var(--dd-control-border-width) solid var(--dd-border); }
 .studio-measure-tools__signatures { display: flex; flex: 1 1 24rem; flex-wrap: wrap; align-items: end; min-width: 0; gap: var(--dd-spacing-sm) var(--dd-spacing-lg); }
 .studio-measure-tools__signature { flex: 1 1 10rem; min-width: 0; max-width: 100%; }
+.studio-measure-tools__custom-meter form { display: grid; gap: var(--dd-spacing-md); }
+.studio-measure-tools__custom-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dd-spacing-md); }
+.studio-measure-tools__custom-actions { display: flex; justify-content: end; gap: var(--dd-spacing-sm); }
+@media (max-width: 600px) { .studio-measure-tools__custom-fields { grid-template-columns: minmax(0, 1fr); } }
 @media print { .studio-measure-tools { display: none; } }

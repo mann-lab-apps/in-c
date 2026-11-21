@@ -1,0 +1,83 @@
+{
+  "title": "띠로리 Studio 사용설명서",
+  "productVersion": "0.1.0-alpha.40",
+  "manualUiStatus": "앱에 포함",
+  "chapters": [
+    {
+      "id": "start",
+      "file": "01-start.md",
+      "title": "시작하기"
+    },
+    {
+      "id": "workspace",
+      "file": "02-workspace.md",
+      "title": "화면과 악보 탐색"
+    },
+    {
+      "id": "notes",
+      "file": "03-notes.md",
+      "title": "음표와 쉼표 입력·편집"
+    },
+    {
+      "id": "structure",
+      "file": "04-structure.md",
+      "title": "악보 구성"
+    },
+    {
+      "id": "notation",
+      "file": "05-notation.md",
+      "title": "표기와 표현"
+    },
+    {
+      "id": "properties",
+      "file": "06-properties.md",
+      "title": "선택 객체 속성과 배치"
+    },
+    {
+      "id": "playback",
+      "file": "07-playback.md",
+      "title": "재생과 믹서"
+    },
+    {
+      "id": "layout",
+      "file": "08-layout.md",
+      "title": "조판과 페이지"
+    },
+    {
+      "id": "files",
+      "file": "09-files.md",
+      "title": "파일과 출력"
+    },
+    {
+      "id": "shortcuts",
+      "file": "10-shortcuts.md",
+      "title": "단축키 전체 참고"
+    },
+    {
+      "id": "troubleshooting",
+      "file": "11-troubleshooting.md",
+      "title": "문제 해결"
+    },
+    {
+      "id": "reference",
+      "file": "12-reference.md",
+      "title": "지원 범위와 용어"
+    },
+    {
+      "id": "checklist",
+      "file": "13-checklist.md",
+      "title": "직접 확인하기"
+    },
+    {
+      "id": "index",
+      "file": "feature-index.md",
+      "title": "기능 색인"
+    },
+    {
+      "id": "musescore-differences",
+      "file": "14-musescore-differences.md",
+      "title": "MuseScore와의 차이"
+    }
+  ],
+  "sourceRef": "v0.1.0-alpha.40"
+}

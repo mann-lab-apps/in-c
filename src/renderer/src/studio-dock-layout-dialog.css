@@ -1,0 +1,3 @@
+/* Layout only: shared controls retain their own density and focus tokens. */
+.studio-dock-layout-dialog form { display: grid; gap: var(--dd-spacing-sm); }
+.studio-dock-layout-dialog__actions { display: flex; flex-wrap: wrap; justify-content: end; gap: var(--dd-spacing-sm); }

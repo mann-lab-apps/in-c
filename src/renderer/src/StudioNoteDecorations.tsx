@@ -51,7 +51,7 @@ export function StudioNoteDecorations(props:Props) {
       else if(event.key==='Enter'||event.key===' ')event.stopPropagation()
     }}>
     <Text as="h3" variant="itemTitle">음표 장식</Text>
-    <Select label="트레몰로" value={String(props.note.tremolo?.marks??0)}
+    <Select key={props.note.id} label="트레몰로" value={String(props.note.tremolo?.marks??0)}
       help="선택 음표에 적용 · 빗금 개수"
       options={([0,1,2,3] as const).map(value=>({value:String(value),label:value===0?'없음':`${value}줄`}))}
       onChange={value=>{const marks=Number(value);if(marks===0||marks===1||marks===2||marks===3)props.onTremolo(marks)}} />

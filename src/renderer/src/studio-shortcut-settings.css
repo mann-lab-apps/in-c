@@ -1,0 +1,2 @@
+/* Local layout only; shared controls own color, density and focus styling. */
+.studio-shortcut-settings__actions { display: flex; flex-wrap: wrap; gap: var(--dd-spacing-sm); }

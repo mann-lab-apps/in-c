@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useRef,useState,type RefObject} from 'react'
 import type {PlaybackStatus} from './useScorePlayback'
 import {createViewportScrollTracker,observeDocumentScrollbarIntent} from '../editor/viewport-scroll'
+import {ownsReportTextSelection} from '../editor/report-text-selection'
 
 const isEditingTarget=(target:EventTarget|null)=>target instanceof Element&&
   Boolean(target.closest('input,textarea,[contenteditable="true"],[role="combobox"]'))
@@ -11,7 +12,15 @@ export function usePlaybackViewport(canvas:RefObject<HTMLElement|null>,status:Pl
   const [following,setFollowing]=useState(true)
   const followingRef=useRef(following)
   followingRef.current=following
-  const toggleFollowing=useCallback(()=>setFollowing(value=>!value),[])
+  // An explicit Follow command may move the viewport even while its own
+  // button retains focus. Merely tabbing back to that button is not the command.
+  const explicitFollowTarget=useRef<Element|null>(null)
+  const toggleFollowing=useCallback(()=>{
+    const next=!followingRef.current
+    explicitFollowTarget.current=next?document.activeElement:null
+    followingRef.current=next
+    setFollowing(next)
+  },[])
   useEffect(()=>{
     const root=canvas.current
     if(!root||status!=='playing'||!following)return
@@ -20,12 +29,17 @@ export function usePlaybackViewport(canvas:RefObject<HTMLElement|null>,status:Pl
       if(frame!==undefined||disposed)return
       frame=requestAnimationFrame(()=>{
         frame=undefined
-        if(disposed||!followingRef.current||!document.hasFocus()||isEditingTarget(document.activeElement))return
+        // Explicit transport focus owns the viewport while a cursor RAF is pending.
+        // Keep the following preference; leaving the controls schedules the cursor again.
+        if(disposed||!followingRef.current||!document.hasFocus()||isEditingTarget(document.activeElement)||
+          ownsReportTextSelection(document.activeElement)||
+          (document.activeElement?.closest('.studio-playback')&&document.activeElement!==explicitFollowTarget.current))return
         const cursor=root.querySelector('.notation-playhead')
         if(cursor?.isConnected)reveal(cursor)
       })
     }
     const suspend=()=>{
+      explicitFollowTarget.current=null
       followingRef.current=false
       setFollowing(false)
       if(frame!==undefined){cancelAnimationFrame(frame);frame=undefined}
@@ -52,7 +66,11 @@ export function usePlaybackViewport(canvas:RefObject<HTMLElement|null>,status:Pl
     window.addEventListener('keydown',keyboard,true)
     window.addEventListener('resize',schedule)
     window.addEventListener('focus',schedule)
-    document.addEventListener('focusin',schedule)
+    const focusChanged=()=>{explicitFollowTarget.current=null;schedule()}
+    document.addEventListener('focusin',focusChanged)
+    // Reading keeps its current viewport without disabling the Follow preference.
+    // Collapsing the range can resume even when the cursor has not changed yet.
+    document.addEventListener('selectionchange',schedule)
     schedule()
     return()=>{
       disposed=true;observer.disconnect();resize?.disconnect()
@@ -64,7 +82,8 @@ export function usePlaybackViewport(canvas:RefObject<HTMLElement|null>,status:Pl
       stopScrollbarObservation()
       window.removeEventListener('resize',schedule)
       window.removeEventListener('focus',schedule)
-      document.removeEventListener('focusin',schedule)
+      document.removeEventListener('focusin',focusChanged)
+      document.removeEventListener('selectionchange',schedule)
     }
   },[canvas,status,following,reveal])
   return {following,toggleFollowing}

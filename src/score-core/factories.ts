@@ -198,6 +198,7 @@ export function createScore(input?: {
   tempoEvents?: Score['tempoEvents']
   pedalEvents?: Score['pedalEvents']
   rhythmFeel?: Score['rhythmFeel']
+  swingPlayback?: Score['swingPlayback']
   octaveShifts?: Score['octaveShifts']
   harmonies?: Score['harmonies']
   rehearsalMarks?: Score['rehearsalMarks']
@@ -218,6 +219,7 @@ export function createScore(input?: {
     tempoEvents: input?.tempoEvents,
     pedalEvents: input?.pedalEvents,
     rhythmFeel: input?.rhythmFeel,
+    ...(input?.swingPlayback ? { swingPlayback: input.swingPlayback } : {}),
     octaveShifts: input?.octaveShifts,
     harmonies: input?.harmonies,
     rehearsalMarks: input?.rehearsalMarks,

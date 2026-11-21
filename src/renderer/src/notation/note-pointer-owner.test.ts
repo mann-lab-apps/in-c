@@ -65,3 +65,10 @@ it('selects a uniquely painted main flag through another voice rectangle', () =>
   inks.set(flag.querySelector('text')!, { x: 20, y: 20, width: 12, height: 10 })
   expect(resolveNotePointerOwner(covering, 72, 90)?.element).toBe(owningNote)
 })
+
+it('retains the actual regular head for consumers of ink ownership',()=>{
+ const head=note('head',20),covering=note('covering',5);head.classList.add('vf-stavenote');const result=resolveNotePointerOwner(covering,72,90);expect(result?.inkElement).toBe(head.querySelector('text'))
+})
+it('retains attached-grace ink identity without changing the owning host note',()=>{
+ const head=note('host',5),covering=note('covering',-10);head.classList.add('vf-stavenote');const grace=document.createElementNS('http://www.w3.org/2000/svg','g');grace.classList.add('vf-stavenote');grace.innerHTML='<g class="vf-notehead"><text>grace</text></g>';head.append(grace);inks.set(grace.querySelector('text')!,{x:20,y:20,width:12,height:10});const result=resolveNotePointerOwner(covering,72,90);expect(result?.element).toBe(head);expect(result?.inkElement).toBe(grace.querySelector('text'))
+})

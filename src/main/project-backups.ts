@@ -20,11 +20,13 @@ export class NativeProjectBackupStore {
     await mkdir(this.directory(), { recursive: true })
     const destination = join(this.directory(), backupFileName(filePath))
     const temporary = `${destination}.tmp`
+    let created = false
     try {
       const handle = await open(temporary, 'wx', 0o600)
+      created = true
       try { await handle.writeFile(contents, 'utf8'); await handle.sync() } finally { await handle.close() }
       await rename(temporary, destination)
-    } finally { await rm(temporary, { force: true }) }
+    } finally { if (created) await rm(temporary, { force: true }) }
   }
 
   async list(): Promise<NativeBackupEntry[]> {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerAppTestHooks, playbackMockState } from './App.test-harness'
 import { createNativeProject, encodeNativeProject } from '../../project/schema'
@@ -34,14 +34,174 @@ describe('PNG file output ownership',()=>{
   })
   it.each(['cancel','error']as const)('retains the score and retry focus after %s',async mode=>{
     const before=await app();await openTools()
-    if(mode==='error')vi.mocked(window.inC.png.save).mockRejectedValueOnce(new Error('owned disk failure'))
+    const diskError='EISDIR: owned PNG destination /fixture/destination.png'
+    if(mode==='error')vi.mocked(window.inC.png.save).mockRejectedValueOnce(new Error(diskError))
     const button=await start()
     await waitFor(()=>expect(button).toBeEnabled());await waitFor(()=>expect(document.querySelector('.studio-image-snapshot')).toBeNull())
     expect(playbackMockState.lastScore).toEqual(before);expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
     expect(button).toHaveFocus()
+    if(mode==='error'){
+      const result=document.querySelector('.studio-status__result')!
+      expect(result).toHaveTextContent('저장 위치와 출력 설정을 확인한 뒤 다시 시도해 주세요.')
+      expect(result).not.toHaveTextContent(diskError)
+      const details=within(screen.getByRole('group',{name:'PNG 출력 기술 정보'}))
+      expect(details.getByText(diskError)).not.toBeVisible()
+      fireEvent.click(details.getByRole('button',{name:'기술 정보'}))
+      expect(details.getByText(diskError)).toBeVisible()
+    }
     vi.mocked(window.inC.png.save).mockResolvedValue({fileName:'retry.png',filePath:'/tmp/retry.png',pageCount:1,kind:'file'})
     fireEvent.click(button);await waitFor(()=>expect(document.querySelector('.editor-status')).toHaveTextContent('retry.png'))
   })
+  it.each(['retry', 'replace'] as const)('keeps PNG diagnostics readable after an older MIDI success until %s', async next => {
+    const original = await app()
+    changeTitle('Current PNG diagnostic')
+    const edited = structuredClone(playbackMockState.lastScore!)
+    let finishMidi!: (result: { fileName: string }) => void
+    vi.mocked(window.inC.midi.save).mockImplementationOnce(() => new Promise(resolve => { finishMidi = resolve }))
+    const diagnostic = 'EISDIR: owned PNG destination /fixture/current.png'
+    vi.mocked(window.inC.png.save).mockRejectedValueOnce(new Error(diagnostic))
+
+    await openTools()
+    const tools = screen.getByRole('region', { name: '내보내기 작업' })
+    fireEvent.click(within(tools).getByRole('button', { name: 'MIDI 내보내기' }))
+    expect(window.inC.midi.save).toHaveBeenCalledTimes(1)
+    const retry = await start()
+    await waitFor(() => expect(retry).toBeEnabled())
+    expect(screen.getAllByRole('group', { name: 'PNG 출력 기술 정보' })).toHaveLength(1)
+    expect(within(tools).queryByRole('group', { name: 'PNG 출력 기술 정보' })).toBeNull()
+
+    await act(async () => finishMidi({ fileName: 'older.mid' }))
+    expect(document.querySelector('.studio-status__result')).toHaveTextContent('older.mid')
+    const local = within(tools).getByRole('group', { name: 'PNG 출력 기술 정보' })
+    expect(screen.getAllByRole('group', { name: 'PNG 출력 기술 정보' })).toEqual([local])
+    expect(within(local).getByText(diagnostic)).not.toBeVisible()
+    fireEvent.click(within(local).getByRole('button', { name: '기술 정보' }))
+    expect(within(local).getByText(diagnostic)).toBeVisible()
+    expect(playbackMockState.lastScore).toEqual(edited)
+    expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경')
+    expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
+
+    if (next === 'retry') {
+      vi.mocked(window.inC.png.save).mockResolvedValueOnce({ filePath: '/tmp/retry.png', fileName: 'retry.png', pageCount: 1, kind: 'file' })
+      fireEvent.click(retry)
+      await waitFor(() => expect(document.querySelector('.studio-status__result')).toHaveTextContent('retry.png'))
+      expect(playbackMockState.lastScore).toEqual(edited)
+      expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
+    } else {
+      const replacement = { ...original, title: 'Replacement without PNG diagnostic' }
+      vi.mocked(window.inC.project.open).mockResolvedValueOnce({
+        filePath: '/tmp/replacement.chromatics', fileName: 'replacement.chromatics',
+        contents: encodeNativeProject(createNativeProject(replacement))
+      })
+      vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+      menu('프로젝트 열기')
+      await waitFor(() => expect(document.querySelector('.studio-document')).toHaveTextContent(replacement.title))
+      await openTools()
+      expect(playbackMockState.lastScore).toEqual(replacement)
+    }
+
+    expect(screen.queryByRole('group', { name: 'PNG 출력 기술 정보' })).toBeNull()
+  }, 15_000)
+
+  it.each([
+    ['MIDI', 'diagnostic'], ['MIDI', 'page count'],
+    ['PDF', 'diagnostic'], ['PDF', 'page count']
+  ] as const)('keeps a readable PNG diagnostic when %s fails with %s focus', async (format, focusOwner) => {
+    const score = await app()
+    let failOther!: (error: Error) => void
+    const saveOther = format === 'MIDI' ? window.inC.midi.save : window.inC.pdf.save
+    vi.mocked(saveOther).mockImplementationOnce(() => new Promise<never>((_resolve, reject) => { failOther = reject }))
+    const pngError = 'PNG destination unavailable'
+    const otherError = `${format} destination unavailable`
+    vi.mocked(window.inC.png.save).mockRejectedValueOnce(new Error(pngError))
+
+    await openTools()
+    fireEvent.click(screen.getByRole('button', { name: format === 'MIDI' ? 'MIDI 내보내기' : 'PDF 변환' }))
+    await waitFor(() => expect(saveOther).toHaveBeenCalledOnce())
+    const retry = await start()
+    const oldGroup = within(await screen.findByRole('group', { name: 'PNG 출력 기술 정보' }))
+    const oldButton = oldGroup.getByRole('button', { name: '기술 정보' })
+    act(() => oldButton.focus())
+    fireEvent.click(oldButton)
+    expect(oldGroup.getByText(pngError)).toBeVisible()
+    const pageCount = screen.getByRole('spinbutton', { name: 'PDF 목표 장수' })
+    if (focusOwner === 'page count') act(() => pageCount.focus())
+
+    await act(async () => failOther(new Error(otherError)))
+
+    const tools = within(screen.getByRole('region', { name: '내보내기 작업' }))
+    const groups = screen.getAllByRole('group', { name: 'PNG 출력 기술 정보' })
+    expect(groups).toEqual([tools.getByRole('group', { name: 'PNG 출력 기술 정보' })])
+    const png = within(groups[0])
+    const currentButton = png.getByRole('button', { name: '기술 정보' })
+    expect(currentButton).toHaveAttribute('aria-expanded', 'true')
+    expect(png.getByText(pngError)).toBeVisible()
+    expect(focusOwner === 'diagnostic' ? currentButton : pageCount).toHaveFocus()
+    const other = within(format === 'MIDI'
+      ? screen.getByRole('region', { name: 'MIDI 오류 상세' })
+      : screen.getByRole('group', { name: 'PDF 출력 기술 정보' }))
+    expect(other.getByText(otherError)).not.toBeVisible()
+    fireEvent.click(other.getByRole('button', { name: '기술 정보' }))
+    expect(other.getByText(otherError)).toBeVisible()
+    expect(playbackMockState.lastScore).toEqual(score)
+
+    vi.mocked(window.inC.png.save).mockResolvedValueOnce({ filePath: '/tmp/retry.png', fileName: 'retry.png', pageCount: 1, kind: 'file' })
+    fireEvent.click(retry)
+    await waitFor(() => expect(document.querySelector('.studio-status__result')).toHaveTextContent('retry.png'))
+    expect(screen.queryByRole('group', { name: 'PNG 출력 기술 정보' })).toBeNull()
+    if (format === 'MIDI') expect(other.getByText(otherError)).toBeVisible()
+  }, 15_000)
+
+  it.each(['PNG text', 'PDF field'] as const)('preserves the active reader when a late MIDI success moves PNG details with %s active', async owner => {
+    const score = await app()
+    const diagnostic = 'Could not write the selected PNG page to the destination.'
+    let completeMidi!: (value: { fileName: string }) => void
+    vi.mocked(window.inC.midi.save).mockImplementationOnce(() => new Promise(resolve => { completeMidi = resolve }))
+    vi.mocked(window.inC.png.save).mockRejectedValueOnce(new Error(diagnostic))
+    await openTools()
+    fireEvent.click(screen.getByRole('button', { name: 'MIDI 내보내기' }))
+    const retry = await start()
+    const original = within(await screen.findByRole('group', { name: 'PNG 출력 기술 정보' }))
+    fireEvent.click(original.getByRole('button', { name: '기술 정보' }))
+    const originalMessage = original.getByText(diagnostic)
+    expect(originalMessage).toBeVisible()
+    const selection = document.getSelection()!
+    act(() => {
+      retry.blur()
+      selection.setBaseAndExtent(originalMessage.firstChild!, 15, originalMessage.firstChild!, 4)
+    })
+    expect(selection.toString()).toBe(diagnostic.slice(4, 15))
+
+    const field = screen.getByRole('spinbutton', { name: 'PDF 목표 장수' })
+    if (owner === 'PDF field') act(() => field.focus())
+    await act(async () => completeMidi({ fileName: 'late.mid' }))
+
+    expect(document.querySelector('.studio-status__result')).toHaveTextContent('late.mid')
+    const exportTools = within(screen.getByRole('region', { name: '내보내기 작업' }))
+    const local = within(exportTools.getByRole('group', { name: 'PNG 출력 기술 정보' }))
+    const replacement = local.getByText(diagnostic)
+    expect(replacement).toBeVisible()
+    expect(replacement).not.toBe(originalMessage)
+    if (owner === 'PNG text') {
+      expect(selection.toString()).toBe(diagnostic.slice(4, 15))
+      expect(selection.anchorNode).toBe(replacement.firstChild)
+      expect(selection.anchorOffset).toBe(15)
+      expect(selection.focusNode).toBe(replacement.firstChild)
+      expect(selection.focusOffset).toBe(4)
+      expect(document.body).toHaveFocus()
+    } else {
+      expect(selection.toString()).toBe('')
+      expect(field).toHaveFocus()
+    }
+
+    vi.mocked(window.inC.png.save).mockResolvedValueOnce({ filePath: '/tmp/retry.png', fileName: 'retry.png', pageCount: 1, kind: 'file' })
+    fireEvent.click(retry)
+    await waitFor(() => expect(document.querySelector('.studio-status__result')).toHaveTextContent('retry.png'))
+    expect(selection.toString()).toBe('')
+    expect(screen.queryByRole('group', { name: 'PNG 출력 기술 정보' })).toBeNull()
+    expect(playbackMockState.lastScore).toEqual(score)
+  }, 15_000)
+
   it('captures the old immutable source while retaining edits made during rasterization',async()=>{
     const before=await app();let resolve!: (value:ReturnType<typeof output>)=>void
     state.raster.mockImplementationOnce(()=>new Promise(r=>{resolve=r}))

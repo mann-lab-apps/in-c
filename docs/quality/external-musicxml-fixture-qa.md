@@ -1,5 +1,7 @@
 # External MusicXML Fixture QA
 
+> Current warning contract (2026-11-08): the unchanged collected MuseScore 4.7.5 XML contains `midi-program`, `volume=78.7402`, `pan=0`, and `sound.dynamics`. The current import report diagnoses all four unsupported source playback instructions. Only the two newly diagnosed mixer paths were added to the live fixture expectation; original XML bytes, collection metadata, historical evidence, and exact warning assertions are preserved. Older “without warnings” descriptions below refer to the supported notation checks at that time, not to the absence of these source playback notices today. This update is not a new external-app execution or sound-compatibility approval.
+
 ## 2026-09-12 MXL Reference Automation
 
 `RUN_MUSESCORE_MXL_QA=1 npm test -- src/musicxml/musescore-mxl.test.ts` passed using

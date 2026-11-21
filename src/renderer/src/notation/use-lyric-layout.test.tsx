@@ -80,3 +80,22 @@ it('measures chord text with its own style and discards a late previous-view mea
  expect(result.current.widths.has('C7')).toBe(false)
  expect(document.querySelector('[data-notation-text-metrics]')).toBeNull()
 })
+it('measures preserved lyric spaces with the same whitespace contract as the rendered text', async()=>{
+ // Simulate only CSS whitespace processing, not real glyph or font metrics.
+ // The production Electron regression separately measures actual character advances.
+ metricsHost()
+ const actual=document.querySelector<SVGElement>('.notation-lyric')!
+ actual.style.whiteSpace='pre'
+ Object.defineProperty(document,'fonts',{configurable:true,value:{ready:Promise.resolve()}})
+ Object.defineProperty(SVGElement.prototype,'getBBox',{configurable:true,value:function(this:SVGElement){
+   const text=this.textContent??''
+   const rendered=this.style.whiteSpace==='pre'?text:text.replace(/\s+/g,' ')
+   return{x:0,y:0,width:rendered.length*10,height:13}
+ }})
+ const score=scoreWith('한  번'),before=structuredClone(score)
+ const {result}=renderHook(()=>useLyricWidths(score,'preserved-spaces'))
+ await waitFor(()=>expect(result.current.ready).toBe(true))
+ expect(result.current.widths.get('한  번')).toBe(40)
+ expect(score).toEqual(before)
+ expect(actual.style.fontSize).toBe('13px')
+})

@@ -1,4 +1,4 @@
-import { collectUnsupportedChordTieWarnings, type Part, type Score } from '../../../score-core'
+import { collectUnsupportedChordTieWarnings, globalSwingPlaybackUnavailableReason, type Part, type Score, type VoiceAddress } from '../../../score-core'
 import {
   createPlaybackTimeline,
   tempoMarkingToQuarterBpm
@@ -33,7 +33,7 @@ interface TimedMidiMessage {
 }
 
 export interface MidiExportWarning {
-  code: 'unsupported-midi-clef' | 'unsupported-chord-tie' | 'shared-midi-channel'
+  code: 'unsupported-midi-clef' | 'unsupported-chord-tie' | 'shared-midi-channel' | 'unsupported-midi-grace' | 'unsupported-midi-expression' | 'unsupported-midi-swing'
   measureId?: string
   measureNumber?: number
   path: string
@@ -43,6 +43,24 @@ export interface MidiExportWarning {
 export interface MidiExportReport {
   bytes: Uint8Array
   warnings: MidiExportWarning[]
+}
+
+export class MidiTempoRangeError extends Error {
+  readonly userMessage = '현재 빠르기를 MIDI 파일에 정확히 기록할 수 없습니다. 빠르기와 기준 음가를 확인한 뒤 다시 내보내 주세요. 악보와 변경 사항은 유지됩니다.'
+
+  constructor(quarterBpm: number, microsecondsPerQuarter: number, source: string, readonly target?: { scope: 'score' } | { scope: 'measure'; measureId: string }) {
+    super(`Invalid MIDI tempo at ${source}: quarterBpm=${quarterBpm}, microsecondsPerQuarter=${microsecondsPerQuarter}; expected an integer from 1 to 16777215.`)
+    this.name = 'MidiTempoRangeError'
+  }
+}
+
+export class MidiPitchRangeError extends Error {
+  readonly userMessage = '현재 악보에는 MIDI 파일이 표현할 수 없는 음높이가 있습니다. 음높이·이조·옥타브선을 확인한 뒤 다시 내보내 주세요. 악보와 변경 사항은 유지됩니다.'
+
+  constructor(frequency: number, midiNote: number, source: string, readonly target?: Pick<VoiceAddress, 'partId' | 'staffId' | 'measureId'>) {
+    super(`Invalid MIDI pitch at ${source}: note=${midiNote}, frequency=${frequency}; expected an integer from 0 to 127.`)
+    this.name = 'MidiPitchRangeError'
+  }
 }
 
 export function serializeMidi(score: Score): Uint8Array {
@@ -72,8 +90,19 @@ export function serializeMidiWithReport(score: Score): MidiExportReport {
       createTrackChunk(tempoTrack),
       ...partTracks.map((track) => createTrackChunk(track))
     ]),
-    warnings: [...collectUnsupportedMidiWarnings(score), ...collectUnsupportedChordTieWarnings(score), ...collectSharedMidiChannels(score)]
+    warnings: [...collectUnsupportedMidiWarnings(score), ...collectUnsupportedChordTieWarnings(score), ...collectSharedMidiChannels(score), ...collectUnperformedMidiWarnings(score), ...collectUnavailableSwingWarnings(score)]
   }
+}
+
+function collectUnavailableSwingWarnings(score: Score): MidiExportWarning[] {
+  if (!score.swingPlayback) return []
+  const reason = globalSwingPlaybackUnavailableReason(score)
+  if (!reason) return []
+  const { unit, ratio } = score.swingPlayback
+  return [{
+    code: 'unsupported-midi-swing', path: 'score.swingPlayback',
+    message: `Stored global swing playback (${unit}, ${ratio}) cannot apply to ${reason === 'empty' ? 'an empty score' : 'unaligned staff timing'}; MIDI retains straight rhythm.`
+  }]
 }
 
 function createTempoTrack(score: Score): number[] {
@@ -90,12 +119,12 @@ function createTempoTrack(score: Score): number[] {
     {
       tick: 0,
       order: 1,
-      bytes: tempoMetaEvent(initialQuarterBpm)
+      bytes: tempoMetaEvent(initialQuarterBpm, 'score.tempo', { scope: 'score' })
     },
     ...timeline.tempoEvents.map((event, index) => ({
       tick: beatToMidiTick(event.startBeat),
       order: index + 2,
-      bytes: tempoMetaEvent(event.quarterBpm)
+      bytes: tempoMetaEvent(event.quarterBpm, `tempo@beat[${event.startBeat}]`, { scope: 'measure', measureId: event.measureId })
     }))
   ]
 
@@ -153,7 +182,8 @@ function createPartNoteTrack(
     const velocity = velocityToMidi(event.velocityStart)
 
     for (const frequency of frequencies) {
-      const note = frequencyToMidiNote(frequency)
+      const note = frequencyToMidiNote(frequency, `part=${event.partId}, staff=${event.staffId}, measure=${event.measureId}, event=${event.eventId}`,
+        { partId: event.partId, staffId: event.staffId, measureId: event.measureId })
 
       messages.push({
         tick: startTick,
@@ -171,6 +201,40 @@ function createPartNoteTrack(
   }
 
   return renderTimedMessages(messages)
+}
+
+function collectUnperformedMidiWarnings(score: Score): MidiExportWarning[] {
+  const warnings: MidiExportWarning[] = []
+  score.parts.forEach((part, partIndex) => {
+    part.staves.forEach((staff, staffIndex) => {
+      staff.measures.forEach((measure, measureIndex) => {
+        // The existing clef diagnostic already explains whole-measure omission.
+        if (isUnsupportedMidiClef(measure.clef.sign)) return
+        measure.voices.forEach((voice, voiceIndex) => {
+          voice.events.forEach((event, eventIndex) => {
+            if (event.type !== 'note') return
+            const source = { measureId: measure.id, measureNumber: measure.number }
+            const path = `part[${partIndex + 1}].staff[${staffIndex + 1}].measure[${measureIndex + 1}].voice[${voiceIndex + 1}].event[${eventIndex + 1}]`
+            if (event.graceNotes?.length) warnings.push({
+              code: 'unsupported-midi-grace',
+              ...source,
+              path: path + '.graceNotes',
+              message: `Grace notes (${event.graceNotes.length}) are not performed in MIDI export; the main note is retained. Keep the project or MusicXML for notation.`
+            })
+            if (event.ornaments?.includes('trill')) warnings.push({
+              code: 'unsupported-midi-expression', ...source, path: path + '.ornaments',
+              message: 'Notated trill is not expanded in MIDI export; the main notes are retained. Keep the project or MusicXML and compare exported playback.'
+            })
+            if (event.tremolo?.type === 'single') warnings.push({
+              code: 'unsupported-midi-expression', ...source, path: path + '.tremolo',
+              message: `Single-note tremolo (marks=${event.tremolo.marks}) is not expanded in MIDI export; the main notes are retained. Keep the project or MusicXML and compare exported playback.`
+            })
+          })
+        })
+      })
+    })
+  })
+  return warnings
 }
 
 function collectSharedMidiChannels(score: Score): MidiExportWarning[] {
@@ -290,8 +354,12 @@ function createTrackChunk(trackBytes: number[]): number[] {
   ]
 }
 
-function tempoMetaEvent(quarterBpm: number): number[] {
+function tempoMetaEvent(quarterBpm: number, source: string, target: NonNullable<MidiTempoRangeError['target']>): number[] {
   const microsecondsPerQuarter = Math.round(60_000_000 / quarterBpm)
+
+  if (!Number.isSafeInteger(microsecondsPerQuarter) || microsecondsPerQuarter < 1 || microsecondsPerQuarter > 0xffffff) {
+    throw new MidiTempoRangeError(quarterBpm, microsecondsPerQuarter, source, target)
+  }
 
   return [
     0xff,
@@ -309,10 +377,15 @@ function metaText(type: number, value: string): number[] {
   return [0xff, type, ...variableLengthQuantity(text.length), ...text]
 }
 
-function frequencyToMidiNote(frequency: number): number {
+function frequencyToMidiNote(frequency: number, source: string, target: Pick<VoiceAddress, 'partId' | 'staffId' | 'measureId'>): number {
   const midi = Math.round(69 + 12 * Math.log2(frequency / 440))
 
-  return Math.min(127, Math.max(0, midi))
+  // Validate only frequencies that this track will emit, after the existing
+  // unsupported-clef omission. Do not silently substitute a different pitch.
+  if (!Number.isFinite(frequency) || frequency <= 0 || !Number.isInteger(midi) || midi < 0 || midi > 127) {
+    throw new MidiPitchRangeError(frequency, midi, source, target)
+  }
+  return midi
 }
 
 function velocityToMidi(velocity: number): number {

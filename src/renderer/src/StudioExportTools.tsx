@@ -1,5 +1,6 @@
 import { Button, Group, Input, Select, Text, Tooltip } from '@ddirori/ui'
 import { FileDown, FileImage, FileMusic, FileVolume } from 'lucide-react'
+import type { ReactNode } from 'react'
 import './studio-export-tools.css'
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   pageCount: string
   pageCountInvalid: boolean
   onPageCountChange: (value: string) => void
+  pdfBusy: boolean
   pdfDisabled: boolean
   pdfHint: string
   onPdf: () => void
@@ -19,6 +21,7 @@ interface Props {
   png: {
     busy: boolean; disabled: boolean; scope: 'all' | 'page'; page: string; dpi: 150 | 300
     message?: string; hint: string
+    details?: ReactNode
     onScope: (value: 'all' | 'page') => void; onPage: (value: string) => void
     onDpi: (value: 150 | 300) => void; onSave: () => void
   }
@@ -49,7 +52,7 @@ export function StudioExportTools(props: Props) {
       <Tooltip text={pdfHint}>
         <Button kind="secondary" aria-label="PDF 변환" title={pdfHint}
           aria-describedby={props.pageCountInvalid ? 'pdf-target-pages-error' : undefined}
-          disabled={props.pdfDisabled} onClick={() => { props.onPdf() }}>
+          busy={props.pdfBusy} disabled={props.pdfDisabled} onClick={() => { props.onPdf() }}>
           <span className="studio-export-tools__command"><FileDown aria-hidden="true" size={18} strokeWidth={1.75}/><span>PDF 변환</span></span>
         </Button>
       </Tooltip>
@@ -82,6 +85,9 @@ export function StudioExportTools(props: Props) {
         options={[{value:'150',label:'150 dpi'},{value:'300',label:'300 dpi'}]} onChange={value=>props.png.onDpi(Number(value) as 150 | 300)}/>
       <Text variant="caption">PNG도 PDF 페이지 설정의 용지·방향·여백을 사용합니다. 여러 페이지는 선택한 위치의 새 폴더에 저장합니다.</Text>
       {props.png.message ? <Text variant="caption">{props.png.message}</Text> : null}
+      {props.png.details ? <div className="studio-export-tools__png-diagnostic">
+        {props.png.details}
+      </div> : null}
     </Group>
     <div className="studio-export-tools__page-count">
       <Input label="PDF 목표 장수" aria-label="PDF 목표 장수" type="number"

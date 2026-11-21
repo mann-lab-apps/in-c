@@ -1,4 +1,4 @@
-import { Checkbox, IconButton, Input, Select, Slider, Text, Tooltip } from '@ddirori/ui'
+import { Button, Checkbox, IconButton, Input, Select, Slider, Text, Tooltip } from '@ddirori/ui'
 import { RotateCcw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ScorePageSetup } from '../../score-core'
@@ -20,6 +20,7 @@ interface Props {
   onGuides: (value: boolean) => void
   partName?: string
   resetDisabled: boolean
+  onProfiles?: () => void
   onReset: () => void
 }
 
@@ -37,6 +38,7 @@ export function StudioPageSetup(props: Props) {
     <div className="studio-page-setup__heading">
       <Text as="h3" variant="itemTitle">PDF 페이지 설정</Text>
       <Text variant="description">{props.partName !== undefined ? `${props.partName || '선택 파트'} 파트보에 적용` : '총보에 적용'}</Text>
+      {props.onProfiles ? <Button kind="secondary" onClick={props.onProfiles}>출력 설정 프리셋 관리</Button> : null}
       {props.partName !== undefined ? <Tooltip text="파트보 조판 초기화"><IconButton
         label="파트보 조판 초기화" disabled={props.resetDisabled} onClick={props.onReset}>
         <RotateCcw aria-hidden="true" size={18} strokeWidth={1.75}/>

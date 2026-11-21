@@ -3,7 +3,7 @@ import type { NotationPreviewProps } from './NotationPreview'
 import { createPlaybackInk } from './playback-ink'
 
 const EMPTY_IDS: string[] = []
-const HANDLERS = ['onSelectSpan', 'onSelectRehearsalMark', 'onSelectSystemText', 'onSelectStaffText',
+const HANDLERS = ['onSelectSpan', 'onBeginSpanDrag', 'onSelectRehearsalMark', 'onSelectSystemText', 'onSelectStaffText',
   'onSelectDynamic', 'onSelectHarmony', 'onSelectExpressionText', 'onSelectEvent', 'onSelectEventRange',
   'onSelectLyric', 'onSelectMeasure', 'onOpenMeasureContextMenu', 'shouldRestoreFocusViewport'] as const
 

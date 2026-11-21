@@ -1,0 +1,31 @@
+{
+  "base": "8415163b36df4027a33976307db7a7384989437f",
+  "tag": "v0.1.0-alpha.40",
+  "productRoot": "desktop Studio",
+  "icCoreHashedFiles": 1749,
+  "localEvidenceIndexed": 1806,
+  "priorLocalValidation": {
+    "vitest": {
+      "files": {
+        "passed": 775,
+        "failed": 0,
+        "skipped": 1
+      },
+      "tests": {
+        "passed": 7342,
+        "failed": 0,
+        "skipped": 1
+      },
+      "seconds": 1751.63
+    },
+    "nodeToolsPassed": 5,
+    "inputCount": 88287,
+    "changed": []
+  },
+  "releaseOnlyChanges": [
+    "package and lockfile version",
+    "offline manual version and release wording",
+    "release notes",
+    "public index of locally retained QA evidence"
+  ]
+}

@@ -42,7 +42,7 @@ function useMeasuredTextWidths(words:string[],contextKey:string,selector:string)
       try{
         for(const word of JSON.parse(wordSignature) as string[]){
           const text=document.createElementNS(svg.namespaceURI,'text') as SVGTextElement
-          for(const property of ['font-family','font-size','font-weight','font-style','font-stretch','font-variant','font-feature-settings','font-variation-settings','letter-spacing','word-spacing','text-rendering'])text.style.setProperty(property,style.getPropertyValue(property))
+          for(const property of ['font-family','font-size','font-weight','font-style','font-stretch','font-variant','font-feature-settings','font-variation-settings','letter-spacing','word-spacing','text-rendering','white-space'])text.style.setProperty(property,style.getPropertyValue(property))
           text.textContent=word;svg.append(text);const width=text.getBBox().width
           if(Number.isFinite(width)&&width>0)widths.set(word,width)
           text.remove()

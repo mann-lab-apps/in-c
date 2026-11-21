@@ -9,11 +9,13 @@ import {
   transposeChromatic,
   transposeDiatonic,
   transposeOctave,
+  type Measure,
   type Note,
   type Pitch,
   type PitchStep,
   type Score,
-  type ScoreCommand
+  type ScoreCommand,
+  type Voice
 } from '../../../score-core'
 import {
   locateEvent,
@@ -67,7 +69,7 @@ export function buildPitchStepCommand(
   if (event.type === 'note') delete event.pitches
   else delete event.fullMeasure
 
-  return buildRhythmEditCommand(score, {
+  const command = buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
     createId: createEventId,
@@ -94,6 +96,9 @@ export function buildPitchStepCommand(
       }
     }
   })
+  return location.event.type === 'note'
+    ? retainUnselectedPitchSounds(command, location.measure, voice, location.event)
+    : command
 }
 
 function findReferencePitch(
@@ -214,7 +219,7 @@ export function buildPitchMovementCommand(
   if (!moved.every(isPersistablePitch)) return undefined
   const pitch = moved[0]!
 
-  return buildRhythmEditCommand(score, {
+  const command = buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
     createId: createEventId,
@@ -224,6 +229,7 @@ export function buildPitchMovementCommand(
       ...(location.event.pitches?.length ? { pitches: moved } : {})
     }
   })
+  return retainUnselectedPitchSounds(command, location.measure, voice, location.event)
 }
 
 export function buildEnharmonicRespellCommand(
@@ -255,7 +261,7 @@ export function buildEnharmonicRespellCommand(
   if (!pitches.every(isPersistablePitch)) return undefined
   const pitch = pitches[0]!
 
-  return buildRhythmEditCommand(score, {
+  const command = buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
     createId: createEventId,
@@ -265,6 +271,60 @@ export function buildEnharmonicRespellCommand(
       ...(note.pitches?.length ? { pitches } : {})
     }
   })
+  return retainUnselectedPitchSounds(command, location.measure, voice, note)
+}
+
+// Private adapter shared by the existing pitch-edit commands. The edited
+// note keeps its original command result; no score command or model is added.
+function retainUnselectedPitchSounds(command: ScoreCommand | undefined, measure: Measure, voice: Voice, note: Note): ScoreCommand | undefined {
+  if (command?.type !== 'voice-events.replace') return command
+
+  // A pitch edit must not remove an inherited accidental or introduce a new
+  // accidental into the unselected suffix. Pin only sounds that would change.
+  const events = [...command.events]
+  const nextVoice = { ...voice, events }
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index]
+    if (event.type !== 'note' || event.id === note.id || event.position.tick <= note.position.tick) continue
+    const old = voice.events.find(candidate => candidate.id === event.id)
+    if (old?.type !== 'note') continue
+    const sourcePitches = old.pitches?.length ? old.pitches : [old.pitch]
+    const pinned = sourcePitches.map(member => {
+      const input = { measure: measure, step: member.step, octave: member.octave, tick: old.position.tick, override: member.alter }
+      const desired = effectiveAlterAt({ ...input, voice })
+      const actual = effectiveAlterAt({ ...input, voice: nextVoice })
+      return desired === actual ? member : { ...member, alter: desired }
+    })
+    if (pinned.every((member, memberIndex) => member === sourcePitches[memberIndex])) continue
+    // The vector is authoritative for a chord. Do not normalize an unrelated
+    // legacy primary pitch merely because one of its members needs pinning.
+    const primaryMatches = old.pitch.step === sourcePitches[0].step &&
+      old.pitch.octave === sourcePitches[0].octave && old.pitch.alter === sourcePitches[0].alter
+    events[index] = { ...event, pitch: primaryMatches ? pinned[0]! : old.pitch,
+      ...(old.pitches?.length ? { pitches: pinned } : {}) }
+  }
+  return { ...command, events }
+}
+
+// Internal adapter for the existing inspector/Shift+A-G chord handlers.
+// Their selected note is kept verbatim; only inherited neighbor sounds are pinned.
+export function buildChordPitchEditCommand(
+  score: Score,
+  location: EventLocation,
+  event: Note
+): ScoreCommand | undefined {
+  if (location.event.type !== 'note') return undefined
+  const pitches = event.pitches?.length ? [event.pitch, ...event.pitches] : [event.pitch]
+  if (!pitches.every(isPersistablePitch)) return undefined
+  const voice = location.measure.voices.find(candidate => candidate.id === location.address.voiceId)
+  if (!voice) return undefined
+  const command = buildRhythmEditCommand(score, {
+    target: location.address,
+    eventId: location.event.id,
+    createId: createEventId,
+    event
+  })
+  return retainUnselectedPitchSounds(command, location.measure, voice, location.event)
 }
 
 export function buildAccidentalCommand(
@@ -282,11 +342,14 @@ export function buildAccidentalCommand(
     return undefined
   }
 
+  const voice = location.measure.voices.find(candidate => candidate.id === location.address.voiceId)
+  if (!voice) return undefined
+
   const note = location.event
   const pitches = (note.pitches?.length ? note.pitches : [note.pitch]).map(member => ({ ...member, alter }))
   if (!pitches.every(isPersistablePitch)) return undefined
 
-  return buildRhythmEditCommand(score, {
+  const command = buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
     createId: createEventId,
@@ -296,6 +359,7 @@ export function buildAccidentalCommand(
       ...(note.pitches?.length ? { pitches } : {})
     }
   })
+  return retainUnselectedPitchSounds(command, location.measure, voice, note)
 }
 
 function resolveEnharmonicRespelling(pitch: Pitch): Pitch | undefined {

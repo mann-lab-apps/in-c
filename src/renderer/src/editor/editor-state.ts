@@ -1793,6 +1793,25 @@ function buildUntupletGroupCommand(
   const memberIds = new Set(group.eventIds)
   const firstIndex = events.findIndex((event) => event.id === firstMember.id)
 
+  // Ratios such as 2:3 grow their notated values. Removing the ratio shortens
+  // them: retain later events at their original ticks and fill only the released
+  // interval, rather than treating this as the usual triplet expansion.
+  if (expandedEndTick < currentEndTick) {
+    const releasedRests = createRestsForSpan(expandedEndTick, currentEndTick, createId)
+    if (releasedRests.length === 0) return undefined
+    return {
+      type: 'voice-content.replace',
+      target: location.address,
+      events: sortVoiceEvents([
+        ...events.filter(event => !memberIds.has(event.id)),
+        ...createUntupledMembers(members, baseDurations, startTick),
+        ...releasedRests
+      ]),
+      tuplets: (voice.tuplets ?? []).filter(candidate => candidate.id !== group.id),
+      editedEventId: firstMember.id
+    }
+  }
+
   if (expandedEndTick <= measureDurationTicks(location.measure)) {
     const afterMembers = events.filter(
       (event) => !memberIds.has(event.id) && event.position.tick >= currentEndTick

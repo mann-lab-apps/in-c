@@ -1,0 +1,9 @@
+// MusicXML permits several formatted rehearsal components in one direction-type.
+export type RehearsalComponentsKind = 'styled'|'plain'|'multiple'|'normalized'|'one-nonempty'|'single'|'separate'|'empty'|'none'
+export function createRehearsalComponentsFixture(kind:RehearsalComponentsKind='styled'):string {
+  const group=kind==='single'?'<rehearsal>A</rehearsal>':kind==='empty'?'<rehearsal/><rehearsal> </rehearsal>':kind==='one-nonempty'?'<rehearsal/><rehearsal>A</rehearsal>':kind==='plain'?'<rehearsal>A</rehearsal><rehearsal>1</rehearsal>':'<rehearsal font-weight="bold">A</rehearsal><rehearsal font-style="italic">1</rehearsal>'
+  const direction='<direction><direction-type>'+(kind==='separate'?'<rehearsal>A</rehearsal></direction-type><direction-type><rehearsal>B</rehearsal>':group)+'</direction-type></direction>'
+  const parts=[1,2].map(part=>'<part id="P'+part+'">'+[1,2,3].map(bar=>`<measure number="${kind==='normalized'&&part===1&&bar===2?'intro':bar}">${bar===1?'<attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>':''}${kind==='none'?'':kind==='multiple'?(part===1&&bar===3?direction:part===2&&bar===2?direction+direction:''):part===1&&bar===2?direction:''}<note><pitch><step>${part===1?'C':'D'}</step><octave>4</octave></pitch><duration>16</duration><type>whole</type></note></measure>`).join('')+'</part>').join('')
+  return '<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><work><work-title>연습표 글자 조각 검증</work-title></work><part-list><score-part id="P1"><part-name>Flute 1</part-name></score-part><score-part id="P2"><part-name>Flute 2</part-name></score-part></part-list>'+parts+'</score-partwise>'
+}
+export const stripRehearsalComponentDirections=(xml:string)=>xml.replace(/<direction>[\s\S]*?<\/direction>/g,'')

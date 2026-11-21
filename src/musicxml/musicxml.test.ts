@@ -1410,6 +1410,11 @@ describe('MusicXML MVP', () => {
     })
     expect(report.warnings).toEqual(expect.arrayContaining([
       expect.objectContaining({
+        code: 'unsupported-direction', partNumber: 1, measureNumber: 1,
+        path: 'part[1].measure[1].direction[1].pedal[1]',
+        message: expect.stringMatching(/^Unrepresented pedal sign /)
+      }),
+      expect.objectContaining({
         code: 'unsupported-notation',
         message: 'detached-legato articulation is not imported yet.',
         measureNumber: 1,
@@ -1431,7 +1436,7 @@ describe('MusicXML MVP', () => {
         path: 'part[1].measure[1].note[1].notations.ornaments.inverted-turn'
       })
     ]))
-    expect(report.warnings).toHaveLength(3)
+    expect(report.warnings).toHaveLength(4)
     expect(score.pedalEvents?.[0]?.value).toBe(127)
   })
 

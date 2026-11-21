@@ -2,7 +2,7 @@
   "name": "in-c",
   "productName": "띠로리 Studio",
   "desktopName": "in-c.desktop",
-  "version": "0.1.0-alpha.39",
+  "version": "0.1.0-alpha.40",
   "description": "띠로리 Studio — 악보를 만들고 편집하는 데스크톱 사보 도구.",
   "author": "mann-lab-apps",
   "homepage": "https://github.com/mann-lab-apps/in-c",
@@ -56,7 +56,9 @@
     "verify:classic-quiz": "node scripts/verify-classic-quiz.mjs",
     "verify:site-production": "node scripts/verify-production-site.cjs",
     "validation:ops": "node scripts/summarize-validation-ops.mjs",
-    "test:components": "vitest run src/renderer/src/App.test.tsx src/renderer/src/App.workspace.test.tsx src/renderer/src/App.properties.test.tsx src/renderer/src/App.notation-exchange.test.tsx"
+    "test:components": "vitest run src/renderer/src/App.test.tsx src/renderer/src/App.workspace.test.tsx src/renderer/src/App.properties.test.tsx src/renderer/src/App.notation-exchange.test.tsx",
+    "verify:studio-manual": "node scripts/verify-studio-manual.cjs",
+    "verify:studio-parity-backlog": "node scripts/verify-studio-parity-backlog.cjs"
   },
   "dependencies": {
     "@ddirori/ui": "file:packages/ddirori_web",

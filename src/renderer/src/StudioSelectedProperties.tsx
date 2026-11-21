@@ -34,6 +34,8 @@ interface Props {
   dynamicObjects?:readonly {id:string;value:DynamicValue}[]
   dynamicListIdentity?:string
   // History may return to another measure within this document/view.
+  historyUndoKey?:(event:KeyboardEvent)=>boolean
+  historyRedoKey?:(event:KeyboardEvent)=>boolean
   historyFocusScope?:string
   onSelectDynamic?:(id:string|undefined)=>void
   dynamicTarget?:{id:string;sequence:number;focus?:boolean;scope:string}
@@ -76,7 +78,7 @@ export function StudioSelectedProperties(props:Props) {
       const control=(event.target as HTMLElement).closest('[role="combobox"]')
       if(!event.nativeEvent.isComposing&&event.keyCode!==229&&event.key!=='Process'&&
         control?.getAttribute('aria-expanded')==='false'&&dynamicHost.current?.contains(control)&&
-        (isUndoShortcut(event.nativeEvent)||isRedoShortcut(event.nativeEvent))){
+        ((props.historyUndoKey??isUndoShortcut)(event.nativeEvent)||(props.historyRedoKey??isRedoShortcut)(event.nativeEvent))){
         const owner=dynamicFocusOwner.current
         // App owns the command. Only restore this explicitly used field after
         // history replaces its control; never pull focus across a document/view.
@@ -87,7 +89,7 @@ export function StudioSelectedProperties(props:Props) {
           // remounted the field. It continues this pending request only;
           // unrelated input or composition still invalidates its ownership.
           if(event.target===document.body&&!event.isComposing&&event.keyCode!==229&&event.key!=='Process'&&
-            (isUndoShortcut(event)||isRedoShortcut(event)))return
+            ((props.historyUndoKey??isUndoShortcut)(event)||(props.historyRedoKey??isRedoShortcut)(event)))return
           cancel()
         }
         const leave=(event:FocusEvent)=>{

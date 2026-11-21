@@ -22,10 +22,10 @@ export function StudioChordProperties({theme,pitches,pitchEnabled,onMove,onRespe
     <Text as="p" variant="caption" aria-label="음표 편집 대상">선택한 음표에 적용 · {pitches.length>1?`화음 전체 (${pitches.length}음)`:'단음'} · A–G: 단음 교체 · Shift+A–G: 구성음 추가</Text>
     <Group label="선택 음높이">
       {([
-        ['음높이 한 칸 내리기',ArrowDown,'diatonic',-1,'Alt/Option+↓'],
-        ['음높이 한 칸 올리기',ArrowUp,'diatonic',1,'Alt/Option+↑'],
-        ['한 옥타브 내리기',ChevronsDown,'octave',-1,'Cmd/Ctrl+Alt/Option+↓'],
-        ['한 옥타브 올리기',ChevronsUp,'octave',1,'Cmd/Ctrl+Alt/Option+↑']
+        ['음높이 한 칸 내리기',ArrowDown,'diatonic',-1,'Alt/Option+Shift+↓'],
+        ['음높이 한 칸 올리기',ArrowUp,'diatonic',1,'Alt/Option+Shift+↑'],
+        ['한 옥타브 내리기',ChevronsDown,'octave',-1,'Cmd/Ctrl+↓'],
+        ['한 옥타브 올리기',ChevronsUp,'octave',1,'Cmd/Ctrl+↑']
       ] as const).map(([label,Icon,kind,direction,shortcut])=><Tooltip key={label} text={`${label} · ${shortcut}`}><IconButton label={label} disabled={!pitchEnabled} onClick={()=>onMove(kind,direction)}><Icon aria-hidden="true" size={18} strokeWidth={1.75}/></IconButton></Tooltip>)}
       <Tooltip text="이명동음으로 바꾸기 · J"><IconButton label="이명동음으로 바꾸기" disabled={!pitchEnabled} onClick={onRespell}><RotateCw aria-hidden="true" size={18} strokeWidth={1.75}/></IconButton></Tooltip>
     </Group>

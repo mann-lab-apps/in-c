@@ -13,6 +13,7 @@ export function StudioMetadataInput({ theme, onCommit, saveGuard, ...props }: Om
   const [saveNotice, setSaveNotice] = useState(false)
   const edited = useRef(false)
   const initialValue = useRef(String(props.value ?? ''))
+  const host = useRef<HTMLDivElement>(null)
   const composing = useRef(false)
   const hasPendingValue = (input: HTMLInputElement) => composing.current || ((edited.current || input.value !== initialValue.current) && !!saveGuard?.hasPendingValue(input))
   const onBlocked = () => { setSaveNotice(true); saveGuard?.onBlocked() }
@@ -27,9 +28,13 @@ export function StudioMetadataInput({ theme, onCommit, saveGuard, ...props }: Om
   const commitInput = (input: HTMLInputElement) => commit.current(input.value, edited.current || input.value !== initialValue.current)
   useLayoutEffect(() => {
     alive.current = true
+    // A text input sanitizes CR/LF on mount. Compare later DOM edits against
+    // that initial display, not the lossless Native value behind the field.
+    const input = host.current?.querySelector('input')
+    if (input) initialValue.current = input.value
     return () => { alive.current = false; request.current += 1; pendingBlur.current = undefined }
   }, [])
-  return <div className="studio-metadata-editor ddirori" data-theme={theme} data-density="compact">
+  return <div ref={host} className="studio-metadata-editor ddirori" data-theme={theme} data-density="compact">
     <Input {...props} labelVisibility="sr-only"
       aria-description={saveNotice ? draftSaveGuidance : props['aria-description']}
       onChange={event => { edited.current = true; trackInput(event.currentTarget); setSaveNotice(false); props.onChange?.(event) }}

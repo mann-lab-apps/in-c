@@ -101,3 +101,21 @@ it('restores draft and caret and isolates an unmounted document from late native
   expect(editor.onCommit).not.toHaveBeenCalled()
   expect(old.dataset.editorReplacing).toBe('true')
 })
+
+it.each([{ key: ' ', code: 'Space' }, { key: '-', code: 'Minus' }, { key: ' ', code: 'Space', shiftKey: true }])(
+  'keeps literal lyric key %j available to the native input without advancing or triggering score commands', flags => {
+    const { editor, input } = setup(), global = vi.fn()
+    window.addEventListener('keydown', global)
+    try {
+      const event = new KeyboardEvent('keydown', { ...flags, bubbles: true, cancelable: true })
+      input.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(false)
+      expect(editor.onCommit).not.toHaveBeenCalled()
+      expect(editor.onMoveVerse).not.toHaveBeenCalled()
+      expect(global).not.toHaveBeenCalled()
+      // jsdom does not perform browser text insertion for synthetic keydown.
+      // This verifies the actual Input adapter's default-action/isolation contract.
+      expect(document.activeElement).toBe(input)
+    } finally { window.removeEventListener('keydown', global) }
+  },
+)

@@ -3,6 +3,7 @@ import {
   createPart,
   createScore,
   createStaff,
+  timeSignatureDurationTicks,
   type Clef,
   type InstrumentTransposition,
   type KeySignature,
@@ -27,6 +28,7 @@ export interface NewScoreOptions {
   measureCount: number
   tempo?: number
   templateId?: NewScoreTemplateId
+  pickupDurationTicks?: number
 }
 
 export const keySignaturePresets = [
@@ -395,6 +397,11 @@ export const scoreStructurePresets = [
 }>
 
 export function createNewScore(options: NewScoreOptions): Score {
+  if (options.pickupDurationTicks !== undefined &&
+      (!Number.isInteger(options.pickupDurationTicks) || options.pickupDurationTicks <= 0 ||
+       options.pickupDurationTicks >= timeSignatureDurationTicks(options.timeSignature))) {
+    throw new Error('Pickup duration must be positive, integral and shorter than the nominal measure.')
+  }
   const measureCount = Math.max(1, Math.floor(options.measureCount))
   const tempo = options.tempo ?? 120
   const template = resolveScoreStructurePreset(
@@ -419,6 +426,7 @@ export function createNewScore(options: NewScoreOptions): Score {
             id: 'staff-1',
             measures: createTemplateMeasures({
               measureCount,
+              pickupDurationTicks: options.pickupDurationTicks,
               keySignature: options.keySignature,
               timeSignature: options.timeSignature,
               clef: template.parts[0].staves[0].clef,
@@ -439,6 +447,7 @@ export function createNewScore(options: NewScoreOptions): Score {
                 id: staff.id,
                 measures: createTemplateMeasures({
                   measureCount,
+                  pickupDurationTicks: options.pickupDurationTicks,
                   keySignature: options.keySignature,
                   timeSignature: options.timeSignature,
                   clef: staff.clef,
@@ -453,6 +462,7 @@ export function createNewScore(options: NewScoreOptions): Score {
 
 function createTemplateMeasures({
   measureCount,
+  pickupDurationTicks,
   keySignature,
   timeSignature,
   clef,
@@ -460,6 +470,7 @@ function createTemplateMeasures({
   preserveLegacyMeasureIds = false
 }: {
   measureCount: number
+  pickupDurationTicks?: number
   keySignature: KeySignature
   timeSignature: TimeSignature
   clef: Clef
@@ -472,6 +483,7 @@ function createTemplateMeasures({
         ? `measure-${index + 1}`
         : `${idPrefix}-measure-${index + 1}`,
       number: index + 1,
+      timing: index === 0 && pickupDurationTicks !== undefined ? {type: 'pickup', durationTicks: pickupDurationTicks} : {type: 'regular'},
       keySignature,
       timeSignature,
       clef
@@ -639,4 +651,13 @@ export function resolveScoreStructurePreset(
     scoreStructurePresets.find((preset) => preset.id === id) ??
     scoreStructurePresets[0]
   )
+}
+
+// Authoring adapter only: existing timing ticks remain the native representation.
+export function parsePickupDuration(countText: string, unitText: string, nominal: TimeSignature): number | undefined {
+  const count = Number(countText), unit = Number(unitText)
+  if (!countText.trim() || !Number.isInteger(count) || count < 1 || count > 128 ||
+      ![1, 2, 4, 8, 16, 32, 64].includes(unit)) return undefined
+  const ticks = timeSignatureDurationTicks({beats: count, beatType: unit})
+  return ticks < timeSignatureDurationTicks(nominal) ? ticks : undefined
 }

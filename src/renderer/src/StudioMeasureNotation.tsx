@@ -4,6 +4,7 @@ import './studio-measure-notation.css'
 // Adding/editing text opens the existing inspector; no second text draft/command.
 export function StudioMeasureNotation(props: {
   enabled: boolean
+  owner: string
   clefEnabled: boolean
   clef: string
   clefs: readonly {value: string; label: string; disabled?: boolean}[]
@@ -21,7 +22,7 @@ export function StudioMeasureNotation(props: {
       <Button kind="secondary" disabled={!props.enabled} onClick={props.onText}>텍스트 표기 편집</Button>
       <Button kind="secondary" disabled={!props.enabled} onClick={props.onDynamic}>셈여림 편집</Button>
     </Group>
-    <Select label="선택 마디 음자리표" help="선택한 한 마디에 적용합니다." value={props.clef} options={props.clefs} disabled={!props.clefEnabled} onChange={props.onClef}/>
+    <Select key={props.owner} label="선택 마디 음자리표" help="선택한 한 마디에 적용합니다." value={props.clef} options={props.clefs} disabled={!props.clefEnabled} onChange={props.onClef}/>
     {!props.enabled ? <Text as="p" variant="caption">한 음표 또는 마디를 선택해 주세요.</Text> : null}
   </section>
 }

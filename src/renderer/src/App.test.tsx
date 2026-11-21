@@ -26,6 +26,9 @@ import { instrumentTranspositionPresets } from './editor/instrument-transpositio
 import { createPlaybackTimeline, findPlaybackEvent } from './playback/timeline'
 import { withPercussionClef, twoPartMusicXmlWithPrimaryAnnotations, playbackMockState, installPreloadStub, installLocalStorageStub, choosePageSetup, chooseNewScoreTemplate, printingPreview, focusTestBody, openStudioWorkspace, openNotationSettings, openSpanFinder, chooseSelectionFilter, openHarmonyProperties, chooseInspectorDynamic, choosePartSetup, chooseScoreView, staffTargetLabel, chooseStaffTarget, expectStaffTarget, selectedSpanReference, chooseSpanReference, chooseSpanEndpoint, expectSpanEndpoint, expandNoteDetails, installCompactDockMedia, asciiBytes, registerAppTestHooks } from './App.test-harness'
 
+// Resolve the current public surface after workspace/document remounts; never cache old fields.
+const hvFileTools = () => within(screen.getByRole('region', { name: '파일 및 선택 도구' }))
+
 describe('App component shell', () => {
   registerAppTestHooks()
 
@@ -423,7 +426,11 @@ describe('App component shell', () => {
       'data-measure-id',
       'P1-staff-1-measure-1'
     )
-    expect(primaryPreview.getByText('maj7')).toHaveAttribute(
+    expect(playbackMockState.lastScore?.harmonies?.[0]).toMatchObject({
+      text: 'Cmaj7', root: { step: 'C' }, kind: 'major-seventh',
+      measureId: 'P1-staff-1-measure-1'
+    })
+    expect(primaryPreview.getByText('Cmaj7')).toHaveAttribute(
       'data-measure-id',
       'P1-staff-1-measure-1'
     )
@@ -452,7 +459,7 @@ describe('App component shell', () => {
       'measure-1'
     )
     expect(celloPreview.queryByText('PrimaryOnlyText')).not.toBeInTheDocument()
-    expect(celloPreview.queryByText('maj7')).not.toBeInTheDocument()
+    expect(celloPreview.queryByText('Cmaj7')).not.toBeInTheDocument()
     expect(celloPreview.queryByText('mf')).not.toBeInTheDocument()
 
     openStudioWorkspace('내보내기')
@@ -474,7 +481,7 @@ describe('App component shell', () => {
     const printPreview = within(printingPreview())
     expect(printPreview.getByText('Reh-One')).toBeInTheDocument()
     expect(printPreview.queryByText('PrimaryOnlyText')).not.toBeInTheDocument()
-    expect(printPreview.queryByText('maj7')).not.toBeInTheDocument()
+    expect(printPreview.queryByText('Cmaj7')).not.toBeInTheDocument()
     expect(printPreview.queryByText('mf')).not.toBeInTheDocument()
 
     finishPdfSave?.({ fileName: 'imported-duo-cello.pdf' })
@@ -1122,23 +1129,30 @@ describe('App component shell', () => {
     openStudioWorkspace('파일')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
-    fireEvent.click(screen.getByRole('button', { name: '파트보 제목 수정' }))
-    fireEvent.change(screen.getByRole('textbox', { name: '파트보 제목 입력' }), { target: { value: 'Piano rehearsal edition' } })
-    fireEvent.keyDown(screen.getByRole('textbox', { name: '파트보 제목 입력' }), { key: 'Enter' })
-    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Piano rehearsal edition')
+    let partTitle = screen.getByLabelText('파트보 제목')
+    const currentPartTitle = () => {
+      if (!partTitle.isConnected) partTitle = screen.getByLabelText('파트보 제목')
+      expect(partTitle).toBeInTheDocument()
+      return partTitle
+    }
+    const titleTools = () => within(currentPartTitle())
+    fireEvent.click(titleTools().getByRole('button', { name: '파트보 제목 수정' }))
+    fireEvent.change(titleTools().getByRole('textbox', { name: '파트보 제목 입력' }), { target: { value: 'Piano rehearsal edition' } })
+    fireEvent.keyDown(titleTools().getByRole('textbox', { name: '파트보 제목 입력' }), { key: 'Enter' })
+    expect(currentPartTitle()).toHaveTextContent('Piano rehearsal edition')
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Original part title')
+    expect(currentPartTitle()).toHaveTextContent('Original part title')
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
-    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Piano rehearsal edition')
-    fireEvent.click(screen.getByRole('button', { name: '파트보 제목 수정' }))
-    fireEvent.change(screen.getByRole('textbox', { name: '파트보 제목 입력' }), { target: { value: '' } })
-    fireEvent.keyDown(screen.getByRole('textbox', { name: '파트보 제목 입력' }), { key: 'Enter' })
-    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Piano')
+    expect(currentPartTitle()).toHaveTextContent('Piano rehearsal edition')
+    fireEvent.click(titleTools().getByRole('button', { name: '파트보 제목 수정' }))
+    fireEvent.change(titleTools().getByRole('textbox', { name: '파트보 제목 입력' }), { target: { value: '' } })
+    fireEvent.keyDown(titleTools().getByRole('textbox', { name: '파트보 제목 입력' }), { key: 'Enter' })
+    expect(currentPartTitle()).toHaveTextContent('Piano')
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    fireEvent.click(screen.getByRole('button', { name: '파트보 제목 수정' }))
-    fireEvent.change(screen.getByRole('textbox', { name: '파트보 제목 입력' }), { target: { value: 'Cancelled title' } })
-    fireEvent.keyDown(screen.getByRole('textbox', { name: '파트보 제목 입력' }), { key: 'Escape' })
-    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Piano rehearsal edition')
+    fireEvent.click(titleTools().getByRole('button', { name: '파트보 제목 수정' }))
+    fireEvent.change(titleTools().getByRole('textbox', { name: '파트보 제목 입력' }), { target: { value: 'Cancelled title' } })
+    fireEvent.keyDown(titleTools().getByRole('textbox', { name: '파트보 제목 입력' }), { key: 'Escape' })
+    expect(currentPartTitle()).toHaveTextContent('Piano rehearsal edition')
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await screen.findByText('parts.chromatics에 저장했습니다.')
     const savedContents = vi.mocked(window.inC.project.save).mock.calls[0]![0].contents
@@ -1148,7 +1162,8 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/reopened.chromatics', fileName: 'reopened.chromatics', contents: savedContents })
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('reopened.chromatics을 열었습니다.')
-    expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Piano rehearsal edition')
+    partTitle = screen.getByLabelText('파트보 제목')
+    expect(currentPartTitle()).toHaveTextContent('Piano rehearsal edition')
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
     openStudioWorkspace('내보내기')
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
@@ -1779,15 +1794,15 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
     openStudioWorkspace('파일')
-    const save = screen.getByRole('button', { name: format === 'native' ? '프로젝트 저장' : 'MusicXML로 저장' })
+    const save = hvFileTools().getByRole('button', { name: format === 'native' ? '프로젝트 저장' : 'MusicXML로 저장' })
     fireEvent.click(save)
     await waitFor(() => expect(window.inC.autosave.clear).toHaveBeenCalledOnce())
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    fireEvent.click(hvFileTools().getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('Expanded Part Export')
     if (dirty) {
       fireEvent.click(screen.getByRole('button', { name: '악보 제목 수정' }))
-      fireEvent.change(screen.getByLabelText('악보 제목'), { target: { value: 'New document edit' } })
-      fireEvent.keyDown(screen.getByLabelText('악보 제목'), { key: 'Enter' })
+      fireEvent.change(screen.getByRole('textbox', { name: '악보 제목' }), { target: { value: 'New document edit' } })
+      fireEvent.keyDown(screen.getByRole('textbox', { name: '악보 제목' }), { key: 'Enter' })
     }
     await act(async () => { finishClear() })
     await waitFor(() => expect(save).toBeEnabled())
@@ -2905,12 +2920,16 @@ describe('App component shell', () => {
     let menu = screen.getByRole('menu', { name: '마디 작업' })
     expect(menu.querySelector('.dd-card')).not.toBeNull()
     const items = within(menu).getAllByRole('menuitem')
-    expect(items).toHaveLength(8)
+    expect(items.map(item => item.textContent?.trim())).toEqual([
+      '앞에 마디 추가', '뒤에 마디 추가', '도돌이표 시작', '도돌이표 끝',
+      '1번 볼타', '2번 볼타', '마디 속성…', '박자표 변경…', '마디 제거'
+    ])
     items.forEach(item => expect(item).toHaveClass('dd-button'))
     expect(items[0]).toHaveFocus()
     fireEvent.keyDown(items[0], { key: 'End' })
-    expect(items[7]).toHaveFocus()
-    fireEvent.keyDown(items[7], { key: 'ArrowDown' })
+    const last = within(menu).getByRole('menuitem', { name: '마디 제거' })
+    expect(last).toHaveFocus()
+    fireEvent.keyDown(last, { key: 'ArrowDown' })
     expect(items[0]).toHaveFocus()
     fireEvent.keyDown(items[0], { key: 'Home' })
     expect(items[0]).toHaveFocus()
@@ -3134,27 +3153,29 @@ describe('App component shell', () => {
 
     openStudioWorkspace('가사')
     expect(within(contextStrip).getByText('가사')).toBeInTheDocument()
-    expect(screen.getByLabelText('가사 절')).toBeVisible()
+    const lyricTools = within(screen.getByRole('region', { name: '가사 속성' }))
+    expect(lyricTools.getByRole('combobox', { name: '가사 절' })).toBeVisible()
     const preview = screen.getByLabelText('악보 미리보기 테스트 더블')
     const lyricInput = within(preview).getByLabelText('선택 음표 가사')
     const initialEventCount = preview.getAttribute('data-event-count')
     expect(lyricInput).toBeVisible()
-    expect(screen.getByLabelText('가사 음절')).toBeVisible()
+    expect(lyricTools.getByRole('combobox', { name: '가사 음절' })).toBeVisible()
     expect(screen.getByText('멜리스마')).toBeVisible()
-    fireEvent.click(screen.getByRole('combobox',{name:'가사 절'}))
+    fireEvent.click(lyricTools.getByRole('combobox', { name: '가사 절' }))
     expect(
       within(screen.getByRole('listbox',{name:'가사 절'})).getAllByRole('option').map(
         (option) => option.textContent
       )
     ).toEqual(['1절', '2절', '3절', '4절'])
-    fireEvent.keyDown(screen.getByRole('combobox',{name:'가사 절'}),{key:'Escape'})
+    fireEvent.keyDown(lyricTools.getByRole('combobox', { name: '가사 절' }),{key:'Escape'})
     expect(screen.getByRole('region', { name: '코드 심벌 속성' })).toBeVisible()
     expect(screen.getByRole('button',{name:'코드 심벌 편집'})).toBeVisible()
-    expect(screen.getByLabelText('코드 심벌 적용 위치')).toHaveTextContent(
+    const chordTools = within(screen.getByRole('region', { name: '코드 심벌 속성' }))
+    expect(chordTools.getByLabelText('코드 심벌 적용 위치')).toHaveTextContent(
       '1마디 · 1성부 · 1번째 표기'
     )
     fireEvent.keyDown(lyricInput, { key: 'ArrowDown' })
-    expect(screen.getByRole('combobox',{name:'가사 절'})).toHaveTextContent('2절')
+    expect(lyricTools.getByRole('combobox', { name: '가사 절' })).toHaveTextContent('2절')
     expect(
       screen.getByText('2절 가사 입력으로 전환했습니다.')
     ).toBeInTheDocument()
@@ -3164,7 +3185,7 @@ describe('App component shell', () => {
       ),
       { key: 'ArrowUp' }
     )
-    expect(screen.getByRole('combobox',{name:'가사 절'})).toHaveTextContent('1절')
+    expect(lyricTools.getByRole('combobox', { name: '가사 절' })).toHaveTextContent('1절')
     const firstVerseInput = within(
       screen.getByTestId('notation-preview')
     ).getByLabelText('선택 음표 가사')
@@ -3183,7 +3204,7 @@ describe('App component shell', () => {
       eventCountAfterLyricAdvance
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'm3-half-rest 선택' }))
+    fireEvent.click(within(preview).getByRole('button', { name: 'm3-half-rest 선택' }))
     expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
     openStudioWorkspace('가사')
@@ -3194,10 +3215,10 @@ describe('App component shell', () => {
     )
     expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
 
-    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(within(preview).getByRole('button', { name: 'm1-c4 선택' }))
     expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
     openStudioWorkspace('가사')
-    fireEvent.click(screen.getByRole('combobox',{name:'가사 절'}));fireEvent.click(screen.getByRole('option',{name:'4절'}))
+    fireEvent.click(lyricTools.getByRole('combobox', { name: '가사 절' }));fireEvent.click(screen.getByRole('option',{name:'4절'}))
     const fourthVerseInput = within(preview).getByLabelText('선택 음표 가사')
     fireEvent.change(fourthVerseInput, { target: { value: '한-글 두음절' } })
     fireEvent.blur(fourthVerseInput)
@@ -3213,25 +3234,27 @@ describe('App component shell', () => {
     )
     openStudioWorkspace('악보')
     fireEvent.click(
-      screen.getByRole('button', { name: 'm1-c4 4절 가사 선택' })
+      within(preview).getByRole('button', { name: 'm1-c4 4절 가사 선택' })
     )
     expect(screen.getByRole('region', { name: '가사 편집' })).toBeVisible()
-    expect(screen.getByRole('combobox',{name:'가사 절'})).toHaveTextContent('4절')
+    expect(lyricTools.getByRole('combobox', { name: '가사 절' })).toHaveTextContent('4절')
     expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
-    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    fireEvent.click(within(preview).getByRole('button', { name: 'm1-d4 선택' }))
     expect(screen.getByRole('region', { name: '선택 요약' })).toBeVisible()
 
     openStudioWorkspace('악보')
     expect(within(contextStrip).getByText('악보')).toBeInTheDocument()
-    expect(screen.getByLabelText('조표')).toBeVisible()
-    expect(screen.getByLabelText('박자표')).toBeVisible()
+    const measureTools = within(screen.getByRole('region', { name: '마디 구조와 조표·박자표' }))
+    expect(measureTools.getByRole('combobox', { name: '조표' })).toBeVisible()
+    expect(measureTools.getByRole('combobox', { name: '박자표' })).toBeVisible()
     expect(screen.getByLabelText('선택 마디 음자리표')).not.toBeVisible()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).toBeVisible()
     expect(screen.queryByLabelText('PDF 설정 프리셋')).not.toBeInTheDocument()
-    const tempoInput = screen.getByRole('slider', { name: /^빠르기/ })
-    const tempoBeatUnit = screen.getByLabelText('빠르기 기준 음가')
-    const tempoText = screen.getByLabelText('빠르기말')
-    const rhythmFeelSelect = screen.getByLabelText('리듬 해석 표기')
+    const tempoTools = within(screen.getByRole('region', { name: '빠르기' }))
+    const tempoInput = tempoTools.getByRole('slider', { name: /^빠르기/ })
+    const tempoBeatUnit = tempoTools.getByLabelText('빠르기 기준 음가')
+    const tempoText = tempoTools.getByLabelText('빠르기말')
+    const rhythmFeelSelect = tempoTools.getByLabelText('리듬 해석 표기')
     expect(tempoInput).toHaveValue('75')
     expect(tempoBeatUnit).toHaveTextContent('4분음표')
     expect(tempoText).toHaveTextContent('♩ = 75')
@@ -3244,7 +3267,7 @@ describe('App component shell', () => {
     fireEvent.click(rhythmFeelSelect);fireEvent.click(screen.getByRole('option',{name:'8분 셋잇단 느낌'}))
     expect(rhythmFeelSelect).toHaveTextContent('8분 셋잇단 느낌')
     expect(preview).toHaveAttribute('data-rhythm-feel', 'eighth')
-    const tempoVisibilityToggle = screen.getByLabelText('악보에 빠르기말 표기')
+    const tempoVisibilityToggle = tempoTools.getByLabelText('악보에 빠르기말 표기')
     expect(tempoVisibilityToggle).toBeChecked()
     fireEvent.click(tempoVisibilityToggle)
     expect(tempoVisibilityToggle).not.toBeChecked()
@@ -3252,9 +3275,10 @@ describe('App component shell', () => {
     openNotationSettings('clef')
     expect(within(contextStrip).getByText('표기 객체')).toBeInTheDocument()
     const notationObjects = screen.getByRole('region', { name: '표기 객체' })
-    expect(screen.getByLabelText('선택 요약 연습표')).toBeVisible()
-    expect(screen.getByLabelText('선택 요약 보표 글자')).toBeVisible()
-    expect(screen.getByLabelText('선택 요약 표현 텍스트')).toBeVisible()
+    const selectedProperties = within(within(propertiesDock).getByRole('region', { name: '선택 요약' }))
+    expect(selectedProperties.getByLabelText('선택 요약 연습표')).toBeVisible()
+    expect(selectedProperties.getByLabelText('선택 요약 보표 글자')).toBeVisible()
+    expect(selectedProperties.getByLabelText('선택 요약 표현 텍스트')).toBeVisible()
     const dockedDynamics = within(dockedPalette).getByRole('region', {
       name: '셈여림 팔레트'
     })
@@ -3269,17 +3293,18 @@ describe('App component shell', () => {
 
     openStudioWorkspace('파일')
     expect(within(contextStrip).getByText('파일')).toBeInTheDocument()
-    expect(within(workspace).getByLabelText('새 악보 만들기')).toBeInTheDocument()
-    expect(within(workspace).getByLabelText('MusicXML 가져오기')).toBeInTheDocument()
-    const selectionFilter = within(workspace).getByLabelText('선택 필터')
+    const fileTools = within(screen.getByRole('region', { name: '파일 및 선택 도구' }))
+    expect(fileTools.getByLabelText('새 악보 만들기')).toBeInTheDocument()
+    expect(fileTools.getByLabelText('MusicXML 가져오기')).toBeInTheDocument()
+    const selectionFilter = fileTools.getByLabelText('선택 필터')
     expect(selectionFilter).toBeVisible()
     expect(selectionFilter).toHaveTextContent('전체')
     chooseSelectionFilter('선택 필터', 'rests')
     expect(within(contextStrip).getByText('쉼표만')).toBeInTheDocument()
-    expect(within(workspace).getByLabelText('음표 지우기')).toBeDisabled()
+    expect(fileTools.getByLabelText('음표 지우기')).toBeDisabled()
     chooseSelectionFilter('선택 필터', 'notes')
     expect(within(contextStrip).getByText('음표만')).toBeInTheDocument()
-    expect(within(workspace).getByLabelText('음표 지우기')).not.toBeDisabled()
+    expect(fileTools.getByLabelText('음표 지우기')).not.toBeDisabled()
     expect(
       within(workspace).queryByRole('button', { name: 'PDF 변환' })
     ).not.toBeInTheDocument()
@@ -3287,7 +3312,7 @@ describe('App component shell', () => {
       within(workspace).queryByRole('button', { name: 'MIDI 내보내기' })
     ).not.toBeInTheDocument()
 
-    fireEvent.click(within(workspace).getByLabelText('새 악보 만들기'))
+    fireEvent.click(fileTools.getByLabelText('새 악보 만들기'))
     const newScoreDialog = screen.getByRole('dialog', {
       name: '새 악보 만들기'
     })
@@ -3297,11 +3322,12 @@ describe('App component shell', () => {
 
     openStudioWorkspace('내보내기')
     expect(within(contextStrip).getByText('내보내기')).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'PDF 페이지 설정' })).toBeVisible()
+    const pageSetup = screen.getByRole('region', { name: 'PDF 페이지 설정' })
+    expect(pageSetup).toBeVisible()
     expect(within(workspace).getByLabelText('PDF 변환')).toBeVisible()
     expect(within(workspace).getByLabelText('MIDI 내보내기')).toBeVisible()
     expect(within(workspace).getByLabelText('PDF 목표 장수')).toBeVisible()
-    expect(screen.getByLabelText('PDF 설정 프리셋')).toBeVisible()
+    expect(within(pageSetup).getByRole('combobox', { name: 'PDF 설정 프리셋' })).toBeVisible()
 
     openStudioWorkspace('재생')
     expect(screen.getByRole('region', { name: '재생 컨트롤' })).toBeVisible()

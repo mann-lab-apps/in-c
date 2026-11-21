@@ -1,10 +1,45 @@
-import { copyFile, link, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
+import { chmod, copyFile, link, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { MusicXmlFileSession } from './musicxml-files'
+import { encodeMusicXmlFile } from '../musicxml/container'
 
 describe('MusicXML save session', () => {
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0).each(
+    (['musicxml', 'mxl'] as const).flatMap(extension => (['save', 'exportCopy'] as const).map(operation => ({ extension, operation })))
+  )('preserves a read-only $extension during $operation and retries without changing neighboring files', async ({ extension, operation }) => {
+    const directory = await mkdtemp(join(tmpdir(), 'studio-xml-readonly-'))
+    const target = join(directory, `score.${extension}`), backup = join(directory, 'previous-copy')
+    const originalXml = '<score-partwise><work><work-title>Original</work-title></work></score-partwise>'
+    const editedXml = originalXml.replace('Original', 'Writable retry')
+    let backups = 0
+    const session = new MusicXmlFileSession(async path => { backups++; await copyFile(path, backup) })
+    try {
+      await writeFile(target, encodeMusicXmlFile(originalXml, target))
+      await writeFile(join(directory, 'neighbor.txt'), 'keep neighbor')
+      const original = await readFile(target)
+      if (operation === 'save') expect(await session.open(target)).toBe(originalXml)
+      await chmod(target, 0o444)
+
+      await expect(session[operation](target, editedXml)).rejects.toMatchObject({ code: 'EACCES' })
+      expect(await readFile(target)).toEqual(original)
+      expect((await stat(target)).mode & 0o777).toBe(0o444)
+      expect(backups).toBe(0)
+      expect((await readdir(directory)).sort()).toEqual(['neighbor.txt', `score.${extension}`])
+
+      await chmod(target, 0o600)
+      await session[operation](target, editedXml)
+      expect(backups).toBe(1)
+      expect(await readFile(backup)).toEqual(original)
+      const fresh = new MusicXmlFileSession(async () => {})
+      expect(await fresh.open(target)).toBe(editedXml)
+      expect((await stat(target)).mode & 0o777).toBe(0o600)
+      expect(await readFile(join(directory, 'neighbor.txt'), 'utf8')).toBe('keep neighbor')
+      expect((await readdir(directory)).sort()).toEqual(['neighbor.txt', 'previous-copy', `score.${extension}`])
+    } finally { await rm(directory, { recursive: true, force: true }) }
+  })
+
   it('exports a copy without overwriting opened/saved originals or filesystem aliases', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'chromatics-part-export-'))
     const source = join(directory, 'full.musicxml')

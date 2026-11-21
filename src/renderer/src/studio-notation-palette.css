@@ -4,6 +4,7 @@
 .studio-notation-palette__search { display: flex; align-items: end; gap: var(--dd-spacing-sm); }
 .studio-notation-palette__search > :first-child { min-width: 0; flex: 1; }
 .studio-notation-palette__dynamics { display: flex; flex-wrap: wrap; gap: var(--dd-spacing-sm); }
+.studio-notation-palette__dynamics > p { flex: 0 0 100%; margin: 0; }
 .studio-notation-palette__symbol { display: block; flex: none; }
 .studio-notation-palette__entries { display: grid; justify-items: start; gap: var(--dd-spacing-sm); }
 
@@ -12,7 +13,23 @@
 .studio-notation-palette__clef-family { display: grid; min-width: 0; gap: var(--dd-spacing-md); }
 .studio-notation-palette__clef-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--dd-control-touch-target) * 2 + var(--dd-spacing-sm))), 1fr)); gap: var(--dd-spacing-sm); }
 .studio-notation-palette__clef-button { width: 100%; }
+@media (pointer: fine) {
+  .studio-notation-palette__clef-button[draggable='true'],
+  .studio-notation-palette__key-button[draggable='true'],
+  .studio-notation-palette__dynamics button[draggable='true'],
+  .studio-notation-palette__marks button[draggable='true'] { cursor: grab; }
+}
+.studio-palette-drop-highlight { position: fixed; pointer-events: none; z-index: 2; box-sizing: border-box; border: var(--studio-paper-focus-width) solid var(--studio-paper-focus); }
+.studio-palette-drop-highlight:is([data-kind='articulation'],[data-kind='ornament'],[data-kind='pause']) { border: 0; outline: var(--studio-paper-focus-width) solid var(--studio-paper-focus); outline-offset: var(--studio-paper-focus-offset); }
+@media print { .studio-palette-drop-highlight { display: none; } }
 .studio-notation-palette__clef-content { display: grid; min-width: 0; justify-items: center; gap: var(--dd-spacing-xs); }
 
 .studio-palette-workspace-settings { display: grid; gap: var(--dd-spacing-sm); padding-top: var(--dd-spacing-md); margin-top: var(--dd-spacing-md); border-top: var(--dd-control-border-width) solid var(--dd-border); }
 .studio-palette-workspace-settings > :is(h4,p) { margin: 0; }
+
+.studio-notation-palette__keys { display: grid; min-width: 0; gap: var(--dd-spacing-sm); }
+.studio-notation-palette__keys > :is(h4,p) { margin: 0; }
+.studio-notation-palette__key-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--dd-control-touch-target) * 2 + var(--dd-spacing-sm))), 1fr)); gap: var(--dd-spacing-sm); }
+.studio-notation-palette__key-button { width: 100%; }
+.studio-notation-palette__key-content { display: grid; min-width: 0; justify-items: center; gap: var(--dd-spacing-xs); }
+.studio-notation-palette__key-symbol { display: flex; align-items: center; justify-content: center; gap: var(--dd-spacing-xs); }

@@ -4,8 +4,20 @@ import { createPlaybackTimeline } from './timeline'
 import { expressPianoScore } from './piano-expression'
 import { createPianoCommands } from './piano-transport'
 import { TICKS_PER_QUARTER } from '../../../score-core'
+import { createSwingPlaybackFixture } from '../../../testing/swing-playback-fixture'
 
 describe('piano score expression', () => {
+  it.each((['eighth', '16th'] as const).flatMap(unit => (['2:1', '3:2'] as const).flatMap(ratio => [false, true].map(natural => ({ unit, ratio, natural })))))('preserves explicit $unit $ratio through the real expression/command pipeline, natural=$natural', ({ unit, ratio, natural }) => {
+    const score = createSwingPlaybackFixture(unit, ratio), before = structuredClone(score)
+    const basic = createPlaybackTimeline(score), expressed = expressPianoScore(score, basic, natural)
+    const unitBeat = unit === 'eighth' ? 0.5 : 0.25, fraction = ratio === '2:1' ? 2 / 3 : 3 / 5
+    expect(Math.abs(expressed.events[1].startBeat - 2 * unitBeat * fraction)).toBeLessThanOrEqual(natural ? 0.006001 : 1e-10)
+    const commands = createPianoCommands(expressed, 0, 120, {}), onsets = commands.filter(command => command.type === 'on')
+    expect(onsets).toHaveLength(basic.events.length)
+    expect(onsets[1].time).toBeCloseTo(expressed.events[1].startBeat / 2, 10)
+    expect(createPianoCommands(expressed, 0, 120, { [score.parts[0].id]: { muted: true, solo: false, volume: 1 } })).toEqual([])
+    expect(score).toEqual(before)
+  })
   it('honors staccato/accent and keeps authored dynamics, score identity and tempo map', () => {
     const score = createSingleVoiceMvpScore()
     const source = score.parts[0].staves[0].measures[0].voices[0].events[0]

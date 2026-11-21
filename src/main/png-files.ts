@@ -1,16 +1,34 @@
-import { open, rename, rm, mkdir, rmdir, type FileHandle } from 'node:fs/promises'
+import { access, open, rename, rm, mkdir, rmdir, stat, type FileHandle } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { pngDimensions, validatePngExport, type PngPage } from '../image-export/png'
+import { resolveOutputFileTarget } from './output-file-target'
 
 export async function savePngFile(filePath: string, bytes: Uint8Array): Promise<void> {
   pngDimensions(bytes)
-  const temporary = join(dirname(filePath), `.studio-png-${randomUUID()}.tmp`)
+  const target = await resolveOutputFileTarget(filePath)
+  let existingMode: number | undefined
+  // Atomic replacement must not bypass an existing destination's write permissions.
+  try {
+    const mode = (await stat(target)).mode & 0o777
+    await access(target, constants.W_OK)
+    existingMode = mode
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+  const temporary = join(dirname(target), `.studio-png-${randomUUID()}.tmp`)
+  let created = false
   try {
     const handle = await open(temporary,'wx',0o600)
-    try { await handle.writeFile(bytes);await handle.sync() } finally { await handle.close() }
-    await rename(temporary,filePath)
-  } finally { await rm(temporary,{force:true}) }
+    created = true
+    try {
+      await handle.writeFile(bytes)
+      if (existingMode !== undefined) await handle.chmod(existingMode)
+      await handle.sync()
+    } finally { await handle.close() }
+    await rename(temporary,target)
+  } finally { if (created) await rm(temporary,{force:true}) }
 }
 
 export async function savePngBatch(parent: string, name: string, input: PngPage[],

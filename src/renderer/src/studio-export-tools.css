@@ -10,5 +10,6 @@
 }
 .studio-export-tools__command { display: inline-flex; align-items: center; gap: var(--dd-control-choice-gap); vertical-align: middle; max-width: 100%; }
 .studio-export-tools__command > svg { flex: none; }
+.studio-export-tools__png-diagnostic { flex: 1 1 100%; min-width: 0; }
 .studio-export-tools__page-count { flex: 0 1 12rem; min-width: 0; max-width: 100%; }
 @media print { .studio-export-tools { display: none; } }

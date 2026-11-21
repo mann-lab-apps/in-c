@@ -20,7 +20,8 @@ export function StudioDockHeader({name, width, onWidth, onClose, onReturn, child
   const invalid = draft === '' || !Number.isInteger(Number(draft)) || Number(draft) < 200 || Number(draft) > 360
   return <div className="studio-dock-header" onKeyDown={event => {
     if(event.nativeEvent.isComposing||event.keyCode===229||event.key==='Process'){event.stopPropagation();return}
-    if(event.key==='F6'&&!event.metaKey&&!event.ctrlKey&&!event.altKey&&!isTextEditingTarget(event.target)&&onReturn){
+    const closedSelect=event.target instanceof Element&&event.target.closest('button[role="combobox"][aria-expanded="false"]:not(:disabled)')
+    if(event.key==='F6'&&!event.metaKey&&!event.ctrlKey&&!event.altKey&&(!isTextEditingTarget(event.target)||closedSelect)&&onReturn){
       event.preventDefault();event.stopPropagation();setOpen(false);onReturn();return
     }
     if (!event.metaKey && !event.ctrlKey && !event.altKey) event.stopPropagation()

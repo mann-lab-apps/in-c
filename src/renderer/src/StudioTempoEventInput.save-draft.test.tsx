@@ -16,7 +16,7 @@ it.each(tempoSaveDraftKinds.flatMap(kind => modifiers.map(modifier => ({ kind, m
     return <div onKeyDown={event => { if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') save() }}>
       <StudioTempoEventInput value={value} scope="첫 마디 · 0박" count={2} onCommit={text => {
         command(text)
-        setValue(text === '' ? undefined : Math.min(240, Math.max(40, Number.parseInt(text, 10))))
+        setValue(text === '' ? undefined : Number(text))
       }}/>
     </div>
   }
@@ -31,10 +31,14 @@ it.each(tempoSaveDraftKinds.flatMap(kind => modifiers.map(modifier => ({ kind, m
   expect(field).toHaveAccessibleDescription(expect.stringContaining('같은 위치의 지정 2개'))
   if (data.blocked) {
     expect(save).not.toHaveBeenCalled(); expect(field).toHaveAccessibleDescription(expect.stringContaining(guidance))
+    if (kind === 'clamp-low') {
+      fireEvent.keyDown(field, { key: 'Enter' }); fireEvent.blur(field)
+      expect(command).not.toHaveBeenCalled(); expect(field).toHaveValue(0); expect(field).toHaveAttribute('aria-invalid', 'true')
+    }
     fireEvent.keyDown(field, { key: data.confirm ? 'Enter' : 'Escape' }); fireEvent.blur(field)
     expect(command).toHaveBeenCalledTimes(data.confirm ? 1 : 0)
     if (data.confirm) expect(command).toHaveBeenCalledWith(data.draft)
-    expect(field).toHaveValue(kind === 'remove' ? null : kind === 'change' ? 97 : kind === 'clamp-low' ? 40 : 96)
+    expect(field).toHaveValue(kind === 'remove' ? null : kind === 'change' ? 97 : 96)
     expect(field).not.toHaveAccessibleDescription(expect.stringContaining(guidance))
     expect(save).not.toHaveBeenCalled()
     field.focus(); fireEvent.keyDown(field, { key: 's', code: 'KeyS', ...modifier })

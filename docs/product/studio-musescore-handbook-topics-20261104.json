@@ -1,0 +1,1225 @@
+{
+  "checkedDate": "2026-11-04",
+  "source": "https://handbook.musescore.org/llms.txt",
+  "scope": "Topic title/URL metadata; US/UK duplicates excluded; not function-level completeness proof",
+  "topics": [
+    {
+      "title": "MuseScore Studio Handbook",
+      "url": "https://handbook.musescore.org/readme.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "About the handbook",
+      "url": "https://handbook.musescore.org/about-the-handbook.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Editing the handbook",
+      "url": "https://handbook.musescore.org/about-the-handbook/editing-the-handbook.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Style guide",
+      "url": "https://handbook.musescore.org/about-the-handbook/style-guide.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Using GitBook",
+      "url": "https://handbook.musescore.org/about-the-handbook/using-gitbook.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "License",
+      "url": "https://handbook.musescore.org/about-the-handbook/license.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Download and installation",
+      "url": "https://handbook.musescore.org/introduction/download-and-installation.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Create your first score",
+      "url": "https://handbook.musescore.org/introduction/create-your-first-score.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Upgrading from earlier versions",
+      "url": "https://handbook.musescore.org/introduction/upgrading-from-earlier-versions.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Accessibility",
+      "url": "https://handbook.musescore.org/navigation/accessibility.md",
+      "gapIds": [
+        "SMG-037"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "The user interface",
+      "url": "https://handbook.musescore.org/navigation/the-user-interface.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Navigating your score",
+      "url": "https://handbook.musescore.org/navigation/navigating-your-score.md",
+      "gapIds": [
+        "SMG-035-006"
+      ],
+      "reviewStatus": "navigation-section-body-reviewed-and-native-current-routing-observed; full chapter/other-shortcut parity not approved",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "title": "Timeline",
+      "url": "https://handbook.musescore.org/navigation/timeline.md",
+      "gapIds": [
+        "SMG-035"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Braille",
+      "url": "https://handbook.musescore.org/navigation/braille.md",
+      "gapIds": [
+        "SMG-037"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Setting up your score",
+      "url": "https://handbook.musescore.org/basics/setting-up-your-score.md",
+      "gapIds": [
+        "SMG-040"
+      ],
+      "reviewStatus": "partial-body-review: Measures entry and Studio count draft audited; not entire chapter parity"
+    },
+    {
+      "title": "Entering notes and rests",
+      "url": "https://handbook.musescore.org/basics/entering-notes-and-rests.md",
+      "gapIds": [
+        "SMG-018",
+        "SMG-021",
+        "SMG-054",
+        "SMG-055",
+        "SMG-056"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required",
+      "reviewedAt": "2026-11-09"
+    },
+    {
+      "title": "Working with multiple voices",
+      "url": "https://handbook.musescore.org/basics/working-with-multiple-voices.md",
+      "gapIds": [
+        "SMG-042",
+        "SMG-035-005"
+      ],
+      "reviewStatus": "body-reviewed-navigation-and-existing-note-migration-gap; rest merging/stem/style and full runtime parity not approved"
+    },
+    {
+      "title": "Input by duration mode",
+      "url": "https://handbook.musescore.org/basics/input-by-duration-mode.md",
+      "gapIds": [
+        "SMG-019"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Alternative note input methods",
+      "url": "https://handbook.musescore.org/basics/alternative-note-input-methods.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Adding and removing measures",
+      "url": "https://handbook.musescore.org/basics/adding-and-removing-measures.md",
+      "gapIds": [
+        "SMG-035-004"
+      ],
+      "reviewStatus": "body-reviewed-current-global-single-measure-structure-and-existing-delete-policy-gap; bulk/range/trailing-empty operations not approved"
+    },
+    {
+      "title": "Selecting elements",
+      "url": "https://handbook.musescore.org/basics/selecting-elements.md",
+      "gapIds": [
+        "SMG-035"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Editing notes and rests",
+      "url": "https://handbook.musescore.org/basics/editing-notes-and-rests.md",
+      "gapIds": [
+        "SMG-007",
+        "SMG-052",
+        "SMG-053"
+      ],
+      "reviewStatus": "pitch subsection/current valid-movement command12red and oldED8flows observed; prior SMG007 and other subfeature scopes retained",
+      "reviewedAt": "2026-11-09"
+    },
+    {
+      "title": "Copy and paste",
+      "url": "https://handbook.musescore.org/basics/copy-and-paste.md",
+      "gapIds": [
+        "SMG-035"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Using the palettes",
+      "url": "https://handbook.musescore.org/basics/using-the-palettes.md",
+      "gapIds": [
+        "SMG-012"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Properties panel",
+      "url": "https://handbook.musescore.org/basics/properties-panel.md",
+      "gapIds": [
+        "SMG-010"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Adjusting elements directly",
+      "url": "https://handbook.musescore.org/basics/adjusting-elements-directly.md",
+      "gapIds": [
+        "SMG-011"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Parts",
+      "url": "https://handbook.musescore.org/basics/parts.md",
+      "gapIds": [
+        "SMG-010"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Default keyboard shortcuts",
+      "url": "https://handbook.musescore.org/basics/default-keyboard-shortcuts.md",
+      "gapIds": [
+        "SMG-035-006",
+        "SMG-035-004"
+      ],
+      "reviewStatus": "navigation-section-body-reviewed-and-native-current-routing-observed; full chapter/other-shortcut parity not approved",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "title": "Instruments, staves, and systems",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Instruments and system markings",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/instruments-and-system-markings.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Showing staves only where needed",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/showing-staves-only-where-needed.md",
+      "gapIds": [
+        "SMG-023",
+        "SMG-023-004"
+      ],
+      "reviewStatus": "scoped body reviewed: empty-system hiding and exceptions; explicit MusicXML visibility loss audited separately, not feature parity"
+    },
+    {
+      "title": "Implode and explode",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/implode-and-explode.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Mid-score instrument changes",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/mid-score-instrument-changes.md",
+      "gapIds": [
+        "SMG-033",
+        "SMG-033-001"
+      ],
+      "reviewStatus": "partial-source-audit: explicit note instrument reference loss diagnosis; not full instrument changes or original timbre support",
+      "lastReviewed": "2026-11-08"
+    },
+    {
+      "title": "Staff type change",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/staff-type-change.md",
+      "gapIds": [
+        "SMG-046"
+      ],
+      "reviewStatus": "Body reviewed for individual staff line count/scale and source loss audit; advanced properties remain separately unaudited/unsupported."
+    },
+    {
+      "title": "Staff/Part properties",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/staff-part-properties.md",
+      "gapIds": [
+        "SMG-046",
+        "SMG-028-022"
+      ],
+      "reviewStatus": "Body reviewed for individual staff line count/scale and source loss audit; advanced properties remain separately unaudited/unsupported. Header part display loss notice linked separately; W3C/XSD verified, fresh handbook body fetch unavailable, no full chapter parity claim."
+    },
+    {
+      "title": "Brackets",
+      "url": "https://handbook.musescore.org/notation/instruments-staves-and-systems/brackets.md",
+      "gapIds": [
+        "SMG-043",
+        "SMG-043-001"
+      ],
+      "reviewStatus": "body-reviewed-part-group-loss-probe-and-separate-group-editor-gap; actual final bracket renderer/PDF not approved"
+    },
+    {
+      "title": "Rhythm, meter, and measures",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Time signatures",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/time-signatures.md",
+      "gapIds": [
+        "SMG-002",
+        "SMG-003",
+        "SMG-002-004"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Stems and flags",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/stems-and-flags.md",
+      "gapIds": [
+        "SMG-020"
+      ],
+      "reviewStatus": "body-read; automatic renderer vs missing manual model/commands audited, no whole-chapter implementation approval"
+    },
+    {
+      "title": "Beams",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/beams.md",
+      "gapIds": [
+        "SMG-020"
+      ],
+      "reviewStatus": "body-read; automatic renderer vs missing manual model/commands audited, no whole-chapter implementation approval"
+    },
+    {
+      "title": "Regroup rhythms",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/regroup-rhythms.md",
+      "gapIds": [
+        "SMG-020"
+      ],
+      "reviewStatus": "body-read; automatic renderer vs missing manual model/commands audited, no whole-chapter implementation approval"
+    },
+    {
+      "title": "Tuplets",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/tuplets.md",
+      "gapIds": [
+        "SMG-006",
+        "SMG-006-002",
+        "SMG-006-003",
+        "SMG-006-005"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Barlines",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/barlines.md",
+      "gapIds": [
+        "SMG-041"
+      ],
+      "reviewStatus": "body-read; explicit-style import loss reproduced; advanced scope/geometry not implemented or fully audited"
+    },
+    {
+      "title": "Measure numbering",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/measure-numbering.md",
+      "gapIds": [
+        "SMG-030"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Measure and multimeasure rests",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/measure-and-multimeasure-rests.md",
+      "gapIds": [
+        "SMG-023"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Pickup and non-metered measures",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/pickup-and-non-metered-measures.md",
+      "gapIds": [
+        "SMG-004"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Measure properties",
+      "url": "https://handbook.musescore.org/notation/rhythm-meter-and-measures/measure-properties.md",
+      "gapIds": [
+        "SMG-004",
+        "SMG-004-003",
+        "SMG-047",
+        "SMG-004-005"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Pitch",
+      "url": "https://handbook.musescore.org/notation/pitch.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Clefs",
+      "url": "https://handbook.musescore.org/notation/pitch/clefs.md",
+      "gapIds": [
+        "SMG-005",
+        "SMG-005-002"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Key signatures",
+      "url": "https://handbook.musescore.org/notation/pitch/key-signatures.md",
+      "gapIds": [
+        "SMG-044",
+        "SMG-044-002"
+      ],
+      "reviewStatus": "Primary chapter/source audit; existing core support distinguished from advanced properties. Not whole-chapter runtime approval."
+    },
+    {
+      "title": "Transposition",
+      "url": "https://handbook.musescore.org/notation/pitch/transposition.md",
+      "gapIds": [
+        "SMG-015",
+        "SMG-015-001"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Octave lines",
+      "url": "https://handbook.musescore.org/notation/pitch/octave-lines.md",
+      "gapIds": [
+        "SMG-045",
+        "SMG-045-001"
+      ],
+      "reviewStatus": "Primary chapter/source audit; existing core support distinguished from advanced properties. Not whole-chapter runtime approval."
+    },
+    {
+      "title": "Noteheads",
+      "url": "https://handbook.musescore.org/notation/pitch/noteheads.md",
+      "gapIds": [
+        "SMG-025",
+        "SMG-025-007",
+        "SMG-025-008",
+        "SMG-025-016"
+      ],
+      "reviewStatus": "Existing notehead coverage plus 2026-11-07 body paragraph permitting parentheses on notes or accidentals; only that source/appearance scope reviewed, not whole-chapter runtime parity."
+    },
+    {
+      "title": "Ambitus",
+      "url": "https://handbook.musescore.org/notation/pitch/ambitus.md",
+      "gapIds": [
+        "SMG-025"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Respell pitches",
+      "url": "https://handbook.musescore.org/notation/pitch/respell-pitches.md",
+      "gapIds": [
+        "SMG-051",
+        "SMG-051-001"
+      ],
+      "reviewStatus": "body/source/existingJ/red actual4flows reviewed; existing J supported; neighbor fix in-progress, additional selection/projection needs-design",
+      "reviewedAt": "2026-11-09"
+    },
+    {
+      "title": "Expressive markings",
+      "url": "https://handbook.musescore.org/notation/expressive-markings.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Articulations",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/articulations.md",
+      "gapIds": [
+        "SMG-025-019",
+        "SMG-025-024"
+      ],
+      "reviewStatus": "Current supported articulation import loss with valid multiple notations audited; new model/visibility/other attachments not claimed"
+    },
+    {
+      "title": "Dynamics and hairpins",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/dynamics-and-hairpins.md",
+      "gapIds": [
+        "SMG-008"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Slurs and ties",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/slurs-and-ties.md",
+      "gapIds": [
+        "SMG-007",
+        "SMG-011",
+        "SMG-025-021",
+        "SMG-025-022"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Laissez vibrer ties",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/laissez-vibrer-ties.md",
+      "gapIds": [
+        "SMG-025"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Breaths and pauses",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/breaths-and-pauses.md",
+      "gapIds": [
+        "SMG-025",
+        "SMG-025-003",
+        "SMG-025-020"
+      ],
+      "reviewStatus": "body-reviewed for current basic marks versus individual stretch/position/style. Studio source and documentation audited; final-caption native UI QA pending, external GUI/listening not approved."
+    },
+    {
+      "title": "Ornaments",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/ornaments.md",
+      "gapIds": [
+        "SMG-025-023",
+        "SMG-025-024"
+      ],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Arpeggios and glissandos",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/arpeggios-and-glissandos.md",
+      "gapIds": [
+        "SMG-025"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Grace notes",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/grace-notes.md",
+      "gapIds": [
+        "SMG-009"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Tremolos and rolls",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/tremolos-and-rolls.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Other lines",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/other-lines.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Other symbols",
+      "url": "https://handbook.musescore.org/notation/expressive-markings/other-symbols.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Repeats",
+      "url": "https://handbook.musescore.org/notation/repeats.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Repeat signs",
+      "url": "https://handbook.musescore.org/notation/repeats/repeat-signs.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Voltas",
+      "url": "https://handbook.musescore.org/notation/repeats/voltas.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Jumps and markers",
+      "url": "https://handbook.musescore.org/notation/repeats/jumps-and-markers.md",
+      "gapIds": [
+        "SMG-024"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Items across repeats and jumps",
+      "url": "https://handbook.musescore.org/notation/repeats/items-across-repeats-and-jumps.md",
+      "gapIds": [
+        "SMG-007",
+        "SMG-010",
+        "SMG-024",
+        "SMG-036"
+      ],
+      "reviewStatus": "body-reviewed; branch/jump endpoint authoring differs from current linear spans and repeat traversal; no new runtime or feature approval",
+      "reviewedAt": "2026-11-08",
+      "reviewEvidence": "docs/releases/studio-parity-implementation-20261104/post-el-handbook-scope-20261108/review.md"
+    },
+    {
+      "title": "Changes and courtesies at repeats and jumps",
+      "url": "https://handbook.musescore.org/notation/repeats/changes-and-courtesies-at-repeats-and-jumps.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Measure and multimeasure repeats",
+      "url": "https://handbook.musescore.org/notation/repeats/measure-and-multimeasure-repeats.md",
+      "gapIds": [
+        "SMG-024",
+        "SMG-024-002",
+        "SMG-024-003"
+      ],
+      "reviewStatus": "source/XSD and actualApp loss audited; named diagnostic pending; full authoring/playback not claimed"
+    },
+    {
+      "title": "Keyboard",
+      "url": "https://handbook.musescore.org/idiomatic-notation/keyboard.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Pedal",
+      "url": "https://handbook.musescore.org/idiomatic-notation/keyboard/pedal.md",
+      "gapIds": [
+        "SMG-050",
+        "SMG-050-001",
+        "SMG-050-002"
+      ],
+      "reviewStatus": "source/current renderer damper retained; sign-loss001 done; soft/sostenuto sound loss002 in-progress; graphic editor needs-design",
+      "reviewedAt": "2026-11-10"
+    },
+    {
+      "title": "Cross-staff notation",
+      "url": "https://handbook.musescore.org/idiomatic-notation/keyboard/cross-staff-notation.md",
+      "gapIds": [
+        "SMG-022"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Accordion notation",
+      "url": "https://handbook.musescore.org/idiomatic-notation/keyboard/accordion-notation.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Guitar",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Fretboard diagrams",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/fretboard-diagrams.md",
+      "gapIds": [
+        "SMG-026"
+      ],
+      "reviewStatus": "body-reviewed for chord/diagram distinction and import-loss child SMG-026-001; authoring and external GUI still unsupported/unaudited"
+    },
+    {
+      "title": "Guitar techniques",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/guitar-techniques.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Creating a tablature staff",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/creating-a-tablature-staff.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Entering and editing tablature notation",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/entering-and-editing-tablature-notation.md",
+      "gapIds": [
+        "SMG-026",
+        "SMG-026-002"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Customizing a tablature staff",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/customizing-a-tablature-staff.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Applying capos",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/applying-capos.md",
+      "gapIds": [
+        "SMG-026"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Alternate string tunings",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/alternate-string-tunings.md",
+      "gapIds": [
+        "SMG-026"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Guitar bends & dives",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/guitar-bends.md",
+      "gapIds": [
+        "SMG-026"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Fretboard diagram legend",
+      "url": "https://handbook.musescore.org/idiomatic-notation/guitar/fretboard-diagram-legend.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Harp",
+      "url": "https://handbook.musescore.org/idiomatic-notation/harp.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Percussion",
+      "url": "https://handbook.musescore.org/idiomatic-notation/percussion.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Inputting percussion notation",
+      "url": "https://handbook.musescore.org/idiomatic-notation/percussion/inputting-percussion-notation.md",
+      "gapIds": [
+        "SMG-027",
+        "SMG-027-001"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Customizing the percussion panel",
+      "url": "https://handbook.musescore.org/idiomatic-notation/percussion/customizing-the-percussion-panel.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Percussion kit customization",
+      "url": "https://handbook.musescore.org/idiomatic-notation/percussion/percussion-kit-customization.md",
+      "gapIds": [
+        "SMG-027",
+        "SMG-027-001"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Other percussion notation",
+      "url": "https://handbook.musescore.org/idiomatic-notation/percussion/other-percussion-notation.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Mensural notation and Mensurstrich",
+      "url": "https://handbook.musescore.org/alternative-notation/mensural-notation-and-mensurstrich.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Slash notation",
+      "url": "https://handbook.musescore.org/alternative-notation/slash-notation.md",
+      "gapIds": [
+        "SMG-025-018"
+      ],
+      "reviewStatus": "source/XSD and actualApp loss audited; named diagnostic pending; full authoring/playback not claimed"
+    },
+    {
+      "title": "Custom staff types",
+      "url": "https://handbook.musescore.org/alternative-notation/custom-staff-types.md",
+      "gapIds": [
+        "SMG-046"
+      ],
+      "reviewStatus": "Body reviewed for individual staff line count/scale and source loss audit; advanced properties remain separately unaudited/unsupported."
+    },
+    {
+      "title": "Entering and editing text",
+      "url": "https://handbook.musescore.org/text/entering-and-editing-text.md",
+      "gapIds": [
+        "SMG-028",
+        "SMG-029",
+        "SMG-030",
+        "SMG-001",
+        "SMG-048"
+      ],
+      "reviewStatus": "body-reviewed; text type, score settings and playback semantics are distinct; no full rich-text/frame/header parity",
+      "reviewedAt": "2026-11-08",
+      "reviewEvidence": "docs/releases/studio-parity-implementation-20261104/post-em-handbook-scope-20261108/review.md"
+    },
+    {
+      "title": "Formatting text",
+      "url": "https://handbook.musescore.org/text/formatting-text.md",
+      "gapIds": [
+        "SMG-028",
+        "SMG-028-007"
+      ],
+      "reviewStatus": "partial: current bold/text and queued explicit italic interchange audit; character/object style body reviewed2026-11-05; full rich-text parity not verified"
+    },
+    {
+      "title": "Staff, system, and expression text",
+      "url": "https://handbook.musescore.org/text/staff-system-and-expression-text.md",
+      "gapIds": [
+        "SMG-028-015"
+      ],
+      "reviewStatus": "body attachment/placement/style entry paths and public-source staff-text defaults reviewed for anchor audit only; playback/text-model/style-editing/consumer-runtime parity not complete",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "title": "Tempo markings",
+      "url": "https://handbook.musescore.org/text/tempo-markings.md",
+      "gapIds": [
+        "SMG-001",
+        "SMG-001-004",
+        "SMG-001-005",
+        "SMG-001-008",
+        "SMG-001-009"
+      ],
+      "reviewStatus": "2026-11-07 limited source/metadata audit linked, not whole-chapter feature/runtime approval. Tempo body reviewed; W3C numeric and display meanings checked separately."
+    },
+    {
+      "title": "Lyrics",
+      "url": "https://handbook.musescore.org/text/lyrics.md",
+      "gapIds": [
+        "SMG-028",
+        "SMG-028-005"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Fingering",
+      "url": "https://handbook.musescore.org/text/fingering.md",
+      "gapIds": [
+        "SMG-028"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Chord symbols",
+      "url": "https://handbook.musescore.org/text/chord-symbols.md",
+      "gapIds": [
+        "SMG-028-010",
+        "SMG-028-011",
+        "SMG-028-012",
+        "SMG-028-013",
+        "SMG-028-014"
+      ],
+      "reviewStatus": "extension/relative/stacked loss, existing kind text and whole-harmony visibility notice boundaries reviewed; full syntax/editor/visibility model/playback/RNA/NNS parity pending",
+      "reviewedAt": "2026-11-06"
+    },
+    {
+      "title": "Figured bass",
+      "url": "https://handbook.musescore.org/text/figured-bass.md",
+      "gapIds": [
+        "SMG-028"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Rehearsal marks",
+      "url": "https://handbook.musescore.org/text/rehearsal-marks.md",
+      "gapIds": [
+        "SMG-028"
+      ],
+      "reviewStatus": "partial-source-audit: existing manual text vs automatic naming/resequence/find; not whole chapter approval",
+      "lastReviewed": "2026-11-08"
+    },
+    {
+      "title": "Header and footer",
+      "url": "https://handbook.musescore.org/text/header-and-footer.md",
+      "gapIds": [
+        "SMG-030"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Text blocks",
+      "url": "https://handbook.musescore.org/text/text-blocks.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Page layout concepts",
+      "url": "https://handbook.musescore.org/formatting/page-layout-concepts.md",
+      "gapIds": [
+        "SMG-010",
+        "SMG-029",
+        "SMG-046",
+        "SMG-047"
+      ],
+      "reviewStatus": "body-reviewed; layout concepts mapped to current source boundaries, not default physical size or full-frame/engraving parity",
+      "reviewedAt": "2026-11-08",
+      "reviewEvidence": "docs/releases/studio-parity-implementation-20261104/post-el-handbook-scope-20261108/review.md"
+    },
+    {
+      "title": "Positioning of elements",
+      "url": "https://handbook.musescore.org/formatting/positioning-of-elements.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Score size and spacing",
+      "url": "https://handbook.musescore.org/formatting/score-size-and-spacing.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Systems and horizontal spacing",
+      "url": "https://handbook.musescore.org/formatting/systems-and-horizontal-spacing.md",
+      "gapIds": [
+        "SMG-047"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Pages and vertical spacing",
+      "url": "https://handbook.musescore.org/formatting/pages-and-vertical-spacing.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Using frames for additional content",
+      "url": "https://handbook.musescore.org/formatting/using-frames-for-additional-content.md",
+      "gapIds": [
+        "SMG-029",
+        "SMG-029-002"
+      ],
+      "reviewStatus": "2026-11-07 limited source/metadata audit linked, not whole-chapter feature/runtime approval. W3C credit content reviewed; current frame-body tool access failed, existing index link retained only."
+    },
+    {
+      "title": "Working with images",
+      "url": "https://handbook.musescore.org/formatting/working-with-images.md",
+      "gapIds": [
+        "SMG-029"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Using sections for multiple movements or songs",
+      "url": "https://handbook.musescore.org/formatting/using-sections-for-multiple-movements-or-songs.md",
+      "gapIds": [
+        "SMG-029",
+        "SMG-029-003"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Opening and saving scores",
+      "url": "https://handbook.musescore.org/file-management/opening-and-saving-scores.md",
+      "gapIds": [
+        "SMG-025-008",
+        "SMG-011-011"
+      ],
+      "reviewStatus": "partial scope: Studio local XML/MXL save/backup retry verified; cloud/multiple windows/full file format parity not assessed; body read2026-11-05"
+    },
+    {
+      "title": "Convert a file",
+      "url": "https://handbook.musescore.org/file-management/convert-a-file.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "File export",
+      "url": "https://handbook.musescore.org/file-management/file-export.md",
+      "gapIds": [
+        "SMG-031",
+        "SMG-032"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Working with MusicXML files",
+      "url": "https://handbook.musescore.org/file-management/working-with-musicxml-files.md",
+      "gapIds": [
+        "SMG-036"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Backup and recovered files",
+      "url": "https://handbook.musescore.org/file-management/backup-and-recovered-files.md",
+      "gapIds": [],
+      "reviewStatus": "official-body-TBD via canonical URL; do not infer missing feature or backup/recovery behavior",
+      "lastReviewed": "2026-11-08",
+      "reviewedAt": "2026-11-08",
+      "reviewEvidence": "docs/releases/studio-parity-implementation-20261104/post-el-handbook-scope-20261108/review.md"
+    },
+    {
+      "title": "Project properties",
+      "url": "https://handbook.musescore.org/file-management/project-properties.md",
+      "gapIds": [
+        "SMG-030-011",
+        "SMG-029-003"
+      ],
+      "reviewStatus": "source-audited limited creator import-loss link; full metadata editor/GUI not approved",
+      "lastReviewed": "2026-11-07"
+    },
+    {
+      "title": "Publish to MuseScore.com",
+      "url": "https://handbook.musescore.org/file-management/publish-to-musescore.com.md",
+      "gapIds": [
+        "SMG-038"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Share on Audio.com",
+      "url": "https://handbook.musescore.org/file-management/share-on-audio.com.md",
+      "gapIds": [
+        "SMG-038"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Playback controls",
+      "url": "https://handbook.musescore.org/sound-and-playback/playback-controls.md",
+      "gapIds": [
+        "SMG-016",
+        "SMG-017"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Mixer",
+      "url": "https://handbook.musescore.org/sound-and-playback/mixer.md",
+      "gapIds": [
+        "SMG-033",
+        "SMG-049"
+      ],
+      "reviewStatus": "partial-source-audit: sound/FX comparison and existing part mixer; not full mixer feature completeness",
+      "lastReviewed": "2026-11-09"
+    },
+    {
+      "title": "SoundFonts",
+      "url": "https://handbook.musescore.org/sound-and-playback/soundfonts.md",
+      "gapIds": [
+        "SMG-033"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "MuseSounds",
+      "url": "https://handbook.musescore.org/sound-and-playback/musesounds.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Online sounds",
+      "url": "https://handbook.musescore.org/sound-and-playback/musesounds/online-sounds.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Sound flags",
+      "url": "https://handbook.musescore.org/sound-and-playback/sound-flags.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Swing playback",
+      "url": "https://handbook.musescore.org/sound-and-playback/swing-playback.md",
+      "gapIds": [
+        "SMG-048",
+        "SMG-048-001"
+      ],
+      "reviewStatus": "body-read2026-11-05; existing notation-only vs absent actual swing/ratio/scope audited; first implementation scope proposal pending user decision"
+    },
+    {
+      "title": "Working with MIDI",
+      "url": "https://handbook.musescore.org/sound-and-playback/working-with-midi.md",
+      "gapIds": [
+        "SMG-018",
+        "SMG-057",
+        "SMG-057-001"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Working with VST and VSTi",
+      "url": "https://handbook.musescore.org/sound-and-playback/working-with-vst-and-vsti.md",
+      "gapIds": [
+        "SMG-033"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Exporting video",
+      "url": "https://handbook.musescore.org/video/exporting-video.md",
+      "gapIds": [
+        "SMG-038"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Installing FFmpeg",
+      "url": "https://handbook.musescore.org/video/installing-ffmpeg.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Language",
+      "url": "https://handbook.musescore.org/customization/language.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Appearance",
+      "url": "https://handbook.musescore.org/customization/appearance.md",
+      "gapIds": [
+        "SMG-034",
+        "SMG-037"
+      ],
+      "reviewStatus": "body-reviewed; current Studio follows OS theme; CSS font QA is not a user font preference or full appearance/high-contrast/paper parity",
+      "reviewedAt": "2026-11-08",
+      "reviewEvidence": "docs/releases/studio-parity-implementation-20261104/post-em-handbook-scope-20261108/review.md"
+    },
+    {
+      "title": "Toolbars and windows",
+      "url": "https://handbook.musescore.org/customization/toolbars-and-windows.md",
+      "gapIds": [
+        "SMG-034"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Templates and styles",
+      "url": "https://handbook.musescore.org/customization/templates-and-styles.md",
+      "gapIds": [
+        "SMG-014"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Palettes",
+      "url": "https://handbook.musescore.org/customization/palettes.md",
+      "gapIds": [
+        "SMG-012",
+        "SMG-012-002"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Workspaces",
+      "url": "https://handbook.musescore.org/customization/workspaces.md",
+      "gapIds": [
+        "SMG-034"
+      ],
+      "reviewStatus": "body-read; named dock snapshot implemented and gated, palette/toolbar workspace and free docking remain separate design"
+    },
+    {
+      "title": "Keyboard shortcuts",
+      "url": "https://handbook.musescore.org/customization/keyboard-shortcuts.md",
+      "gapIds": [
+        "SMG-013"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Preferences",
+      "url": "https://handbook.musescore.org/customization/preferences.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Plugins",
+      "url": "https://handbook.musescore.org/customization/plugins.md",
+      "gapIds": [
+        "SMG-038"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Getting help",
+      "url": "https://handbook.musescore.org/support/getting-help.md",
+      "gapIds": [
+        "SMG-039",
+        "SMG-039-007"
+      ],
+      "reviewStatus": "gap-group-linked; subfeature audit still required"
+    },
+    {
+      "title": "Revert to factory settings",
+      "url": "https://handbook.musescore.org/support/revert-to-factory-settings.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Troubleshooting",
+      "url": "https://handbook.musescore.org/support/troubleshooting.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Command line usage",
+      "url": "https://handbook.musescore.org/appendix/command-line-usage.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "All keyboard shortcuts",
+      "url": "https://handbook.musescore.org/appendix/all-keyboard-shortcuts.md",
+      "gapIds": [
+        "SMG-013",
+        "SMG-035",
+        "SMG-007",
+        "SMG-006",
+        "SMG-021"
+      ],
+      "reviewStatus": "initial sections1-111 reviewed via canonical URL only; bounded Studio handlers/overrides differ from full reference command list",
+      "reviewedAt": "2026-11-08",
+      "reviewEvidence": "docs/releases/studio-parity-implementation-20261104/post-em-handbook-scope-20261108/review.md"
+    },
+    {
+      "title": "Changes for MDL percussion",
+      "url": "https://handbook.musescore.org/appendix/changes-for-mdl-percussion.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Upgrade from MuseScore 3.x",
+      "url": "https://handbook.musescore.org/appendix/upgrade-from-musescore-3.x.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Glossary",
+      "url": "https://handbook.musescore.org/appendix/glossary.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    },
+    {
+      "title": "Music fonts",
+      "url": "https://handbook.musescore.org/appendix/music-fonts.md",
+      "gapIds": [],
+      "reviewStatus": "topic-audit-pending; not presumed missing"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { tupletInputLabel } from './tuplet-labels'
 import {
   durationToTicks,
   measureDurationTicks,
@@ -40,7 +41,7 @@ export function describeTupletToggleFailure(
   )
 
   if (existingGroup) {
-    return describeUntupletFailure(location.measure, sortVoiceEvents(voice.events), existingGroup)
+    return describeUntupletFailure(location.measure, sortVoiceEvents(voice.events), existingGroup).replaceAll('셋잇단음표',tupletInputLabel(existingGroup))
   }
 
   if (

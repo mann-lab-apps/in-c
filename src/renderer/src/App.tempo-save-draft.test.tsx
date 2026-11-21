@@ -22,6 +22,10 @@ it.each(tempoSaveDraftKinds.flatMap(kind => [{ ctrlKey: true }, { metaKey: true,
   if (data.blocked) {
     expect(window.inC.project.save).not.toHaveBeenCalled(); expect(playbackMockState.lastScore).toEqual(data.project.score)
     expect(field).toHaveFocus(); expect(field).toHaveAccessibleDescription(expect.stringContaining('Enter로 값을 확정하거나 Escape로 취소한 뒤 저장하세요.'))
+    if (kind === 'clamp-low') {
+      fireEvent.keyDown(field, { key: 'Enter' }); fireEvent.blur(field)
+      expect(playbackMockState.lastScore).toEqual(data.project.score); expect(field).toHaveValue(0); expect(field).toHaveAttribute('aria-invalid', 'true')
+    }
     fireEvent.keyDown(field, { key: data.confirm ? 'Enter' : 'Escape' }); fireEvent.blur(field)
     expect(window.inC.project.save).not.toHaveBeenCalled()
     const confirmed = screen.getByRole('spinbutton', { name: data.label })

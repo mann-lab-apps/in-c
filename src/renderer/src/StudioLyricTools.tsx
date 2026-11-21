@@ -10,6 +10,7 @@ export function StudioLyricTools(props: {
   verse: number
   verses: readonly number[]
   syllabic: Syllabic
+  syllabicOwner: string
   extend: boolean
   onOpen: () => void
   onVerse: (verse: number) => void
@@ -26,7 +27,7 @@ export function StudioLyricTools(props: {
       {props.blockedReason ? <Banner kind="warning">{props.blockedReason}</Banner> : null}
       <Button kind="secondary" disabled={Boolean(props.blockedReason)} onClick={props.onOpen}>가사 글자 입력</Button>
       <Select disabled={Boolean(props.blockedReason)} label="가사 절" value={String(props.verse)} options={props.verses.map(verse => ({ value: String(verse), label: `${verse}절` }))} onChange={value => props.onVerse(Number.parseInt(value, 10))}/>
-      <Select disabled={Boolean(props.blockedReason)} label="가사 음절" value={props.syllabic} options={[
+      <Select key={props.syllabicOwner} disabled={Boolean(props.blockedReason)} label="가사 음절" value={props.syllabic} options={[
         { value: 'single', label: '한 음절' }, { value: 'begin', label: '첫 음절' },
         { value: 'middle', label: '가운데 음절' }, { value: 'end', label: '마지막 음절' }
       ]} onChange={value => props.onSyllabic(value as Syllabic)}/>

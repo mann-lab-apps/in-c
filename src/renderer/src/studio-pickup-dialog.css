@@ -1,0 +1,5 @@
+/* Local layout only; the shared components own density, type and focus. */
+.studio-pickup-dialog form { display: grid; gap: var(--dd-spacing-md); }
+.studio-pickup-dialog__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dd-spacing-md); }
+.studio-pickup-dialog__actions { display: flex; justify-content: end; gap: var(--dd-spacing-sm); }
+@media (max-width: 600px) { .studio-pickup-dialog__fields { grid-template-columns: minmax(0, 1fr); } }

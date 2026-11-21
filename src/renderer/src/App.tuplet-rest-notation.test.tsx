@@ -29,7 +29,7 @@ it.each(['create', 'compact-rest'] as const)('studio.tuplet-rest-notation keeps 
   fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' })); await waitFor(() => expect(playbackMockState.lastScore).toEqual(score))
   const selected = mode === 'create' ? 'member' : 'kept-rest'
   fireEvent.click(screen.getByRole('button', { name: `${selected} 선택` }))
-  fireEvent.click(screen.getByRole('button', { name: /셋잇단음표 적용 또는 입력 준비/ }))
+  fireEvent.click(screen.getByRole('button', { name: mode === 'create' ? '셋잇단음표 적용 또는 입력 준비, 단축키 ⌘/Ctrl+3' : '셋잇단음표 해제, 단축키 ⌘/Ctrl+3' }))
   expect(document.querySelector('.editor-status')).toHaveTextContent('쉼표에 붙은 표기를 보존할 수 없어')
   expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
   expect(document.querySelector('.editor-status')).not.toHaveTextContent('셋잇단음표 0/3')

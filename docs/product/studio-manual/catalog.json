@@ -1,0 +1,1472 @@
+[
+  {
+    "id": "install",
+    "title": "설치와 이전 in-C에서 옮겨 오기",
+    "chapter": "start",
+    "entry": "다운로드한 DMG 또는 플랫폼 설치본",
+    "shortcut": "없음",
+    "scope": "기존 com.mannlab.inc ID·.chromatics 형식·설정·최근 파일·복구 경로를 유지합니다. 이름이 달라 이전 앱이 남아 있을 수 있습니다.",
+    "disabled": "사용자 데이터 삭제·캐시 초기화는 이행 절차가 아닙니다. Windows는 미서명 안내가 나올 수 있습니다.",
+    "sources": [
+      "src/renderer/src/../../main/desktop-brand.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#install",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "first-score",
+    "title": "새 악보·내장 템플릿 만들기",
+    "chapter": "start",
+    "entry": "시작 화면 또는 파일 → 새 악보 만들기",
+    "shortcut": "없음",
+    "scope": "선택한 템플릿 구성의 새 문서입니다. 마디 수는 1–64입니다. 기본 박자표 2/4·3/4·4/4·6/8 또는 사용자 지정 분자1–128과 분모1/2/4/8/16/32/64를 고릅니다. 새 문서의 모든 보표·마디에 적용하며 기존 악보를 전파·재분할하는 기능은 아닙니다. 이 버전은 마디 수를 지우거나 범위 밖 값을 입력해도 자동으로 바꾸지 않습니다. 빈 값·범위 밖·소수는 수정한 뒤 생성하며 취소하면 이전 문서를 유지합니다.",
+    "disabled": "미저장 변경을 교체할 때 확인이 필요합니다. 취소하면 이전 문서를 유지합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/editor/new-score.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#first-score",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "first-tempo",
+    "title": "새 악보의 빠르기 입력",
+    "chapter": "start",
+    "entry": "새 악보 만들기 → 빠르기",
+    "shortcut": "Escape: 마지막 유효값 복원",
+    "scope": "새 문서의 기본 빠르기입니다. 입력 도중 40/240으로 자동 보정하지 않습니다.",
+    "disabled": "빈 값·범위 밖·소수는 오류 안내 후 수정해야 합니다. 이 계약은 새 악보 입력기에 해당합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#first-tempo",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "first-note",
+    "title": "첫 실제 음표와 첫 프로젝트 저장",
+    "chapter": "start",
+    "entry": "빈 악보 → 음표 입력 도구",
+    "shortcut": "N, 5, C, Esc, ⌘/Ctrl+S",
+    "scope": "N 중 숫자는 다음 입력 음가, A–G는 실제 음표 입력입니다. 프로젝트 저장 성공과 사본 출력 성공은 다릅니다.",
+    "disabled": "입력 커서·남은 마디 길이·성부 조건을 확인합니다. 저장 취소/실패는 성공 알림이나 clean 상태가 아닙니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#first-note",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "recent",
+    "title": "최근 악보와 없는 파일 정리",
+    "chapter": "start",
+    "entry": "시작 화면 → 최근 악보",
+    "shortcut": "없음",
+    "scope": "목록 제거는 실제 악보 파일 삭제가 아닙니다. 연속 선택은 나중에 선택한 파일이 우선합니다.",
+    "disabled": "이동·삭제된 파일은 열 수 없습니다. 최근 목록이 비면 파일/가져오기를 사용합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#recent",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "recovery",
+    "title": "자동저장 복구본 열기",
+    "chapter": "start",
+    "entry": "시작 화면 → 복구본 열기",
+    "shortcut": "없음",
+    "scope": "자동저장 snapshot을 새 현재 문서로 엽니다. 별도 취소 대화상자나 열기 자체의 실행 취소는 없으며, 원본 파일에 대한 저장 성공을 뜻하지 않습니다.",
+    "disabled": "복구본 없음은 비활성입니다. 복구 파일 오류를 실제 저장 완료로 해석하지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#recovery",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "backups",
+    "title": "프로젝트 백업에서 복구",
+    "chapter": "start",
+    "entry": "파일 → 프로젝트 백업",
+    "shortcut": "없음",
+    "scope": "프로젝트 백업을 새 현재 문서로 복구합니다. 자동저장 복구와 별도 경로입니다.",
+    "disabled": "프로젝트 bridge/백업이 없으면 사용할 수 없습니다. 목록의 상태·오류를 확인합니다.",
+    "sources": [
+      "src/renderer/src/NativeBackupsDialog.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "01-start.md#backups",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "menus",
+    "title": "전역 메뉴와 명령 검색",
+    "chapter": "workspace",
+    "entry": "파일·편집·보기·추가·형식·도구·도움말 / 도구 → 명령 검색",
+    "shortcut": "방향키, Home/End, Enter/Space, Esc",
+    "scope": "명령 검색은 실제 메뉴 항목을 검색합니다. 모든 악보 기호의 별도 명령 검색기는 아닙니다.",
+    "disabled": "저장 중/선택 없음/bridge 없음 등 원래 명령의 비활성 조건이 유지됩니다.",
+    "sources": [
+      "src/renderer/src/StudioCommandSearch.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#menus",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "selection",
+    "title": "음표·쉼표·마디·범위 선택",
+    "chapter": "workspace",
+    "entry": "악보의 음표/쉼표 또는 마디",
+    "shortcut": "←/→, Shift+클릭, Shift+←/→",
+    "scope": "클릭한 객체와 범위에 따라 편집 가능한 속성이 달라집니다. 개별 화음 구성음 선택은 지원하지 않습니다.",
+    "disabled": "범위 끝점·보표/성부 또는 필터 때문에 명령 대상이 줄어들 수 있습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#selection",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "focus",
+    "title": "악보·도구·도크 사이 포커스",
+    "chapter": "workspace",
+    "entry": "악보로 이동 / 도크 헤더",
+    "shortcut": "F6, Tab, Shift+Tab",
+    "scope": "Tab은 초점만 이동합니다. 일반 선택 모드에서 음표·쉼표는 Enter 선택, Space 현재 선택 기준 재생·일시정지이며 슬러·헤어핀 조각은 Enter·Space 선택입니다. 입력창·열린 목록·대화상자는 해당 컨트롤의 키 동작이 우선입니다.",
+    "disabled": "IME 조합 중 전역 명령을 실행하지 않습니다. 수동 스크롤 뒤 오래된 예약 포커스로 화면을 되돌리지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/notation/NotationPreview.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#focus",
+    "sourceReviewed": true,
+    "runtimeVerification": "기존 span/음표 native 포커스·Enter 선택 검증과 현재 오프라인 Help 읽기 검증을 구분합니다. docs/releases/studio-parity-implementation-20261104/smg-037-focus-manual-20261106/handoff.md 참조. 물리 IME·스크린리더·사용자 직접 확인은 별도입니다.",
+    "userChecked": false
+  },
+  {
+    "id": "dock",
+    "title": "팔레트·속성 도크 표시와 폭",
+    "chapter": "workspace",
+    "entry": "보기 → 팔레트/속성 또는 도크 헤더 → 설정",
+    "shortcut": "분할선 ←/→, 드래그 중 Escape",
+    "scope": "기본 폭은 280px이며 폭·표시는 로컬 작업 공간 설정입니다. 악보 음높이/출력 geometry를 직접 수정하지 않습니다.",
+    "disabled": "화면 폭에 따라 도크 배치가 바뀌고 전용 resize control이 숨겨질 수 있습니다. 설정에 실제 표시되는 초기화 범위만 적용합니다.",
+    "sources": [
+      "src/renderer/src/StudioDockHeader.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#dock",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "palette",
+    "title": "팔레트 검색·접기·한 가족·순서",
+    "chapter": "workspace",
+    "entry": "추가 → 표기 팔레트 열기 / 팔레트 헤더 설정",
+    "shortcut": "family 제목: ↑/↓, Home/End",
+    "scope": "현재 8개 family입니다. 일부 타일은 기호를 적용하고 일부는 기존 편집기를 엽니다. 검색은 접힌 결과도 보여줍니다. 이 버전은 팔레트 헤더 설정의 순서를 바꿀 팔레트와 위/아래 이동으로 가족 순서를 이 기기에 저장합니다. 프로젝트 파일에는 넣지 않습니다.",
+    "disabled": "한 팔레트씩 열기에서는 모두 펼치기가 비활성입니다. 가족 순서는 선택+이동으로 조절하며 가족 헤더 drag·즐겨찾기·모든 타일 drag는 지원하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioNotationPalette.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#palette",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "zoom",
+    "title": "폭 맞춤과 고정 확대율",
+    "chapter": "workspace",
+    "entry": "하단 상태 표시 → 악보 보기 방식",
+    "shortcut": "없음",
+    "scope": "화면 보기와 PDF 보표 크기는 다른 설정입니다. 폭 맞춤은 도크와 창 폭에 따라 달라집니다.",
+    "disabled": "화면을 맞추려고 출력 glyph/font 크기를 변경할 필요가 없습니다.",
+    "sources": [
+      "src/renderer/src/StudioStatusBar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#zoom",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "input-mode",
+    "title": "입력 모드와 선택 모드 구분",
+    "chapter": "notes",
+    "entry": "상시 음표 입력 도구의 연필 버튼",
+    "shortcut": "N, Esc",
+    "scope": "입력 모드는 다음 음표를 넣고, 선택 모드의 숫자/A–G는 선택한 표기를 수정합니다. 도구 적용 대상과 caret을 확인하세요.",
+    "disabled": "텍스트 필드가 활성화됐으면 음악 명령 대신 텍스트가 입력됩니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteToolbar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#input-mode",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "duration",
+    "title": "음가·점·쉼표",
+    "chapter": "notes",
+    "entry": "음가 기호·점 ±·쉼표 버튼",
+    "shortcut": "1–7, . / , , 0 또는 R",
+    "scope": "1=64분, 2=32분, 3=16분, 4=8분, 5=4분, 6=2분, 7=온음표입니다. 마디 길이와 현재 성부를 보존합니다.",
+    "disabled": "잇단음표 입력 중 점 변경이나 보호된 리듬의 편집은 제한됩니다. 8/9 음가와 W/Q는 Studio 기본키로 안내하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteToolbar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#duration",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "pitch",
+    "title": "음높이·옥타브 이동",
+    "chapter": "notes",
+    "entry": "음표 선택 → 방향키 / 속성의 음높이",
+    "shortcut": "↑/↓, ⌘/Ctrl+↑/↓, Alt+Shift+↑/↓, J",
+    "scope": "선택 단음 또는 화음 전체에 적용합니다. Alt+↑/↓는 보표 선택 이동이며 옥타브 변경이 아닙니다.",
+    "disabled": "화음 내부 한 구성음 선택과 Shift+↑/↓ 보표 범위 확장은 미지원입니다. F♯→F𝄪처럼 실제 음높이는 맞지만 철자가 다를 수 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioChordProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#pitch",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "accidental",
+    "title": "임시표와 음 이름 변경",
+    "chapter": "notes",
+    "entry": "상시 도구 플랫·제자리표·샤프 / 속성 음높이",
+    "shortcut": "A–G, J",
+    "scope": "입력 모드의 임시표는 다음 입력, 선택 모드는 선택 음표/화음입니다. 조표 및 마디 내 임시표 문맥도 영향을 줍니다.",
+    "disabled": "현재 버튼에 없는 임의 임시표를 직접 입력한다고 설명하지 않습니다. 보관된 원본 표기는 별도 지원 경계를 따릅니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteToolbar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#accidental",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "chord",
+    "title": "화음 구성음 추가와 전체 편집",
+    "chapter": "notes",
+    "entry": "음표 선택 → 속성 → 선택 음표의 화음",
+    "shortcut": "Shift+A–G",
+    "scope": "화음 전체를 하나의 이벤트로 취급합니다. A–G 단음 교체와 Shift+A–G 구성음 추가를 구분합니다.",
+    "disabled": "기준음은 구성음 제거 버튼이 없습니다. 개별 구성음 선택과 서로 다른 화음의 부분 타이는 미지원이지만, 목록의 추가 구성음 제거 버튼은 사용할 수 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioChordProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#chord",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "overwrite",
+    "title": "뒤 음표가 있을 때 음가 늘리기",
+    "chapter": "notes",
+    "entry": "음표 선택 → 더 긴 음가 버튼/숫자",
+    "shortcut": "1–7",
+    "scope": "겹치는 뒤 음표 전체와 부착 표기를 대체하고 남는 꼬리는 쉼표로 채웁니다. 다른 마디/성부와 겹치지 않는 음표 위치는 유지합니다.",
+    "disabled": "마디를 넘는 확대, 타이·잇단음표·범위 기호 endpoint 보호 조건은 거부될 수 있습니다. 확인 없는 MuseScore 덮어쓰기와 동일하지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#overwrite",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "voices",
+    "title": "입력 보표·성부 전환",
+    "chapter": "notes",
+    "entry": "상단 입력 보표·입력 성부",
+    "shortcut": "V, Shift+V, ⌘/Ctrl+Alt+1–4, Alt+↑/↓",
+    "scope": "입력할 보표·성부와 선택 위치를 전환합니다. 선택한 음표를 다른 성부로 옮기는 명령이 아닙니다. Alt+↑/↓는 가까운 시점의 위/아래 보표 선택입니다.",
+    "disabled": "대상 마디를 먼저 선택하세요. 단일 음표를 빈 성부로 옮기기는 별도 명령입니다. 범위 이동·성부 교환은 현재 지원하지 않습니다. 대상 성부에 기존 음표가 있으면 그 성부의 위치로 선택을 전환합니다.",
+    "sources": [
+      "src/renderer/src/StudioInputTarget.tsx",
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#voices",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "voice-move",
+    "title": "선택 음표를 빈 성부로 옮기기",
+    "chapter": "notes",
+    "entry": "도구 → 선택 음표 성부 이동 또는 선택 속성",
+    "shortcut": "별도 기본 단축키 없음",
+    "scope": "선택한 일반 단음만 같은 마디·보표의 다른 빈 성부로 옮깁니다. 음표 ID·위치·음가·발음을 보존하고 원래 자리는 쉼표로 남깁니다.",
+    "disabled": "대상은 없거나 부착 표기 없는 온마디 쉼표 하나여야 합니다. 화음·꾸밈음·가사/표현 기호·타이·잇단음표·구간 기호 끝점·범위 선택과 음표 입력 중에는 적용하지 않습니다. 성부를 옮겨 헤어핀 적용이 달라지는 구간의 중간 음표도 재생 세기 보존을 위해 거부합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/StudioVoiceMoveProperties.tsx",
+      "src/renderer/src/editor/empty-voice-move.ts"
+    ],
+    "support": "이 버전 · 단일 일반 음표/빈 성부 범위",
+    "manual": "03-notes.md#voice-move",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "tuplet",
+    "title": "셋잇단음표·2연음·다섯잇단음표·7연음",
+    "chapter": "notes",
+    "entry": "상시 입력 도구 → 셋잇단음표 / 추가 → 2연음(2:3)·다섯잇단음표(5:4)·7연음(7:4) 입력",
+    "shortcut": "⌘/Ctrl+3",
+    "scope": "기존3:2를 유지합니다. 2:3은8분음표2개를3개 길이로,5:4/7:4는16분음표5개/7개를4개 길이로 입력합니다. 미완성은 확정 악보와 별개이며 완성 시 한 명령으로 적용합니다.",
+    "disabled": "입력 모드 밖의 선택 그룹은 해제, 일반 입력 모드는 다음3:2 입력 준비, 미완성은 취소를 안내합니다. 점음표·남은 시간·기존 표기 보호 조건을 따릅니다. 임의 비율·중첩 UI는 없습니다. 추가preset 전용 단축키는 없으며 Esc 또는 기존 잇단음표 버튼/⌘/Ctrl+3으로 미완성을 취소합니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteToolbar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#tuplet",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "grace",
+    "title": "꾸밈음 붙이기와 기존 음표 변환",
+    "chapter": "notes",
+    "entry": "상시 꾸밈음 / 꾸밈음으로 변환",
+    "shortcut": "Alt+G / Alt+Shift+G",
+    "scope": "붙이기는 본음 음가 유지, 변환은 다음 음표를 당겨 남는 마디 끝을 쉼표로 채웁니다. 현재 빗금 8분음표 모양의 부착 꾸밈음입니다.",
+    "disabled": "변환은 같은 마디의 다음 음표가 필요하며 타이·잇단음표·부착 표기·구간 경계 등에 제한이 있습니다. 내부 재생/MIDI의 별도 꾸밈음 발음은 미지원입니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteToolbar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#grace",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "delete",
+    "title": "삭제·복사·붙여넣기와 필터",
+    "chapter": "notes",
+    "entry": "편집 메뉴 또는 파일 작업 → 선택 편집",
+    "shortcut": "⌘/Ctrl+X (지원되는 단순 음표/쉼표), ⌘/Ctrl+C, ⌘/Ctrl+V, Delete/Backspace",
+    "scope": "음표 삭제는 리듬을 유지하는 쉼표 변환입니다. 표기 객체 삭제는 선택 종류를 따릅니다. 입력창에서는 텍스트 편집이 우선입니다.",
+    "disabled": "잘라내기는 입력 preview·표기 필터·선택 span을 제외하고 기존 복사·삭제가 모두 가능한 같은 마디/성부의 단순 선택만 허용. 붙여넣기는 같은 길이의 지원 범위만 허용.",
+    "sources": [
+      "src/renderer/src/StudioFileTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#delete",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "parts",
+    "title": "파트·보표 추가·삭제·순서",
+    "chapter": "structure",
+    "entry": "형식 → 악보 설정 → 파트와 보표 구성",
+    "shortcut": "없음",
+    "scope": "추가할 악기는 다음 추가용 preset이며 기존 파트를 자동 교체하지 않습니다. 삭제·이동은 현재 대상에 적용됩니다.",
+    "disabled": "마지막 파트/마지막 보표 삭제 등 구성 보호 조건은 비활성입니다.",
+    "sources": [
+      "src/renderer/src/StudioStructureActions.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#parts",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "part-labels",
+    "title": "파트 이름·약어·기본 음자리표·이조",
+    "chapter": "structure",
+    "entry": "형식 → 악보 설정",
+    "shortcut": "Enter/blur 확정, Esc 초안 취소",
+    "scope": "파트 이름은 첫 악보단, 약어는 이후 표시에 쓰입니다. 보표 음자리표는 현재 보표 전체, 이조는 현재 파트 전체에 적용하며 기보음은 유지합니다.",
+    "disabled": "혼합/사용자 지정 이조는 원본 상태를 표시할 수 있으나 모든 값을 직접 편집하는 것은 아닙니다.",
+    "sources": [
+      "src/renderer/src/StudioPartLabels.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#part-labels",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "measures",
+    "title": "마디 추가·삭제·우클릭",
+    "chapter": "structure",
+    "entry": "마디 우클릭 → 앞/뒤에 마디 추가·마디 제거·마디 속성…",
+    "shortcut": "우클릭, 메뉴 ↑/↓/Home/End/Enter/Esc",
+    "scope": "모든 파트·보표의 같은 위치에 한 마디씩 추가하거나 제거합니다. 구조를 바꾸면 마디 번호를 1부터 순서대로 다시 매깁니다. 조표·음자리표 같은 비구조 편집의 원본 번호 보존과 다릅니다. 이 버전의 마디 속성은 현재 구조·조표·박자표 작업대를 열고 조표에 focus하며 그 자체로 악보/undo를 바꾸지 않습니다.",
+    "disabled": "보표별 마디 수가 다르거나 마지막 마디를 제거하려면 거부합니다. 삭제한 마디의 음표와 연결 표기도 함께 바뀔 수 있으므로 실행 취소로 비교하세요.",
+    "sources": [
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/editor/measure-management.ts",
+      "src/renderer/src/StudioMeasureContextMenu.tsx",
+      "src/renderer/src/StudioMeasureTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#measures",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "key",
+    "title": "조표와 조성 변경",
+    "chapter": "structure",
+    "entry": "추가 → 음자리표·조표·박자표 팔레트 → 조표 타일 또는 조표 설정 열기",
+    "shortcut": "없음",
+    "scope": "이 버전의 기존 장·단조30preset을15개씩 타일에 제공합니다. 선택 보표의 현재 마디부터 이후에 적용하고 소리나는 pitch를 유지합니다. 검색은 양쪽mode를 찾으며 보기 선택만으로 score를 바꾸지 않습니다. 이 버전은 입력을 마친 뒤 조표 타일을 음표·쉼표로 끌어 놓으면 놓은 보표의 그 마디부터 적용합니다.",
+    "disabled": "범위 선택으로 한 마디 대상이 모호하면 비활성입니다. 원본의 장·단조 미지정 상태를 지원 preset과 구분합니다.",
+    "sources": [
+      "src/renderer/src/StudioMeasureTools.tsx",
+      "src/renderer/src/StudioNotationPalette.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#key",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "meter",
+    "title": "마디 박자표와 변박자",
+    "chapter": "structure",
+    "entry": "마디 우클릭 → 박자표 변경…",
+    "shortcut": "없음",
+    "scope": "선택 보표 한 마디만 변경합니다. 이 버전은 사용자 지정 박자표에서 분자1–128·분모1/2/4/8/16/32/64를 입력할 수 있습니다. 이후 마디/다른 보표 자동 전파는 없습니다. 이 버전의 박자표 편집은 유효한 원본 마디 번호를 다시 매기지 않습니다.",
+    "disabled": "새 마디 길이를 넘는 음표나 사라질 쉼표의 부착 기호·범위 끝점이 있으면 거부합니다. 새 악보 만들기에서도 같은 범위의 사용자 지정을 제공합니다. 이 버전은 축소 후 마디 밖에 남을 빠르기·코드·표현 글자도 보호합니다.",
+    "sources": [
+      "src/renderer/src/StudioMeasureTools.tsx",
+      "src/renderer/src/editor/time-signature.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#meter",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "clef",
+    "title": "한 마디 음자리표와 보표 전체 음자리표",
+    "chapter": "structure",
+    "entry": "팔레트 → 음자리표·조표·박자표 / 선택 음표 속성",
+    "shortcut": "없음",
+    "scope": "마디 팔레트는 한 마디, 현재 보표 음자리표는 보표 전체에 적용합니다. 음표 앞 inline clef의 위치는 보존하지 못합니다. 이 버전은 가져오기 손실을 안내하며 원본 MusicXML을 함께 보관해야 합니다. 이 버전의 음자리표 타일 드래그는 마디를 선택하고 입력을 마친 상태에서, 놓은 음표·쉼표의 한 마디에 적용합니다. 조표 타일은 해당 조표 범위를 따릅니다. 나머지 가족과 inline 위치별 드래그는 지원하지 않습니다.",
+    "disabled": "현재 공개 UI에는 음표 앞 inline clef 전용 편집기가 없습니다. 타악기/TAB 원본 상태는 표시/지원 경계를 따릅니다.",
+    "sources": [
+      "src/renderer/src/StudioMeasureNotation.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#clef",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "pickup",
+    "title": "못갖춘마디 만들기·가져오기",
+    "chapter": "structure",
+    "entry": "파일 → 새 악보 만들기 → 첫 마디 옵션 / 형식 → 첫 마디 길이…",
+    "shortcut": "없음",
+    "scope": "이 버전: 모든 보표의 첫 마디에 개수·음가로 짧은 길이를 지정합니다. 기존 악보는 모든 보표의 첫 마디가 같은 박자·실제 길이이고 성부마다 한 개의 온마디 쉼표일 때만 함께 변환/복원합니다. 번호·끝마디·기존 기호와 이웃 마디는 유지합니다.",
+    "disabled": "개수1–128 정수, 박자표보다 짧은 길이만 적용합니다. 기존 음표·분할 쉼표·잇단음표나 새 길이 밖의 위치 표기는 거부합니다. 초안을 적용/취소한 뒤 저장합니다.",
+    "sources": [
+      "src/musicxml/parse.ts",
+      "src/musicxml/serialize.ts",
+      "src/renderer/src/StudioPickupDialog.tsx",
+      "src/renderer/src/editor/existing-pickup.ts"
+    ],
+    "support": "새 악보 생성·기존 빈 첫 마디 변환/복원",
+    "manual": "04-structure.md#pickup",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "part-view",
+    "title": "총보·파트보 전환",
+    "chapter": "structure",
+    "entry": "보기 → 총보·파트보 보기",
+    "shortcut": "없음",
+    "scope": "파트보는 선택 파트 표시와 독립 배치/출력 설정을 사용합니다. 같은 악보 내용의 다른 보기입니다.",
+    "disabled": "총보 모드에서는 파트보 선택이 비활성입니다. 파트가 없거나 제거된 경우 실제 표시 대상을 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioScoreView.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "04-structure.md#part-view",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "tie",
+    "title": "타이: 같은 소리를 이어 연주",
+    "chapter": "notation",
+    "entry": "음표 선택 → 타이 버튼",
+    "shortcut": "T",
+    "scope": "현재 지원하는 동일 음높이 단음 또는 동일 화음 전체 연결입니다. 옥타브 선을 반영한 실제 음높이 조건을 따릅니다.",
+    "disabled": "서로 다른 화음의 일부 음만 잇는 새 타이는 만들 수 없습니다. 기존 파일의 미지원 타이는 안내와 제거 경로를 사용합니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteToolbar.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#tie",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "slur",
+    "title": "슬러: 프레이즈를 묶는 곡선",
+    "chapter": "notation",
+    "entry": "추가 → 범위 기호 팔레트 → 범위 기호 설정 열기",
+    "shortcut": "S, S / Esc",
+    "scope": "슬러는 프레이즈 표기이며 타이처럼 음가를 합쳐 동일 음으로 재생하는 명령이 아닙니다. 끝이 가늘고 줄바꿈에서 이어집니다. 수동 배치 표기를 선택한 뒤 기본 마우스로 공통 offset을 끌어 옮길 수 있습니다. 자동 배치·모양/끝점 핸들·터치 드래그는 별도입니다.",
+    "disabled": "지원하는 같은 파트·보표·시간 순서의 끝점이 필요합니다. 미완결 입력은 Esc로 취소합니다.",
+    "sources": [
+      "src/renderer/src/StudioRangeTools.tsx",
+      "src/renderer/src/SpanProperties.tsx",
+      "src/renderer/src/notation/manual-span-pointer-drag.ts",
+      "src/renderer/src/editor/manual-span-drag.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#slur",
+    "sourceReviewed": true,
+    "runtimeVerification": "Native I960/M1400 and independent N PDF retry; original UI harness failures preserved. See smg-011-manual-span-drag. Physical user verification pending.",
+    "userChecked": false
+  },
+  {
+    "id": "dynamics",
+    "title": "셈여림 적용과 원본 보관 값",
+    "chapter": "notation",
+    "entry": "추가 → 셈여림 팔레트 / 선택 위치 속성",
+    "shortcut": "없음",
+    "scope": "현재 모델은 마디 단위입니다. 한 마디의 첫 값이 표시·재생되고 이후 값은 원본 보관으로 구분해 개별 정리할 수 있습니다.",
+    "disabled": "박·성부별 자유로운 셈여림 모델이라고 설명하지 않습니다. 범위 선택에서는 현재 지원되는 적용 범위를 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioSelectedProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#dynamics",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "hairpin",
+    "title": "크레셴도·디미누엔도 헤어핀",
+    "chapter": "notation",
+    "entry": "범위 선택 → 범위 기호 설정",
+    "shortcut": "없음",
+    "scope": "표기와 재생 세기 변화는 별도 계약입니다. 반복 복귀를 가로지르는 미완결 재생 적용은 중단하고 원본 선은 보존합니다. 수동 배치 표기를 선택한 뒤 기본 마우스로 공통 offset을 끌어 옮길 수 있습니다. 자동 배치·모양/끝점 핸들·터치 드래그는 별도입니다.",
+    "disabled": "끝점 범위와 선택 조건이 맞아야 합니다. 다른 보표/성부의 선을 같은 대상으로 취급하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioRangeTools.tsx",
+      "src/renderer/src/SpanProperties.tsx",
+      "src/renderer/src/notation/manual-span-pointer-drag.ts",
+      "src/renderer/src/editor/manual-span-drag.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#hairpin",
+    "sourceReviewed": true,
+    "runtimeVerification": "Native I960/M1400 and independent N PDF retry; original UI harness failures preserved. See smg-011-manual-span-drag. Physical user verification pending.",
+    "userChecked": false
+  },
+  {
+    "id": "octave",
+    "title": "8va·8vb·15ma·15mb 옥타브 선",
+    "chapter": "notation",
+    "entry": "범위 선택 → 범위 기호 → 옥타브",
+    "shortcut": "없음",
+    "scope": "선택한 시작 음부터 끝 음의 종료 전까지, 같은 보표의 구간 안에서 시작하는 모든 성부 음에 적용합니다. 구간 앞에서 시작해 이어지는 음과 다른 보표·파트는 그대로입니다. 기보 음높이는 유지하며 15mb는 아래 방향입니다. 같은 범위에서 같은 종류를 다시 누르면 해제하고 다른 종류를 누르면 교체합니다.",
+    "disabled": "음표로 시작하고 끝나는 지원 범위를 선택해야 합니다. 숫자만 표시·선 숨김·대각선·선과 글자 스타일 편집기는 없습니다. 슬러/헤어핀 전용 속성 항목을 옥타브 선에도 있다고 가정하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioRangeTools.tsx",
+      "src/score-core/octave-shifts.ts",
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#octave",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "articulation",
+    "title": "스타카토·악센트·테누토·마르카토",
+    "chapter": "notation",
+    "entry": "팔레트 → 표현 기호 / 선택 음표 속성",
+    "shortcut": "없음",
+    "scope": "클릭은 선택 음표의 적용/해제입니다. 음표를 하나 선택하고 타일을 다른 주 음표로 끌면 그 이벤트 전체에 추가합니다. 같은 기호는 유지하며 빈 실행 취소를 만들지 않습니다. 기존 꾸밈음·타이·다른 기호는 보존합니다.",
+    "disabled": "쉼표·개별 꾸밈음·화음 구성음·여러 대상·입력/범위/구간 선택에는 끌어 적용하지 않습니다. 표기·재생·출력의 지원 범위는 별도로 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioNotationPalette.tsx",
+      "src/renderer/src/StudioEventMarks.tsx",
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#articulation",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "ornaments",
+    "title": "트릴·모르덴트·턴과 트레몰로",
+    "chapter": "notation",
+    "entry": "팔레트 → 장식음 / 선택 음표 속성 → 음표 장식",
+    "shortcut": "없음",
+    "scope": "꾸밈음 붙이기와 장식 기호는 다른 기능입니다. 기호가 보인다고 모든 장식을 실제 음열로 재생하는 것은 아닙니다.",
+    "disabled": "선택 음표가 없으면 해당 속성이 나오지 않습니다. 구체적 음원 재생은 지원 범위/내보내기 경고를 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioNoteDecorations.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#ornaments",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "pauses",
+    "title": "페르마타·숨표·중지표",
+    "chapter": "notation",
+    "entry": "팔레트 → 정지 기호 / 선택 표기의 연주 기호",
+    "shortcut": "없음",
+    "scope": "현재 선택 표기에 부착하는 기호입니다. 실제 음향의 자동 정지 길이를 임의로 보장하지 않습니다.",
+    "disabled": "기호별 지원 대상이 다릅니다. 비활성 툴팁과 실제 대상 설명을 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioEventMarks.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#pauses",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "repeat",
+    "title": "도돌이표와 반복 횟수",
+    "chapter": "notation",
+    "entry": "마디 우클릭 / 추가 → 반복·볼타 팔레트",
+    "shortcut": "없음",
+    "scope": "마디 반복 표기와 반복 재생 계약을 따릅니다. 점프 후 빠르기는 도착 위치의 유효 빠르기로 복원합니다.",
+    "disabled": "잘못된 반복 범위/횟수와 모호한 선택을 확인합니다. 외부 MuseScore의 중첩 반복 결과는 별도 미해결 차이가 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioRepeatTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#repeat",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "volta",
+    "title": "1번·2번 볼타",
+    "chapter": "notation",
+    "entry": "반복·볼타 설정 / 마디 우클릭",
+    "shortcut": "없음",
+    "scope": "현재 제공하는 1번/2번 볼타와 기존 explicit/manual 범위를 보존하는 경로입니다. 모든 임의 ending 편집기가 아닙니다.",
+    "disabled": "범위/반복 구조가 유효해야 합니다. 외부 중첩 볼타 의미 차이를 해결된 것으로 설명하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioRepeatTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#volta",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "text",
+    "title": "연습표·시스템 글자·보표 글자·표현 글자",
+    "chapter": "notation",
+    "entry": "추가 → 텍스트 표기 팔레트 → 텍스트 표기 설정 열기",
+    "shortcut": "Enter/blur, Esc",
+    "scope": "연습표·시스템·보표·표현 글자는 적용 위치/종류가 다릅니다. 총보/파트보와 선택 위치 설명을 확인합니다.",
+    "disabled": "범위 전체에 자유롭게 일괄 입력하는 기능으로 가정하지 않습니다. 길거나 큰 글자가 페이지를 넘으면 출력이 차단될 수 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioSelectedProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#text",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "lyrics",
+    "title": "가사 글자·절·음절·멜리스마",
+    "chapter": "notation",
+    "entry": "음표 선택 → 추가 → 가사 및 코드 → 가사 글자 입력",
+    "shortcut": "Enter, ↑/↓, _, Esc",
+    "scope": "가사는 선택 음표에 연결됩니다. _는 멜리스마를 적용하고 다음 음표로 이동합니다. 한글 조합 중에는 확정/전역 명령을 실행하지 않습니다.",
+    "disabled": "중복/모호한 원본 가사가 있어 편집이 막히면 안내를 확인합니다. 음표가 아니면 입력 항목이 없습니다.",
+    "sources": [
+      "src/renderer/src/StudioLyricTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#lyrics",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "harmony",
+    "title": "코드 심벌 입력·수정",
+    "chapter": "notation",
+    "entry": "추가 → 가사 및 코드 → 코드 심벌 편집",
+    "shortcut": "Enter/blur 확정, Esc 초안 취소",
+    "scope": "표시용 코드 심벌과 실제 화음 음표 추가는 다릅니다. 적용 위치와 원본 표기 보존 지원을 확인합니다.",
+    "disabled": "코드를 적었다고 반주 음표를 자동 생성하거나 재생한다고 설명하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioSelectedProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#harmony",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "tempo",
+    "title": "전역 빠르기·리듬 표기·스윙 재생",
+    "chapter": "notation",
+    "entry": "형식 → 악보 설정 → 전역 빠르기",
+    "shortcut": "없음",
+    "scope": "기본 빠르기와 표기·실제 재생을 구분합니다. 이 버전은 별도 전역 스윙 재생 8분/16분·2:1/3:2를 선택할 수 있습니다. 원래 음가·tick·인쇄 표기는 유지합니다.",
+    "disabled": "기존 리듬 해석 표기는 재생을 바꾸지 않습니다. 전역 스윙은 기본 꺼짐이며, 보표별 박자·마디 길이가 다르면 설정을 보존하고 직선으로 재생합니다. 구간·보표별 스윙/임의 비율은 미지원입니다.",
+    "sources": [
+      "src/renderer/src/StudioTempoTools.tsx",
+      "src/renderer/src/playback/swing.ts",
+      "src/score-core/swing.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#tempo",
+    "sourceReviewed": true,
+    "runtimeVerification": "App simulated menu/undo/native and derived clock/MIDI/XML verified; current whole-window native focus, listening and physical devices pending",
+    "userChecked": false
+  },
+  {
+    "id": "tempo-point",
+    "title": "위치별 빠르기와 숨김 원본 빠르기",
+    "chapter": "notation",
+    "entry": "형식 → 악보 설정 → 위치별 빠르기",
+    "shortcut": "Enter/blur, Esc",
+    "scope": "총보 공통 재생 위치입니다. 같은 위치의 여러 지정 중 마지막 값을 편집하며 제거하면 앞선 값이 다시 적용될 수 있습니다. 가져온 숨김 빠르기는 재생 전용일 수 있습니다.",
+    "disabled": "이 버전: 범위 밖·소수는 오류로 남고 악보를 바꾸지 않습니다. Enter 오류는 포커스를 유지하며 Escape로 복원합니다. 빈 값은 현재 지정만 제거합니다. 기존 alpha.39의 자동40/240보정과 구분합니다.",
+    "sources": [
+      "src/renderer/src/StudioTempoEventInput.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "05-notation.md#tempo-point",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "inspector",
+    "title": "선택 객체 속성 읽기·수정",
+    "chapter": "properties",
+    "entry": "보기 → 속성 / 도구 → 선택 속성 열기",
+    "shortcut": "F6으로 도구/악보 이동",
+    "scope": "대상·파트·보표·성부·마디와 입력 커서 위치를 구분합니다. 선택 없음/범위의 항목은 현재 지원 정책대로 제한됩니다.",
+    "disabled": "지원되지 않는 mixed 편집 UI를 완성한 것으로 표시하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioSelectedProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "06-properties.md#inspector",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "span-find",
+    "title": "범위 표기 찾기·선택·끝점·삭제",
+    "chapter": "properties",
+    "entry": "도구 → 범위 표기 찾기",
+    "shortcut": "버튼 focus에서 Delete/Backspace: 삭제, Escape: 선택 해제",
+    "scope": "현재 picker는 슬러/헤어핀을 대상으로 합니다. 시작은 끝보다 앞이어야 하고 지원하는 같은 파트·보표 범위를 따릅니다.",
+    "disabled": "미지원 끝점은 그대로 표시하되 선택할 수 없고 오류 안내가 나옵니다. 타이/옥타브에 같은 geometry 편집기가 있다고 설명하지 않습니다.",
+    "sources": [
+      "src/renderer/src/SpanProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "06-properties.md#span-find",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "geometry",
+    "title": "배치·형상: 자동값과 명시적 0",
+    "chapter": "properties",
+    "entry": "범위 표기 속성 → 배치 · 형상",
+    "shortcut": "Enter/blur: 한 명령, Escape: 초안 취소",
+    "scope": "빈 값은 자동, offset 0은 명시한 위치입니다. sp는 오선 간격 단위입니다. offset -8–8, 높이 0.5–8, step0.25 sp입니다.",
+    "disabled": "범위 밖 값은 오류와 원래 값 복원을 따릅니다. 수동 geometry를 자동 충돌 보정이 임의 이동하지 않습니다.",
+    "sources": [
+      "src/renderer/src/SpanProperties.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "06-properties.md#geometry",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "part-geometry",
+    "title": "총보·파트보 배치의 공통 범위와 보존",
+    "chapter": "properties",
+    "entry": "총보·파트보 전환 → 선택 span 속성",
+    "shortcut": "없음",
+    "scope": "현재 범위 속성은 총보·해당 파트보 공통 geometry를 편집합니다. 파트·시스템 구간별 독립 geometry는 현재 모델과 native 형식에서 지원하지 않습니다.",
+    "disabled": "파트별 span/임의 segment 편집기를 현재 UI에 있다고 안내하지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "공통 편집 지원; 파트·구간별 독립 배치는 별도 설계 필요",
+    "manual": "06-properties.md#part-geometry",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "drafts",
+    "title": "속성 입력 확정·취소·저장 전 확인",
+    "chapter": "properties",
+    "entry": "숫자/글자 속성 필드",
+    "shortcut": "Enter, Escape, ⌘/Ctrl+S",
+    "scope": "한 번 확정은 명령1회·undo1회입니다. 대상 변경 시 이전 draft를 새 객체에 저장하지 않습니다. 필드별 범위/오류 정책은 다릅니다.",
+    "disabled": "IME 조합은 확정과 전역 단축키에서 보호합니다. 필드 일부에 자동 보정/복원 경로가 있으므로 모든 숫자 UX가 같다고 가정하지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "06-properties.md#drafts",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "transport",
+    "title": "선택 위치 재생·일시정지·정지·처음으로",
+    "chapter": "playback",
+    "entry": "상단 재생 컨트롤",
+    "shortcut": "Space",
+    "scope": "선택 위치가 있는 경우 그 위치를 우선하는 기존 정책입니다. 입력창·버튼·메뉴에서 Space는 해당 control이 우선합니다. 재생 조작은 악보 실행 취소 기록을 만들지 않으며 ⌘/Ctrl+Z는 이전 악보 편집에 적용됩니다.",
+    "disabled": "음색 준비/지원하지 않는 보표/실패 상태에서 안내와 enablement를 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioPlayback.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#transport",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "metronome",
+    "title": "연습 메트로놈",
+    "chapter": "playback",
+    "entry": "상단 재생 컨트롤 → 메트로놈",
+    "shortcut": "없음",
+    "scope": "기본 꺼짐의 로컬 연습 클릭입니다. 파트 음소거·솔로·음량과 독립이며 프로젝트·MusicXML·MIDI·PDF에는 포함되지 않습니다.",
+    "disabled": "보표별 박자표·실제 마디 길이·마디 수가 다르면 적용 불가로 안내합니다. 기존 악보 재생은 유지됩니다.",
+    "sources": [
+      "src/renderer/src/StudioPlayback.tsx",
+      "src/renderer/src/playback/metronome.ts",
+      "src/renderer/src/playback/metronome-transport.ts"
+    ],
+    "support": "이 버전에서 직접 사용 가능",
+    "manual": "07-playback.md#metronome",
+    "sourceReviewed": true,
+    "runtimeVerification": "SMG016 runtime-f actual muted WebAudio/offline/local reload/12 density/native/XML/MIDI/PDF; full integration pending",
+    "userChecked": false
+  },
+  {
+    "id": "practice-loop",
+    "title": "선택 구간 연습 루프",
+    "chapter": "playback",
+    "entry": "총보 보기 → 연속 구간 선택 → 상단 연습 루프",
+    "shortcut": "없음 · Tab/Enter/Space",
+    "scope": "선택 시작부터 마지막 음의 끝까지 총보를 반복하는 세션 도구입니다. 프로젝트·XML·MIDI·PDF에는 포함되지 않습니다.",
+    "disabled": "입력 중·파트보·반복/볼타·경계 타이·정렬 불가 보표는 적용 불가로 안내합니다.",
+    "sources": [
+      "src/renderer/src/StudioPlayback.tsx",
+      "src/renderer/src/playback/practice-loop.ts",
+      "src/renderer/src/playback/practice-loop-clock.ts",
+      "src/renderer/src/playback/piano-transport.ts"
+    ],
+    "support": "이 버전에서 직접 사용 가능",
+    "manual": "07-playback.md#practice-loop",
+    "sourceReviewed": true,
+    "runtimeVerification": "SMG017 runtime-d: muted WebAudio3laps/cache/cancellation/pending decode cancel/preview/error retry, active native/XML/MIDI/PDF, offline130voice cancellation; full Y pending",
+    "userChecked": false
+  },
+  {
+    "id": "follow",
+    "title": "재생 위치 따라가기와 수동 스크롤",
+    "chapter": "playback",
+    "entry": "상단 재생 위치 따라가기",
+    "shortcut": "없음",
+    "scope": "일반/오버레이 스크롤바는 손잡이·트랙을 누르는 즉시 추적을 중단합니다. 음악 재생 자체는 별도입니다. 따라가기 설정은 보기 상태이며 악보 실행 취소로 켜거나 끄지 않습니다.",
+    "disabled": "도구/입력 focus와 수동 이동의 소유권을 구분합니다. 오래된 예약 스크롤이 새 수동 이동을 취소하면 결함 후보입니다.",
+    "sources": [
+      "src/renderer/src/StudioPlayback.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#follow",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "mixer",
+    "title": "파트 믹서·뮤트·솔로·음량·활동 표시",
+    "chapter": "playback",
+    "entry": "보기 → 믹서 / 재생 도구 / 믹서 표시",
+    "shortcut": "없음",
+    "scope": "로컬 믹서 설정과 악보 기호를 구분합니다. 활동 표시는 timeline/gain 기준이며 실제 음향 에너지 meter가 아닙니다. 이 버전은 원본 MusicXML의 악기별 volume/pan/elevation 손실을 안내하며 로컬 믹서 설정은 변경하지 않습니다. 원래 값의 편집·재생·사본 복원은 지원하지 않습니다.",
+    "disabled": "쉼표·뮤트·solo 배제·volume0·pause/stop은 표시가 달라집니다. 여러 파트가 동시에 재생 중일 수 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioPlayback.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#mixer",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "piano",
+    "title": "그랜드 피아노·미리 듣기·준비 오류 재시도",
+    "chapter": "playback",
+    "entry": "피아노 음색",
+    "shortcut": "없음",
+    "scope": "내장 sample/worker를 사용하는 실제 앱 재생입니다. 준비 중/재생 중에는 들어보기 버튼이 제한됩니다.",
+    "disabled": "음소거 검증을 청음으로 대신하지 않습니다. 모든 악기를 독립적인 실제 악기 음원으로 제공한다는 뜻이 아닙니다.",
+    "sources": [
+      "src/renderer/src/StudioPiano.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#piano",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "pedal",
+    "title": "수동 서스테인과 자연스러운 연주(시험)",
+    "chapter": "playback",
+    "entry": "피아노 음색의 체크 항목",
+    "shortcut": "없음",
+    "scope": "수동 페달은 악보 페달 재생에 더하는 앱 연주 상태입니다. 시험 기능은 악보 입력과 다른 표현 모델입니다.",
+    "disabled": "이 옵션이 MusicXML/MIDI에 그대로 bake되거나 모든 외부 앱이 같은 소리를 낸다고 보장하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioPiano.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#pedal",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "repeat-play",
+    "title": "반복·볼타·빠르기·타이·헤어핀 재생 범위",
+    "chapter": "playback",
+    "entry": "반복 악보 → 재생 / MIDI 내보내기",
+    "shortcut": "없음",
+    "scope": "복귀 위치의 유효 빠르기를 복원하고 미완결 헤어핀 적용은 반복 복귀에서 중단합니다. 원본 표기는 보존합니다.",
+    "disabled": "외부 MuseScore의 중첩 반복/볼타·중간 이조 차이는 미해결입니다. 가져온 미지원 타이/기호는 경고를 확인합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#repeat-play",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "breaks",
+    "title": "시스템·페이지 나누기",
+    "chapter": "layout",
+    "entry": "형식 → 악보 설정 / 마디 구조",
+    "shortcut": "없음",
+    "scope": "나누기는 현재 적용 범위와 파트보 독립 설정을 따릅니다. 화면의 스크롤 줄과 출력 페이지를 구분합니다.",
+    "disabled": "대상이 없거나 지원하지 않는 범위에서는 비활성입니다.",
+    "sources": [
+      "src/renderer/src/StudioMeasureTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "08-layout.md#breaks",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "page",
+    "title": "용지·방향·여백·보표 크기·시스템 간격",
+    "chapter": "layout",
+    "entry": "형식 → PDF 페이지 설정 또는 파일 → 내보내기 설정",
+    "shortcut": "없음",
+    "scope": "현재 총보 또는 선택 파트보에 적용하는지 작업창에 표시됩니다. 보표 크기 step5%, 간격 step5%입니다.",
+    "disabled": "schema의 더 넓은 숫자 범위를 공개 UI 지원 범위로 해석하지 않습니다. 긴 제목과 실제 잉크 경계를 함께 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioPageSetup.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "08-layout.md#page",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "part-reset",
+    "title": "파트보 조판 초기화",
+    "chapter": "layout",
+    "entry": "파트보 선택 → PDF 페이지 설정 → 파트보 조판 초기화",
+    "shortcut": "없음",
+    "scope": "버튼이 설명하는 파트 조판 범위의 override를 복원합니다. 팔레트/도크 로컬 초기화와 구분합니다.",
+    "disabled": "이미 상속/기본 상태면 비활성입니다. 이웃 파트 설정을 함께 초기화하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioPageSetup.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "08-layout.md#part-reset",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "metadata",
+    "title": "제목·작곡가·파트보 제목 직접 편집",
+    "chapter": "layout",
+    "entry": "상단 악보 정보 또는 형식 → 악보 정보 편집",
+    "shortcut": "Enter/blur, Escape",
+    "scope": "총보 제목과 독립 파트보 제목의 범위가 다릅니다. 종이 표시는 유지하고 별도 공통 편집 버튼으로 접근합니다.",
+    "disabled": "짧은 지면 글자의 클릭 영역을 확대해 주변 표기를 덮지 않습니다. 긴 글자는 출력 페이지 제약을 확인합니다.",
+    "sources": [
+      "src/renderer/src/StudioMetadataActions.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "08-layout.md#metadata",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "page-guard",
+    "title": "기호 잘림·과대 악보단 출력 차단",
+    "chapter": "layout",
+    "entry": "PDF/PNG 출력 전 검사",
+    "shortcut": "없음",
+    "scope": "실제 잉크가 물리 페이지를 넘거나 한 악보단이 용지에 들어가지 않으면 저장 대화상자 전에 차단합니다. 수동 geometry를 임의 이동하지 않습니다.",
+    "disabled": "전체 출력이 막혀도 안전한 선택 PNG 페이지는 별도 검사합니다. 단순 SVG 내부 containment만으로 안전을 판단하지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "08-layout.md#page-guard",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "project",
+    "title": "프로젝트 열기·저장·다른 이름 저장",
+    "chapter": "files",
+    "entry": "파일 → 프로젝트 열기/저장/다른 이름으로 저장",
+    "shortcut": "⌘/Ctrl+S, 프로젝트에서 ⌘/Ctrl+Shift+S",
+    "scope": "native .chromatics는 배치와 편집 상태를 보존하는 프로젝트입니다. ⌘/Ctrl+S는 현재 문서 형식에 맞춰 저장합니다. 이 버전에서 음높이 먼저 입력 설정의 현재 미지원과 값 보존을 안내합니다.",
+    "disabled": "저장 중·bridge 없음·미확정 draft에서는 비활성/안내가 나옵니다. 저장 실패/취소는 문서·dirty·선택·undo를 유지합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#project",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "import",
+    "title": "MusicXML·MXL 가져오기와 원본 보호",
+    "chapter": "files",
+    "entry": "파일 → MusicXML 가져오기",
+    "shortcut": "없음",
+    "scope": "외부 교환 형식과 native 프로젝트는 다릅니다. 읽은 데이터의 보존만 가능한 항목과 직접 편집 가능한 항목을 구분합니다. 이 버전은 줄기가 있는 음가의 원본 stem=none 손실을 한국어로 안내합니다. 원본 경로는 기술 정보로 확인하며 줄기 편집/모양 보존 구현은 아닙니다. 음표별 instrument 참조 손실도 원본 위치·ID와 함께 안내하며 악기 전환 모델을 추가하지 않습니다. 복수의 동종 악기 지정 경고는 요약 후 악기 지정별 경고 상세에서 모든 원래 경고·위치·ID를 확인합니다. 단일·혼합 경고 표시는 유지합니다.",
+    "disabled": "미지원 내용은 원문·코드·경로를 기술 정보에서 확인합니다. 새 악보를 시작하면 앞선 열기의 늦은 응답을 적용하지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#import",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "xml-save",
+    "title": "MusicXML 저장과 사본 내보내기",
+    "chapter": "files",
+    "entry": "파일 → MusicXML로 저장 / 내보내기 → MusicXML",
+    "shortcut": "없음",
+    "scope": "사본은 원본 프로젝트를 clean 처리하지 않습니다. 작업 시작 후 추가 편집/보기 변경은 해당 사본에 포함되지 않을 수 있습니다. 이 버전은 형식에 맞지 않는 Native 파트 ID를 XML 출력에만 충돌 없이 매핑합니다. 원본 ID와 파트 설정을 유지하며 경고의 기술 정보에서 변환 전후를 확인합니다.",
+    "disabled": "원본 경로 사본 덮어쓰기는 차단됩니다. 파트 독립 배치 등 손실 안내를 확인하고 native도 보관하세요.",
+    "sources": [
+      "src/renderer/src/StudioExportTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#xml-save",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "xml-expanded",
+    "title": "반복 펼치기 MusicXML 사본",
+    "chapter": "files",
+    "entry": "내보내기 → MusicXML 반복 펼치기",
+    "shortcut": "없음",
+    "scope": "반복/볼타를 펼친 별도 호환 사본입니다. 기본 구조 유지 출력과 원본/native score는 보존합니다. 이 버전은 형식에 맞지 않는 Native 파트 ID를 XML 출력에만 충돌 없이 매핑합니다. 원본 ID와 파트 설정을 유지하며 경고의 기술 정보에서 변환 전후를 확인합니다.",
+    "disabled": "일부 표기는 그대로 옮길 수 없습니다. 이 옵션을 외부 앱의 모든 이조/재생 문제 해결로 설명하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioExportTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#xml-expanded",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "midi",
+    "title": "MIDI 내보내기와 손실 정보",
+    "chapter": "files",
+    "entry": "내보내기 → MIDI",
+    "shortcut": "없음",
+    "scope": "현재 악보 또는 선택 파트의 MIDI 사본입니다. 타악기/TAB 등 현재 지원하지 않는 보표는 건너뛰는 정책을 따릅니다.",
+    "disabled": "기보·화면 모든 요소가 MIDI에 담기지 않습니다. 실패/문서 교체/대기 중 편집을 저장 성공과 구분합니다.",
+    "sources": [
+      "src/renderer/src/StudioExportTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#midi",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "pdf",
+    "title": "PDF 출력·목표 장수·취소·재시도",
+    "chapter": "files",
+    "entry": "파일 → 내보내기 설정 → PDF 변환",
+    "shortcut": "없음",
+    "scope": "목표 장수는 출력 배치와 관련된 요청값이며 안전 검사를 무시하는 강제 페이지 수가 아닙니다. 성공은 프로젝트 저장과 별개입니다.",
+    "disabled": "페이지 경계·과대 악보단·잘못된 장수 등은 저장 전 차단될 수 있습니다. 파일 대화상자 취소도 실패와 다릅니다.",
+    "sources": [
+      "src/renderer/src/StudioExportTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#pdf",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "png",
+    "title": "PNG 전체/선택 페이지와 해상도",
+    "chapter": "files",
+    "entry": "파일 → PNG 출력 설정",
+    "shortcut": "없음",
+    "scope": "PDF 페이지 설정의 용지·방향·여백을 사용합니다. 여러 페이지는 선택 위치의 새 폴더에 저장합니다.",
+    "disabled": "위험한 선택 페이지·전체 출력은 각각 검사합니다. SVG 출력이 구현된 것으로 설명하지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioExportTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#png",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "score-transfer",
+    "title": "PDF로 Score에서 연습 이어가기",
+    "chapter": "files",
+    "entry": "PDF 저장 성공 안내 → 가져오는 방법",
+    "shortcut": "없음",
+    "scope": "수동 파일 전달 안내입니다. Studio의 PDF 성공과 Score의 수신·내부 저장·페이지 준비는 별도 결과입니다.",
+    "disabled": "직접 Score 실행·자동 동기화·수신 성공 callback을 가정하지 않습니다. 실기기 전달은 별도 확인이 필요합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "09-files.md#score-transfer",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "disabled",
+    "title": "버튼이 회색이거나 기호가 안 바뀔 때",
+    "chapter": "troubleshooting",
+    "entry": "해당 도구의 설명과 상태 표시",
+    "shortcut": "없음",
+    "scope": "비활성은 선택 없음·지원하지 않는 대상·저장 중·모델 제약일 수 있습니다. 오류를 무시하려고 원본을 임의 변경하지 않습니다.",
+    "disabled": "예: 꾸밈음 변환에 다음 음표가 없거나 타이 경계가 있으면 먼저 조건을 확인합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "11-troubleshooting.md#disabled",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "save-errors",
+    "title": "저장 완료인데 입력한 값이 없거나 저장이 실패할 때",
+    "chapter": "troubleshooting",
+    "entry": "문서 상태·숫자/글자 입력·저장 결과",
+    "shortcut": "없음",
+    "scope": "저장 중 새 편집이 있으면 저장한 snapshot과 현재 문서는 다릅니다. 사본 출력으로 프로젝트를 clean 처리하지 않습니다. 이 버전의 확인된 읽기 전용 저장 오류는 기존 파일과 현재 편집 상태를 보존합니다.",
+    "disabled": "이 버전의 새 악보/위치별 빠르기는 유효성 안내를 따릅니다. 미확정 값은 확정하거나 Escape로 취소한 뒤 저장합니다. 저장 대상의 쓰기 권한 오류는 기술 정보를 확인하고, 쓰기 가능한 새 위치에 보관하거나 해당 파일·위치의 권한 확인 후 재시도합니다.",
+    "sources": [
+      "src/renderer/src/App.tsx",
+      "src/main/project-files.ts",
+      "src/main/musicxml-files.ts",
+      "src/main/png-files.ts",
+      "src/main/binary-export-files.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "11-troubleshooting.md#save-errors",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "external",
+    "title": "외부 앱에서 반복·이조·음표 모양이 다를 때",
+    "chapter": "troubleshooting",
+    "entry": "가져오기/내보내기 손실 안내 → 기술 정보",
+    "shortcut": "없음",
+    "scope": "원본 보존·XSD 검사·내부 MIDI 비교와 외부 앱 동일 동작은 다른 검증입니다.",
+    "disabled": "기존 MuseScore 중첩 반복/볼타·중간 이조 차이와 CLI/GUI 종료 문제는 미해결입니다. 기대값 약화나 설정 초기화를 해결 절차로 쓰지 않습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "11-troubleshooting.md#external",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "limits",
+    "title": "직접 지원·제한·보존만 가능한 데이터",
+    "chapter": "reference",
+    "entry": "각 장의 지원 범위와 손실 안내",
+    "shortcut": "없음",
+    "scope": "부분 화음 타이·구성음별 선택·임의 박자표 표시문구·총보 박자 일괄 전파·꾸밈음 별도 발음·SVG 제품 출력·범용 mixed 편집은 완성된 기능으로 안내하지 않습니다.",
+    "disabled": "모델에 필드가 있거나 외부 파일을 읽는다고 모든 값을 직접 생성/편집할 수 있는 것은 아닙니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "지원 경계 안내",
+    "manual": "12-reference.md#limits",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "filters",
+    "title": "선택 필터와 표기 필터",
+    "chapter": "workspace",
+    "entry": "파일 → 파일 작업 열기 → 선택 편집",
+    "shortcut": "없음",
+    "scope": "필터는 선택된 범위에서 명령이 다룰 대상을 제한합니다. 가려진 표기가 삭제됐다는 뜻이 아닙니다.",
+    "disabled": "시스템 텍스트/연습표 붙여넣기는 총보 첫 보표의 마디만 지원하는 등 종류별 제약이 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioFileTools.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#filters",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "theme",
+    "title": "밝은/어두운 작업창과 악보 지면",
+    "chapter": "workspace",
+    "entry": "OS 표시 모드 → 앱 작업창",
+    "shortcut": "없음",
+    "scope": "현재 앱은 OS 색상 선호를 따릅니다. 앱 내부에 별도 테마 선택 메뉴가 있다고 가정하지 않습니다.",
+    "disabled": "어두운 작업창에서도 인쇄 지면을 검게 반전하는 기능이 아닙니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "02-workspace.md#theme",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "history",
+    "title": "실행 취소·다시 실행",
+    "chapter": "notes",
+    "entry": "편집 → 실행 취소/다시 실행",
+    "shortcut": "⌘/Ctrl+Z, ⌘/Ctrl+Shift+Z 또는 ⌘/Ctrl+Y",
+    "scope": "음악 명령의 편집 이력입니다. draft 취소·파일 선택 취소·로컬 도크/믹서 상태와 구분합니다.",
+    "disabled": "이력이 비면 비활성입니다. 텍스트 입력창에서는 해당 텍스트의 undo가 우선할 수 있습니다.",
+    "sources": [
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "03-notes.md#history",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "manual",
+    "title": "오프라인 사용설명서와 단축키 도움말",
+    "chapter": "workspace",
+    "entry": "도움말 → 사용설명서 / 단축키 도움말",
+    "shortcut": "Escape",
+    "scope": "본문은 앱에 번들되며 외부 참고 링크를 제외한 읽기에 인터넷이 필요 없습니다. 단축키 표는 기존 도움말과 같은 원본입니다.",
+    "disabled": "전체 설명서는 alpha.40부터 앱에 포함됩니다. 배포된 alpha.39에는 기존 단축키 도움말만 있습니다.",
+    "sources": [
+      "src/renderer/src/StudioManual.tsx"
+    ],
+    "support": "앱 내 오프라인 설명서",
+    "manual": "02-workspace.md#manual",
+    "sourceReviewed": true,
+    "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "dock-layouts",
+    "title": "이름 있는 도크 배치 저장·복원",
+    "chapter": "workspace",
+    "entry": "보기 → 도크 배치…",
+    "shortcut": "별도 단축키 없음 · Escape로 닫기",
+    "scope": "이 버전에서 현재 도크 폭·표시 여부·공유 도크의 열린 탭을 이름으로 저장하고 명시적으로 복원·갱신·삭제합니다. 악보, 확대율, 팔레트 내용은 포함하지 않습니다. 최대20개·이름1–40자입니다.",
+    "disabled": "문서의 미확정 입력은 먼저 확정/취소합니다. 같은 이름을 자동 덮어쓰지 않습니다. 기기 저장 실패는 현재 세션에서만 유지하며 안내합니다.",
+    "sources": [
+      "src/renderer/src/StudioDockLayoutDialog.tsx",
+      "src/renderer/src/dock-layout-profiles.ts",
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능 (이 버전)",
+    "manual": "02-workspace.md#dock-layouts",
+    "sourceReviewed": true,
+    "runtimeVerification": "smg-034-dock-profiles/runtime-f: actual960/1400+12density, six native Tab steps per condition, reload, native/XML/MIDI/PDF comparison; not physical OS approval",
+    "userChecked": false
+  },
+  {
+    "id": "print-profiles",
+    "title": "이름 있는 출력 설정 프리셋",
+    "chapter": "layout",
+    "entry": "형식 → PDF 페이지 설정 → 출력 설정 프리셋 관리",
+    "shortcut": "없음",
+    "scope": "용지·방향·여백·보표 크기·시스템 간격5개만 기기에 저장합니다. 현재 총보/선택 파트에 적용하며 같은 값은 실행 취소를 만들지 않습니다. 목록은 프로젝트에 포함하지 않습니다.",
+    "disabled": "미확정 문서 입력을 먼저 확정/취소합니다. 사용자 템플릿·전체 스타일·.mss가 아니며 소수 원본은 보관하되 적용은 기존 정수 반올림 정책을 표시합니다.",
+    "sources": [
+      "src/renderer/src/StudioPrintProfilesDialog.tsx",
+      "src/renderer/src/print-page-profiles.ts",
+      "src/renderer/src/StudioPageSetup.tsx",
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "이 버전",
+    "manual": "08-layout.md#print-profiles",
+    "sourceReviewed": true,
+    "runtimeVerification": "SMG-014-001 runtime-i960/1400,12density/native/undo/reload/XML8 XSD/MIDI/PDF4; physical OS/IME/touch/screen-reader unverified",
+    "userChecked": false
+  },
+  {
+    "id": "editing-shortcuts",
+    "title": "편집 단축키 재지정·해제·복원",
+    "chapter": "workspace",
+    "entry": "편집 → 단축키 설정… / 도움말 → 단축키 도움말 → 단축키 설정 열기",
+    "shortcut": "명령별 기본값 또는 ⌘/Ctrl+Shift+영문 물리 글쇠",
+    "scope": "이 버전의 실행 취소·다시 실행·잘라내기·복사·붙여넣기·삭제 6명령을 기기 로컬 설정으로 변경합니다. 삭제는 기존 문맥을 따르며 마디 선택에서는 마디를 제거합니다.",
+    "disabled": "예약 키·중복 키·IME 조합 중 기록/적용은 거부합니다. 입력창의 텍스트 편집과 Select 소유권은 유지합니다. 다른 음악 입력·파일 명령과 설정 파일 교환은 미지원입니다.",
+    "sources": [
+      "src/renderer/src/studio-shortcut-bindings.ts",
+      "src/renderer/src/StudioShortcutSettings.tsx",
+      "src/renderer/src/SpanProperties.tsx",
+      "src/renderer/src/App.tsx"
+    ],
+    "support": "직접 사용 가능 (이 버전)",
+    "manual": "02-workspace.md#editing-shortcuts",
+    "sourceReviewed": true,
+    "runtimeVerification": "Current deletion: I960 event/settings/help/undo/native153 and L1400 span-button nativeTab/picker/undo/native116; M960light fine/coarse/scoped200 passed, other9density unverified after focus loss. Physical OS/IME/touch/SR pending.",
+    "userChecked": false
+  }
+]

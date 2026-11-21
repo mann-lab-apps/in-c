@@ -16,7 +16,7 @@ const baselinePath = path.resolve(
 )
 const { parseNotationSnapshotOptions } = require('./notation-snapshot-options.cjs')
 let shouldUpdate, fixedCanvas, studioProfile, captureProfile
-const profilePath = path.resolve(__dirname, '../docs/testing/studio-r3-notation-profile.json')
+const { selectStudioNotationProfileEnvironment } = require('./studio-notation-profile-environment.cjs')
 const profileOut = path.resolve(process.env.DDIRORI_SNAPSHOT_QA_OUT || 'out/ddirori/studio-r3-snapshot')
 const profileContract = {
   id: 'studio-r3-default-workspace-v3', fixture: 'release-test',
@@ -70,6 +70,10 @@ async function readSnapshot(window, width) {
   }
   await new Promise((resolve) => setTimeout(resolve, 600))
 
+  if (studioProfile) {
+    const environment = await window.webContents.executeJavaScript(`(()=>{const host=document.createElement('div');host.style.cssText='all:initial;display:block;position:fixed;left:-10000px;top:0;width:100px;height:100px';const shadow=host.attachShadow({mode:'closed'}),probe=document.createElement('div');probe.style.cssText='all:initial;display:block;width:100px;height:100px;overflow:scroll';shadow.append(probe);document.body.append(host);try{return{nativeScrollbarWidth:probe.offsetWidth-probe.clientWidth,rootOverflowing:document.documentElement.scrollHeight>document.documentElement.clientHeight,innerWidth,innerHeight,devicePixelRatio,documentClientWidth:document.documentElement.clientWidth,viewportScrollbarWidth:innerWidth-document.documentElement.clientWidth,boxes:['html','body','.docked-workspace','#studio-palette','.score-canvas','.notation-preview'].map(selector=>{const node=document.querySelector(selector);if(!node)return{selector,missing:true};const box=node.getBoundingClientRect(),style=getComputedStyle(node);return{selector,x:box.x,width:box.width,clientWidth:node.clientWidth,scrollWidth:node.scrollWidth,height:box.height,clientHeight:node.clientHeight,scrollHeight:node.scrollHeight,overflowX:style.overflowX,overflowY:style.overflowY,scrollbarGutter:style.scrollbarGutter}})}}finally{host.remove()}})()`)
+    fs.writeFileSync(path.join(profileOut, `environment-${width}.json`), JSON.stringify(environment, null, 2)+'\n')
+  }
   const screenshot = await window.webContents.capturePage()
   const screenshotPath = path.join(
     studioProfile ? profileOut : app.getPath('temp'),
@@ -186,10 +190,19 @@ async function main() {
         console.log('Captured Studio profile candidate; not a baseline approval or verification PASS')
         return
       }
+      const environments = Object.fromEntries([960,1400].map(width=>[width,JSON.parse(fs.readFileSync(path.join(profileOut,`environment-${width}.json`),'utf8'))]))
+      const profileEnvironment = selectStudioNotationProfileEnvironment(environments)
+      const profilePath = path.resolve(__dirname,'../docs/testing',profileEnvironment.fileName)
+      fs.writeFileSync(path.join(profileOut,'profile-environment.json'),JSON.stringify(profileEnvironment,null,2)+'\n')
       const expected = JSON.parse(fs.readFileSync(profilePath, 'utf8'))
+      if(profileEnvironment.kind==='classic-15') {
+        assert.equal(expected.environmentContract?.kind,profileEnvironment.kind,'Reviewed classic profile environment must match')
+        assert.equal(expected.environmentContract?.nativeScrollbarWidth,profileEnvironment.nativeScrollbarWidth,'Reviewed native scrollbar width must match')
+        assert.equal(expected.environmentContract?.viewportScrollbarWidth,profileEnvironment.nativeScrollbarWidth,'Reviewed viewport gutter must match')
+      }
       assert.deepEqual(expected.contract, profileContract, 'Reviewed profile contract must match the explicit fixture')
       assert.deepEqual(comparable, expected.metrics, 'Studio profile notation changed; review actual.json and captures')
-      console.log('Verified Studio R3 workspace notation profile; historical baseline unchanged')
+      console.log(`Verified Studio R3 workspace notation profile (${profileEnvironment.kind}); overlay and historical baselines unchanged`)
       return
     }
 

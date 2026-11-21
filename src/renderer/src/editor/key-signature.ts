@@ -11,6 +11,7 @@ import {
   type Voice,
   type VoiceEvent
 } from '../../../score-core'
+import { buildStaffContentCommand } from './staff-content-command'
 import {
   getSelectionFocusEventId,
   locateEvent,
@@ -61,14 +62,10 @@ export function buildKeySignatureCommand(
   )
 
   return changed
-    ? {
-        type: 'staff-measures.replace',
-        target: {
+    ? buildStaffContentCommand(score.parts, {
           partId: location.address.partId,
           staffId: location.address.staffId
-        },
-        measures
-      }
+        }, measures)
     : undefined
 }
 

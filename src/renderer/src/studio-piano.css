@@ -4,3 +4,5 @@
 .studio-piano__credits p { margin-block: var(--dd-spacing-sm); }
 .studio-piano [role="alert"] { color: var(--dd-danger); flex-basis: 100%; }
 @media print { .studio-piano { display: none; } }
+
+.studio-piano__technical { flex-basis: 100%; min-width: 0; }

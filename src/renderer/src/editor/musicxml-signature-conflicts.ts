@@ -6,7 +6,7 @@ export class MusicXmlSignatureConflictError extends Error {
 }
 
 const fieldLabels:Readonly<Record<string,string>>={
-  title:'제목',composer:'작곡가',tempo:'빠르기',tempoEvents:'위치별 빠르기',rhythmFeel:'리듬 스타일',
+  title:'제목',composer:'작곡가',tempo:'빠르기',tempoEvents:'위치별 빠르기',rhythmFeel:'리듬 스타일',swingPlayback:'전역 스윙 재생',
   parts:'파트·보표·음표',harmonies:'코드 심벌',rehearsalMarks:'연습표',staffTexts:'보표 텍스트',
   systemTexts:'시스템 텍스트',expressionTexts:'표현 텍스트',dynamics:'셈여림',hairpins:'헤어핀',
   slurs:'슬러',octaveShifts:'옥타브 선',pedalEvents:'서스테인 페달'

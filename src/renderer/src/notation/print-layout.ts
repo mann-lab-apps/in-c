@@ -1,3 +1,4 @@
+import {resolveLayoutForPrimaryStaff} from '../../../project/layout-measure-reference'
 import type { Score, ScorePageSetup } from '../../../score-core'
 import { createSystemLayout } from './system-layout'
 
@@ -107,6 +108,8 @@ export function resolvePrintLayoutPlan(
   targetPages: PrintPageTarget,
   minimumMeasureWidths?: ReadonlyMap<string, number>
 ): PrintLayoutPlan {
+  const layout=resolveLayoutForPrimaryStaff(score)
+  if(layout!==score.layout)score={...score,layout}
   const pageSetup = normalizePrintPageSetup(score.layout?.pageSetup)
   const evaluated = printLayoutCandidates.map((candidate) =>
     evaluatePrintLayoutCandidate(score, candidate, pageSetup, minimumMeasureWidths)

@@ -1,0 +1,8 @@
+/** Owned XML for root-page graphic loss auditing; image URIs must never be fetched. */
+export type CreditImageFixtureKind='single'|'pages'|'control'|'title'|'direction'
+export function createCreditImageFixture(kind:CreditImageFixtureKind='single'){
+ const title='이미지 교환 감사 '+kind
+ const credits={single:'<credit page="1"><credit-image source="https://studio-qa.invalid/artwork.svg?fixture=private" type="image/svg+xml" width="100" height="50"/></credit>',pages:'<credit page="1"><credit-image source="first-fixture.svg" type="image/svg+xml"/></credit><credit page="2"><credit-image source="second-fixture.png" type="image/png" width="40"/></credit>',control:'',title:`<credit><credit-type>title</credit-type><credit-words>${title}</credit-words></credit>`,direction:''}
+ const parts=[1,2].map(p=>`<part id="P${p}">${[1,2,3].map(bar=>`<measure number="${bar}">${bar===1?'<attributes><divisions>4</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>':''}${kind==='direction'&&p===2&&bar===2?'<direction><direction-type><image source="direction-fixture.png" type="image/png"/></direction-type></direction>':''}<note><pitch><step>${p===1?'C':'D'}</step><octave>4</octave></pitch><duration>16</duration><type>whole</type></note></measure>`).join('')}</part>`).join('')
+ return `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><work><work-title>${title}</work-title></work>${credits[kind]}<part-list><score-part id="P1"><part-name>Flute 1</part-name></score-part><score-part id="P2"><part-name>Flute 2</part-name></score-part></part-list>${parts}</score-partwise>`
+}

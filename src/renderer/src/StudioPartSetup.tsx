@@ -2,6 +2,7 @@ import { Select, Text } from '@ddirori/ui'
 import './studio-part-setup.css'
 
 interface Field {
+  owner?: string
   label: string
   value: string
   options: readonly { value: string; label: string; disabled?: boolean }[]
@@ -19,9 +20,9 @@ export function StudioPartSetup({ fields }: { fields: readonly Field[] }) {
           (event.target as HTMLElement).closest('[role="combobox"]'))) event.stopPropagation()
     }}>
     <Text as="h3" variant="itemTitle">보표와 악기 설정</Text>
-    <div className="studio-part-setup__fields">{fields.map(field =>
+    <div className="studio-part-setup__fields">{fields.map(({owner, ...field}) =>
       <div className="studio-part-setup__field" key={field.label} data-field={field.label}>
-        <Select {...field}/>
+        <Select key={JSON.stringify([owner, field.label])} {...field}/>
       </div>
     )}</div>
   </section>

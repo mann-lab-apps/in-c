@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { chmod, copyFile, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
@@ -18,6 +18,36 @@ async function setup() {
 }
 
 describe('native project disk lifecycle', () => {
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)('preserves a read-only native project and its save revision until a writable retry', async () => {
+    const env = await setup()
+    let backups = 0
+    const session = new NativeProjectFileSession(async path => { backups++; await env.backup(path) })
+    try {
+      await writeFile(env.file, encodeNativeProject(env.project))
+      await writeFile(join(env.directory, 'neighbor.txt'), 'keep neighbor')
+      const original = await readFile(env.file)
+      const edited = await session.open(env.file)
+      edited.score.title = 'Writable retry'
+      await chmod(env.file, 0o444)
+
+      await expect(session.save(env.file, edited)).rejects.toMatchObject({ code: 'EACCES' })
+      expect(await readFile(env.file)).toEqual(original)
+      expect((await stat(env.file)).mode & 0o777).toBe(0o444)
+      expect(backups).toBe(0)
+      expect((await readdir(env.directory)).sort()).toEqual(['neighbor.txt', 'score.chromatics'])
+
+      await chmod(env.file, 0o600)
+      // Do not reopen before retry: the original session revision must still work.
+      await session.save(env.file, edited)
+      expect(backups).toBe(1)
+      expect(await readFile(env.backupPath)).toEqual(original)
+      expect((await readNativeProjectFile(env.file)).score.title).toBe('Writable retry')
+      expect((await stat(env.file)).mode & 0o777).toBe(0o600)
+      expect(await readFile(join(env.directory, 'neighbor.txt'), 'utf8')).toBe('keep neighbor')
+      expect((await readdir(env.directory)).sort()).toEqual(['neighbor.txt', 'score.chromatics', 'score.chromatics.bak'])
+    } finally { await env.cleanup() }
+  })
+
   it('writes, backs up, reopens in a fresh session, and recovers an intact backup', async () => {
     const env = await setup()
     try {

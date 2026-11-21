@@ -1,9 +1,12 @@
 import { readMusicXmlVoiceNumber, sortScoreVoices } from './voice-order'
 import { inferHarmonyStructure, musicXmlHarmonyKinds } from './harmony-text'
 import { hasManualSpanEngraving } from '../project/span-engraving'
+import {createLayoutMeasureIndexResolver,resolveLayoutMeasureIndex as layoutMeasureIndex} from '../project/layout-measure-reference'
 import {musicXmlBarlineStaff} from './barline-scope'
 import { XMLBuilder } from 'fast-xml-parser'
 import { buildMusicXmlPageDefaults } from './page-layout'
+import { musicXmlPartIdentifiers } from './part-identifiers'
+import { assertMusicXmlOutputCharacters } from './xml-output-characters'
 
 import {
   resolveNotePitch,
@@ -42,9 +45,10 @@ type SpanDirections = Map<Measure, Record<string, unknown>[]>
 type PrintBreaks = { system: Set<number>; page: Set<number> }
 
 function collectPrintBreaks(score: Score): PrintBreaks {
+  const indexOf=createLayoutMeasureIndexResolver(score)
   return {
-    system: new Set((score.layout?.systemBreakBeforeMeasureIds ?? []).map(id => layoutMeasureIndex(score, id))),
-    page: new Set((score.layout?.pageBreakBeforeMeasureIds ?? []).map(id => layoutMeasureIndex(score, id)))
+    system: new Set((score.layout?.systemBreakBeforeMeasureIds ?? []).map(indexOf)),
+    page: new Set((score.layout?.pageBreakBeforeMeasureIds ?? []).map(indexOf))
   }
 }
 
@@ -71,6 +75,7 @@ export function serializeMusicXml(score: Score): string {
     part.staves.forEach((staff) => staff.measures.forEach(validateMeasure))
   })
 
+  const partIds = musicXmlPartIdentifiers(score.parts).ids
   const pageDefaults = buildMusicXmlPageDefaults(score.layout?.pageSetup)
   const document = [
     xmlElement('?xml', {
@@ -93,8 +98,8 @@ export function serializeMusicXml(score: Score): string {
         : []),
       ...(pageDefaults ? [xmlElement('defaults', pageDefaults)] : []),
       xmlElement('part-list', {
-        'score-part': score.parts.map((part) => ({
-          '@_id': part.id,
+        'score-part': score.parts.map((part, index) => ({
+          '@_id': partIds[index],
           'part-name': part.name,
           ...(part.abbreviation
             ? {
@@ -103,12 +108,12 @@ export function serializeMusicXml(score: Score): string {
             : {})
         }))
       }),
-      ...score.parts.map((part) =>
+      ...score.parts.map((part, index) =>
         xmlElement(
           'part',
           buildPartMeasureElements(score, part, slurBoundaries, spanDirections, printBreaks),
           {
-            '@_id': part.id
+            '@_id': partIds[index]
           }
         )
       )
@@ -117,7 +122,11 @@ export function serializeMusicXml(score: Score): string {
     })
   ]
 
-  return builder.build(document)
+  assertMusicXmlOutputCharacters(document)
+  // XML processors normalize literal CR/CRLF before parsing (XML 1.0 §2.11).
+  // Encode CR after normal escaping so Native text survives unchanged, while
+  // literal strings such as "&#xD;" retain their escaped ampersand.
+  return builder.build(document).replace(/\r/g, '&#xD;')
 }
 
 function validatePartStructure(part: Score['parts'][number]): void {
@@ -141,7 +150,7 @@ function validatePartStructure(part: Score['parts'][number]): void {
 }
 
 export interface MusicXmlExportWarning {
-  code: 'unsupported-layout' | 'unsupported-chord-tie'
+  code: 'unsupported-layout' | 'unsupported-chord-tie' | 'converted-part-id'
   measureNumber?: number
   message: string
   path: string
@@ -159,7 +168,14 @@ export function serializeMusicXmlWithReport(score: Score): {
   return {
     contents: serializeMusicXml(score),
     report: {
-      warnings: [...collectUnsupportedMusicXmlExportWarnings(score), ...collectUnsupportedChordTieWarnings(score)]
+      warnings: [
+        ...collectUnsupportedMusicXmlExportWarnings(score),
+        ...collectUnsupportedChordTieWarnings(score),
+        ...musicXmlPartIdentifiers(score.parts).conversions.map(({ index, source, output }): MusicXmlExportWarning => ({
+          code: 'converted-part-id', path: `part[${index + 1}].id`,
+          message: `Converted part identifier (source=${JSON.stringify(source)}, output=${JSON.stringify(output)}). Native project identifiers are unchanged; only MusicXML transport references were mapped.`
+        }))
+      ]
     }
   }
 }
@@ -215,13 +231,6 @@ function collectUnsupportedMusicXmlExportWarnings(
   return warnings
 }
 
-function layoutMeasureIndex(score: Score, id: string): number {
-  const staves = score.parts.flatMap(part => part.staves)
-  const concreteIndex = staves.map(staff => staff.measures.findIndex(measure => measure.id === id)).find(index => index >= 0)
-  const index = concreteIndex ?? staves[0]?.measures.findIndex(measure => `measure-${measure.number}` === id) ?? -1
-  return index >= 0 && staves.every(staff => staff.measures[index]) ? index : -1
-}
-
 function buildPartMeasureElements(
   score: Score,
   part: Score['parts'][number],
@@ -244,6 +253,7 @@ function buildPartMeasureElements(
       score.parts[0]?.id === part.id,
       spanDirections,
       { system: printBreaks.system.has(measureIndex), page: printBreaks.page.has(measureIndex) },
+      measureIndex === 0,
       barlineStaff.measures[measureIndex]
     )
   )
@@ -257,6 +267,7 @@ function buildMeasureElement(
   primaryPart: boolean,
   spanDirections: SpanDirections,
   printBreak: { system: boolean; page: boolean },
+  initialMeasure: boolean,
   barlineMeasure:Measure = measures[0]
 ) {
   const primaryMeasure = measures[0]
@@ -281,7 +292,7 @@ function buildMeasureElement(
     const pedals = scopedScore.pedalEvents?.filter(event => event.measureId === measure.id) ?? []
     let pedalIndex = 0
     return [
-      ...buildMeasureDirections(scopedScore, measure, spanDirections).map(direction => {
+      ...buildMeasureDirections(scopedScore, measure, spanDirections, initialMeasure).map(direction => {
         // Direction's staff precedes sound/listening, including a tempo in a
         // grand staff. Object insertion order is XML child order here.
         const { sound, listening, ...body } = direction as Record<string, unknown>
@@ -323,6 +334,10 @@ function buildMeasureElement(
         ...(printBreak.page ? { '@_new-page': 'yes' } : {})
       })] : []),
       xmlElement('attributes', buildAttributes(measures, hasTransposition)),
+      ...(initialMeasure && score.swingPlayback ? [xmlElement('sound', {
+        swing: { first: score.swingPlayback.ratio === '2:1' ? 2 : 3, second: score.swingPlayback.ratio === '2:1' ? 1 : 2,
+          'swing-type': score.swingPlayback.unit }
+      })] : []),
       ...annotations.map(({ element }) => element),
       ...buildStaffPlaybackElements(measures, slurBoundaries),
       ...barlines.map((barline) => xmlElement('barline', barline))
@@ -444,17 +459,17 @@ function buildMeasureHarmonies(score: Score, measure: Measure) {
     })
 }
 
-function buildMeasureDirections(score: Score, measure: Measure, spanDirections: SpanDirections) {
+function buildMeasureDirections(score: Score, measure: Measure, spanDirections: SpanDirections, initialMeasure: boolean) {
   const tempoEventDirections = (score.tempoEvents ?? [])
     .filter((event) => matchesMeasureReference(event.measureId, measure))
     .map((event) => buildTempoDirection(event, event.tick))
   const spans = spanDirections.get(measure) ?? []
 
   return [
-    ...(measure.number === 1 && score.tempo
+    ...(initialMeasure && score.tempo
       ? [buildTempoDirection(score.tempo)]
       : []),
-    ...(measure.number === 1 && score.rhythmFeel
+    ...(initialMeasure && score.rhythmFeel
       ? [buildRhythmFeelDirection(score.rhythmFeel)]
       : []),
     ...tempoEventDirections,

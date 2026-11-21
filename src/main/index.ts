@@ -10,6 +10,8 @@ import { AutosaveFileStore, type AutosaveSnapshot } from './autosave-files'
 import { RecentFileStore } from './recent-files'
 import { NativeProjectBackupStore } from './project-backups'
 import { savePngExport } from './png-export'
+import { saveBinaryExport } from './binary-export-files'
+import { musicXmlBackupFileName } from './musicxml-backup-name'
 import { configureDesktopBrand } from './desktop-brand'
 import { studioDisplayName } from '../desktop-identity'
 
@@ -310,7 +312,7 @@ ipcMain.handle(
       printBackground: false
     })
 
-    await writeFile(outputPath, pdfData)
+    await saveBinaryExport(outputPath, pdfData)
 
     return {
       filePath: outputPath,
@@ -331,7 +333,7 @@ ipcMain.handle(
   ) => {
     if (input.filePath) {
       assertSmokeDirectSavePath(input.filePath, 'mid')
-      await writeFile(input.filePath, Buffer.from(input.contents))
+      await saveBinaryExport(input.filePath, Buffer.from(input.contents))
       return {
         filePath: input.filePath,
         fileName: basename(input.filePath)
@@ -353,7 +355,7 @@ ipcMain.handle(
       return null
     }
 
-    await writeFile(result.filePath, Buffer.from(input.contents))
+    await saveBinaryExport(result.filePath, Buffer.from(input.contents))
 
     return {
       filePath: result.filePath,
@@ -1141,10 +1143,9 @@ async function backupExistingMusicXmlFile(
 ): Promise<string | undefined> {
   try {
     await mkdir(musicXmlBackupDirectory(), { recursive: true })
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const backupPath = join(
       musicXmlBackupDirectory(),
-      `${timestamp}-${sanitizeBackupFileName(basename(filePath))}`
+      musicXmlBackupFileName(filePath)
     )
 
     await copyFile(filePath, backupPath)
@@ -1156,10 +1157,6 @@ async function backupExistingMusicXmlFile(
 
     throw error
   }
-}
-
-function sanitizeBackupFileName(fileName: string): string {
-  return fileName.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-')
 }
 
 function getConcertPostersApiUrls(): string[] {

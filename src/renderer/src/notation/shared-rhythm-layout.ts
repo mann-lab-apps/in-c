@@ -196,7 +196,10 @@ export function formatSharedRhythm(staves: SharedStaffLayout[]): void {
   cells.forEach((cell, index) => {
     const fraction = layout.hasAnnotationVoice && layout.duration > 0
       ? (layout.modelTicks.get(cell.context) ?? 0) / layout.duration
-      : lastTick ? cell.context.getTickID() / lastTick : .5
+      : lastTick ? cell.context.getTickID() / lastTick : 0
+    // A single onset still belongs at the start of its measure. Centering it
+    // here moves a held note when a short lyric or another staff is added.
+    // Full-measure rests are centered independently after their glyphs draw.
     // Move the shared tick context before drawing: all noteheads, modifiers,
     // beams, ties, hit paths and playback anchors consume this same placement.
     cell.context.setX(barLeft + positions[index] + extra * fraction - start)

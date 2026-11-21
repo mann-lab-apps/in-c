@@ -4,9 +4,13 @@ import { readSvgShapeInk, readSvgTextInk } from './staff-ink-spacing'
 import { readPrintSystemInk } from './print-system-ink'
 import { readPrintHeaderInk } from './print-header-ink'
 
+type EditableTextKind = 'staff-text' | 'system-text' | 'expression-text' | 'rehearsal-mark'
+type PrintSymbolKind = 'symbol' | 'part-label' | EditableTextKind
+type PrintInkKind = 'staff' | 'header' | PrintSymbolKind
+
 export type PrintPageInkIssue =
-  | { afterPage: number; kind: 'staff' | 'symbol' | 'header' | 'part-label'; axis?: 'vertical' }
-  | { axis: 'horizontal'; page: number; kind: 'staff' | 'symbol' | 'header' | 'part-label' }
+  | { afterPage: number; kind: PrintInkKind; axis?: 'vertical' }
+  | { axis: 'horizontal'; page: number; kind: PrintInkKind }
   | { kind: 'system'; axis?: 'vertical'; systemIndex: number; actualHeight: number; availableHeight: number }
 type PageSelection = number | 'all'
 const ROUNDING = .25
@@ -24,18 +28,22 @@ export function crossingPrintPage(top: number, bottom: number, pageHeight: numbe
 
 export class PrintPageInkError extends Error {
   constructor(readonly issue: PrintPageInkIssue) {
-    const kind = issue.kind === 'staff' ? '보표' : issue.kind === 'header' ? '제목·작곡가 글자' : issue.kind === 'part-label' ? '파트 이름·약어' : '음악 기호'
+    const textKind = issue.kind === 'staff-text' ? '보표 글자' : issue.kind === 'system-text' ? '시스템 텍스트' : issue.kind === 'expression-text' ? '표현 텍스트' : issue.kind === 'rehearsal-mark' ? '연습표' : undefined
+    const kind = issue.kind === 'staff' ? '보표' : issue.kind === 'header' ? '제목·작곡가 글자' : issue.kind === 'part-label' ? '파트 이름·약어' : textKind ?? '음악 기호'
     const partLabelGuidance = '형식 > 악보 설정에서 파트 이름·약어를 줄인 뒤 다시 출력해 주세요. 입력한 이름과 악보는 유지됩니다.'
+    const textGuidance = textKind ? `악보에서 ${textKind}를 선택해 속성에서 문구를 조정하거나 PDF 페이지 설정을 바꾼 뒤 다시 출력해 주세요. 원본 문구와 악보는 유지됩니다.` : undefined
     super(issue.kind === 'system'
       ? `${issue.systemIndex+1}번째 악보단의 높이가 용지의 출력 가능한 영역보다 큽니다. PDF 페이지 설정에서 보표 크기·용지 방향을 바꾸거나 파트보로 전환한 뒤 다시 출력해 주세요. 악보와 수동 배치는 유지됩니다.`
       : issue.axis === 'horizontal'
       ? `${issue.page}쪽의 ${kind}가 가로 출력 영역을 벗어납니다. `+(issue.kind==='header'
         ? '악보 정보에서 문구를 조정하거나 PDF 페이지 설정을 바꾼 뒤 다시 출력해 주세요. 원본 문구와 악보는 유지됩니다.'
         : issue.kind==='part-label' ? partLabelGuidance
+        : textGuidance ? textGuidance
         : '표기의 가로 이동을 줄이거나 자동 배치로 되돌린 뒤 다시 출력해 주세요. 악보와 수동 배치는 유지됩니다.')
       : `${issue.afterPage}–${issue.afterPage+1}쪽 사이에서 ${kind}가 나뉩니다. `+(issue.kind==='header'
         ? '악보 정보에서 문구를 조정하거나 PDF 페이지 설정을 바꾼 뒤 다시 출력해 주세요. 원본 문구와 악보는 유지됩니다.'
         : issue.kind==='part-label' ? partLabelGuidance
+        : textGuidance ? textGuidance
         : 'PDF 페이지 설정에서 용지 방향이나 보표 크기를 바꾸거나 파트보로 전환한 뒤 다시 출력해 주세요.'))
     this.name = 'PrintPageInkError'
   }
@@ -61,6 +69,16 @@ function readSystemOwnership(svg: SVGSVGElement) {
     }
     return {origins,measureSystems}
   } catch { return }
+}
+
+function printSymbolKind(node: SVGElement): PrintSymbolKind {
+  if (node.classList.contains('notation-staff-label')) return 'part-label'
+  if (node.classList.contains('notation-staff-text')) return 'staff-text'
+  if (node.classList.contains('notation-system-text')) return 'system-text'
+  if (node.classList.contains('notation-expression-text')) return 'expression-text'
+  // A rehearsal mark's painted frame can overflow while all its glyphs fit.
+  if (node.closest('.notation-rehearsal-mark')) return 'rehearsal-mark'
+  return 'symbol'
 }
 
 export function assertPrintPageInk(root: HTMLElement, paper: Required<ScorePageSetup>, page: PageSelection = 'all'): void {
@@ -101,7 +119,7 @@ export function assertPrintPageInk(root: HTMLElement, paper: Required<ScorePageS
         }
       }
     }
-    const check = (bounds: {x:number;y:number;width:number;height:number} | undefined, kind: 'staff' | 'symbol' | 'part-label') => {
+    const check = (bounds: {x:number;y:number;width:number;height:number} | undefined, kind: Exclude<PrintInkKind, 'header'>) => {
       if (!bounds) return
       const top = offset + bounds.y * scale, bottom = offset + (bounds.y + bounds.height) * scale
       const afterPage = crossingPrintPage(top,bottom,contentPageHeight,page)
@@ -125,10 +143,10 @@ export function assertPrintPageInk(root: HTMLElement, paper: Required<ScorePageS
       }
     }
     for (const node of svg.querySelectorAll<SVGTextContentElement>('text')) {
-      if (!node.closest('defs,clipPath,mask')) check(readSvgTextInk(node,context),node.classList.contains('notation-staff-label')?'part-label':'symbol')
+      if (!node.closest('defs,clipPath,mask')) check(readSvgTextInk(node,context),printSymbolKind(node))
     }
     for (const node of svg.querySelectorAll<SVGGraphicsElement>('path,line,circle,ellipse,polygon,polyline,rect')) {
-      if (!node.closest('defs,clipPath,mask,.notation-measure-layer') && !node.classList.contains('notation-span-hit')) check(readSvgShapeInk(node),'symbol')
+      if (!node.closest('defs,clipPath,mask,.notation-measure-layer') && !node.classList.contains('notation-span-hit')) check(readSvgShapeInk(node),printSymbolKind(node))
     }
   }
 }

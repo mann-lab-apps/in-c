@@ -1,6 +1,7 @@
 import {
   createFullMeasureRest,
   createRest,
+  createGlobalMeasureResolver,
   decomposeDurationTicks,
   durationToTicks,
   measureDurationTicks,
@@ -57,22 +58,51 @@ export function buildTimeSignatureCommand(
   if (!nextMeasure) {
     return undefined
   }
+  // A shorter bar may discard plain rests, but not their authored notation
+  // or the endpoints of a surviving span. Use the same preservation policy
+  // as tuplet regrouping; never leave a score which cannot be saved natively.
+  const after = new Map(nextMeasure.voices.flatMap(voice => voice.events.map(event => [event.id, event] as const)))
+  const before = currentMeasure.voices.flatMap(voice => voice.events)
+  const removedIds = new Set(before.filter(event => !after.has(event.id)).map(event => event.id))
+  if ([...(score.hairpins ?? []), ...(score.slurs ?? []), ...(score.octaveShifts ?? [])]
+    .some(span => removedIds.has(span.startEventId) || removedIds.has(span.endEventId))) return undefined
+  if (before.some(event => {
+    if (event.type !== 'rest' || (!event.fermata && !event.breathMark)) return false
+    const next = after.get(event.id)
+    return next?.type !== 'rest' ||
+      (event.fermata && !next.fermata) ||
+      (event.breathMark && event.breathMark !== next.breathMark)
+  })) return undefined
   // Keep authored pedal anchors valid. Do not silently truncate a pedal phrase
   // when a smaller meter would put its release beyond the barline.
   if (score.pedalEvents?.some(pedal => pedal.measureId === currentMeasure.id &&
     pedal.tick > measureDurationTicks(nextMeasure))) return undefined
+
+  const nextEndTick = measureDurationTicks(nextMeasure)
+  if (nextEndTick < measureDurationTicks(currentMeasure)) {
+    // Match the existing paste/pickup protection: do not leave authored
+    // positions outside the shortened bar or spill them into its neighbor.
+    // Tempo aliases belong to the primary staff; local text keeps its owner.
+    const resolveGlobal = createGlobalMeasureResolver(score)
+    if (score.tempoEvents?.some(mark => resolveGlobal(mark.measureId) === currentMeasure.id && mark.tick > nextEndTick) ||
+      [...(score.harmonies ?? []), ...(score.expressionTexts ?? [])].some(mark =>
+        mark.measureId === currentMeasure.id && mark.tick > nextEndTick)) return undefined
+  }
 
   const measures = staff.measures.map((measure, index) =>
     index === measureIndex ? nextMeasure : measure
   )
 
   return {
-    type: 'staff-measures.replace',
-    target: {
-      partId: location.address.partId,
-      staffId: location.address.staffId
-    },
-    measures
+    // This edit keeps the same bars. The structural staff replacement command
+    // renumbers them (including on undo), which loses valid imported numbers
+    // and can leave number-based global tempo references dangling.
+    type: 'score-parts.replace',
+    parts: score.parts.map((candidate) => candidate.id !== location.address.partId ? candidate : {
+      ...candidate,
+      staves: candidate.staves.map((candidateStaff) =>
+        candidateStaff.id === staff.id ? { ...candidateStaff, measures } : candidateStaff)
+    })
   }
 }
 
@@ -144,9 +174,8 @@ function fitVoiceToTimeSignature(
     return {
       ...voice,
       events: [
-        createFullMeasureRest({
-          id: events[0].id
-        })
+        { ...createFullMeasureRest({ id: events[0].id }),
+          fermata: events[0].fermata, breathMark: events[0].breathMark }
       ]
     }
   }

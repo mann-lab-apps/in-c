@@ -46,6 +46,19 @@ export function formatStandardHarmonyText(
   return `${pitchText(root)}${suffix}${bass ? `/${pitchText(bass)}` : ''}`
 }
 
+/** A standard kind's text can be only its suffix, not the whole chord name.
+ * Recognize exactly the existing vocabulary; preserve legacy full names and
+ * opaque/custom spellings rather than guessing their structure. */
+export function resolveHarmonyDisplayText(
+  root: HarmonyMark['root'], kind: string | undefined,
+  bass: HarmonyMark['bass'], displayText: string | undefined
+): string | undefined {
+  const standard = formatStandardHarmonyText(root, kind, bass)
+  const suffix = kind === undefined ? undefined : suffixByKind.get(kind)
+  if (displayText === undefined || (standard !== undefined && displayText === suffix)) return standard
+  return displayText
+}
+
 function accidentalTextToAlter(value: string | undefined): Pitch['alter'] {
   if (value === '#') {
     return 1

@@ -1,0 +1,8 @@
+/** MusicXML full-bar rest omits graphic type; the duration is still explicit. */
+export function makeMeasureRestXml(beats = 4, beatType = 4, explicitType = false, pickup = false) {
+  const actualUnits = pickup ? 2 : beats * 16 / beatType
+  const rest = (staff: number, voice: number, units: number, forceType = explicitType) =>
+    `<note><rest measure="yes"/><duration>${units}</duration><voice>${voice}</voice>${forceType ? '<type>whole</type>' : ''}<staff>${staff}</staff><notations><fermata type="upright"/></notations></note>`
+  const notes = Array.from({ length: beats }, (_, i) => `<note><pitch><step>${'CDEFGAB'[i % 7]}</step><octave>4</octave></pitch><duration>${16 / beatType}</duration><voice>1</voice><type>${beatType === 8 ? 'eighth' : 'quarter'}</type><staff>1</staff></note>`).join('')
+  return `<?xml version="1.0" encoding="utf-8"?><score-partwise version="4.0"><work><work-title>온마디 쉼표 검증 ${beats}-${beatType}${pickup ? '-pickup' : ''}</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"${pickup ? ' implicit="yes"' : ''}><attributes><divisions>4</divisions><key><fifths>0</fifths><mode>major</mode></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes>${rest(1, 1, actualUnits, true)}<backup><duration>${actualUnits}</duration></backup>${rest(2, 2, actualUnits)}</measure><measure number="2">${notes}<backup><duration>${beats * 16 / beatType}</duration></backup>${rest(2, 2, beats * 16 / beatType)}</measure></part></score-partwise>`
+}

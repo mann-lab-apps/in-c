@@ -1,5 +1,5 @@
 import { Checkbox, IconButton, Slider, Text, Tooltip } from '@ddirori/ui'
-import { LocateFixed, Pause, Play, SkipBack, SlidersHorizontal, Square } from 'lucide-react'
+import { LocateFixed, Metronome, Pause, Play, Repeat2, SkipBack, SlidersHorizontal, Square } from 'lucide-react'
 import { createPartOptionLabels } from './editor/part-option-labels'
 import './studio-playback.css'
 
@@ -19,6 +19,12 @@ interface TransportProps {
   rewindAvailable?:boolean
   following?:boolean
   onFollow?:()=>void
+  metronomeEnabled?:boolean
+  metronomeReason?:string
+  onMetronome?:()=>void
+  practiceLoopLabel?:string
+  practiceLoopReason?:string
+  onPracticeLoop?:()=>void
 }
 export function StudioPlayback(props:TransportProps) {
   return <section className="studio-playback ddirori" data-theme={props.theme} data-density="compact" aria-label="재생 컨트롤"
@@ -29,8 +35,13 @@ export function StudioPlayback(props:TransportProps) {
       <Tooltip text="일시정지 · Space"><IconButton label="일시정지" disabled={props.status!=='playing'} onClick={props.onPause}><Pause size={18} strokeWidth={1.75} aria-hidden="true"/></IconButton></Tooltip>
       <Tooltip text="정지"><IconButton label="정지" disabled={props.status==='stopped'&&!props.loading} onClick={props.onStop}><Square size={18} strokeWidth={1.75} aria-hidden="true"/></IconButton></Tooltip>
       <Tooltip text="믹서 표시/숨기기"><IconButton label="믹서 표시" selected={props.mixerOpen} aria-expanded={props.mixerOpen} aria-controls="studio-part-mixer" onClick={props.onMixer}><SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true"/></IconButton></Tooltip>
+      {props.onMetronome ? <Tooltip text={props.metronomeReason ?? '메트로놈 · 파트 음소거와 독립적인 연습 클릭 · 파일 출력에는 포함되지 않습니다'}><IconButton label="메트로놈" selected={Boolean(props.metronomeEnabled&&!props.metronomeReason)} disabled={Boolean(props.metronomeReason)} aria-describedby={props.metronomeReason?'studio-metronome-reason':undefined} onClick={props.onMetronome}><Metronome size={18} strokeWidth={1.75} aria-hidden="true"/></IconButton></Tooltip> : null}
+      {props.onPracticeLoop?<Tooltip text={props.practiceLoopReason??'연습 루프 · 선택한 음표·쉼표 또는 연속 구간을 총보로 반복 · 파일에는 저장하지 않습니다'}><IconButton label="연습 루프" selected={Boolean(props.practiceLoopLabel)} disabled={Boolean(props.practiceLoopReason)} aria-describedby={props.practiceLoopReason?'studio-practice-loop-reason':props.practiceLoopLabel?'studio-practice-loop-range':undefined} onClick={props.onPracticeLoop}><Repeat2 size={18} strokeWidth={1.75} aria-hidden="true"/></IconButton></Tooltip>:null}
       {props.onFollow ? <Tooltip text="재생 위치 따라가기 · 수동 스크롤 후 다시 켤 수 있습니다"><IconButton label="재생 위치 따라가기" selected={props.following} onClick={props.onFollow}><LocateFixed size={18} strokeWidth={1.75} aria-hidden="true"/></IconButton></Tooltip> : null}
     </div>
+    {props.metronomeReason ? <Text id="studio-metronome-reason" variant="caption" role="status">{props.metronomeReason}</Text> : null}
+    {props.practiceLoopReason?<Text id="studio-practice-loop-reason" aria-label="연습 루프 적용 안내" variant="caption" role="status">{props.practiceLoopReason}</Text>:null}
+    {props.practiceLoopLabel?<Text id="studio-practice-loop-range" aria-label="연습 구간" variant="caption" role="status">{props.practiceLoopLabel} · 세션 전용 · 악보 수정/보기 변경 시 해제</Text>:null}
     <Text as="output" variant="caption" aria-label="재생 위치">{props.position.toFixed(1)} / {props.total.toFixed(1)}박</Text>
   </section>
 }

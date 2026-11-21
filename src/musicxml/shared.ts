@@ -44,7 +44,7 @@ export function clefToMusicXml(clef: Clef): {
   octaveChange?: number
 } {
   return {
-    sign: clef.sign === 'percussion' ? 'percussion' : clef.sign,
+    sign: clef.sign === 'tab' ? 'TAB' : clef.sign,
     line: clef.line,
     octaveChange: clef.octaveChange
   }

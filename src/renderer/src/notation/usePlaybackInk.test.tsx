@@ -69,3 +69,10 @@ describe('notation playback surface', () => {
     expect(paints).toHaveBeenCalledTimes(3)
   })
 })
+it('keeps the transaction returned at gesture start instead of retargeting a commit to a later live handler',()=>{
+ let begin:NotationPreviewProps['onBeginSpanDrag']
+ const firstCommit=vi.fn(()=>false),secondCommit=vi.fn(()=>true),first=vi.fn(()=>({commit:firstCommit,reject:vi.fn()})),next=vi.fn(()=>({commit:secondCommit,reject:vi.fn()}))
+ function Surface(props:NotationPreviewProps){const{canvasProps}=usePlaybackInk(props);begin=canvasProps.onBeginSpanDrag;return null}
+ const props:NotationPreviewProps={score:createSingleVoiceMvpScore(),onSelectEvent:vi.fn(),onSelectEventRange:vi.fn(),onSelectLyric:vi.fn(),onSelectMeasure:vi.fn(),onOpenMeasureContextMenu:vi.fn(),onBeginSpanDrag:first},reference={kind:'slur' as const,id:'old'},base={offsetX:0}
+ const host=render(<Surface {...props}/>),old=begin!(reference,base);host.rerender(<Surface {...props} onBeginSpanDrag={next}/>);old!.commit({offsetX:.5});expect(firstCommit).toHaveBeenCalledOnce();expect(secondCommit).not.toHaveBeenCalled();begin!(reference,base)!.commit({offsetX:1});expect(secondCommit).toHaveBeenCalledOnce()
+})

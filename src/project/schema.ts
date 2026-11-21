@@ -74,6 +74,7 @@ export const scoreSchema: z.ZodType<Score> = z.strictObject({
   pedalEvents: z.array(z.strictObject({ id, partId: id, staffId: id, measureId: id,
     tick, value: integer.min(0).max(127) })).max(10000).optional(),
   rhythmFeel: z.strictObject({ unit: z.enum(['eighth', '16th']), text: text.optional() }).optional(),
+  swingPlayback: z.strictObject({ unit: z.enum(['eighth', '16th']), ratio: z.enum(['2:1', '3:2']) }).optional(),
   octaveShifts: z.array(z.strictObject({ ...span, type: z.enum(['8va', '8vb', '15ma', '15mb']) })).max(10000).optional(),
   harmonies: z.array(measureMark.extend({ tick, root: harmonyPitch.optional(), bass: harmonyPitch.optional(), kind: text.optional() })).max(10000).optional(),
   rehearsalMarks: z.array(measureMark).max(10000).optional(), staffTexts: z.array(measureMark).max(10000).optional(),

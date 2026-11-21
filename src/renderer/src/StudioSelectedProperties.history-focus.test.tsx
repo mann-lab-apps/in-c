@@ -70,3 +70,13 @@ it('does not take focus back after another control receives focus and is removed
   host.rerender(view('bar-one-remounted')); other.remove(); flush()
   expect(screen.getByRole('combobox', { name: '선택 마디 셈여림' })).not.toHaveFocus()
 })
+it.each(['configured','old-default'] as const)('uses the configured history predicate when restoring a field: %s', which => {
+  const matches=(event:KeyboardEvent)=>event.ctrlKey&&event.shiftKey&&event.code==='KeyD'
+  // The owner component stays mounted; its Select is remounted by a measure change.
+  const view=(id:string)=><StudioSelectedProperties {...base} identity={id} dynamicListIdentity={id} historyFocusScope="document-one:score" historyUndoKey={matches} historyRedoKey={()=>false}/>
+  const host=render(view('bar-one'));const field=screen.getByRole('combobox',{name:'선택 마디 셈여림'});field.focus();frames.length=0
+  fireEvent.keyDown(field,which==='configured'?{key:'D',code:'KeyD',ctrlKey:true,shiftKey:true}:{key:'z',code:'KeyZ',ctrlKey:true})
+  host.rerender(view('bar-two'));flush()
+  if(which==='configured')expect(screen.getByRole('combobox',{name:'선택 마디 셈여림'})).toHaveFocus()
+  else expect(screen.getByRole('combobox',{name:'선택 마디 셈여림'})).not.toHaveFocus()
+})

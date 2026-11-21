@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSingleVoiceMvpScore } from '../../../testing/single-voice-mvp-fixture'
+import { createSwingPlaybackFixture } from '../../../testing/swing-playback-fixture'
 import { usePianoExpression } from './usePianoExpression'
 
 class MockWorker {
@@ -26,6 +27,30 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('local piano expression worker', () => {
+  it.each([false, true])('recomputes swing with the same document ID and rejects the old cached/worker timing, natural=%s', natural => {
+    const swung = createSwingPlaybackFixture('eighth', '3:2'); swung.id = `worker-swing-${count++}`
+    const straight = { ...swung, swingPlayback: undefined }
+    const { result, rerender } = renderHook(({ value }) => usePianoExpression(value, natural), { initialProps: { value: straight as typeof swung } })
+    expect(result.current.timeline.events[1].startBeat).toBe(0.5)
+    act(() => vi.advanceTimersByTime(150))
+    const old = MockWorker.instances[0], oldReply = old?.onmessage
+    const oldTimeline = old?.postMessage.mock.calls[0][0].timeline
+    if (natural) act(() => oldReply!({ data: { timeline: oldTimeline } }))
+    rerender({ value: swung })
+    expect(result.current.timeline.events[1].startBeat).toBeCloseTo(0.6)
+    act(() => vi.advanceTimersByTime(150))
+    if (natural) {
+      const next = MockWorker.instances[1], request = next.postMessage.mock.calls[0][0]
+      expect(request.score.swingPlayback).toEqual(swung.swingPlayback)
+      expect(request.timeline.events[1].startBeat).toBeCloseTo(0.6)
+      act(() => oldReply!({ data: { timeline: oldTimeline } }))
+      expect(result.current.timeline.events[1].startBeat).toBeCloseTo(0.6)
+      act(() => next.onmessage!({ data: { timeline: request.timeline } }))
+    } else expect(MockWorker.instances).toHaveLength(0)
+    rerender({ value: straight })
+    expect(result.current.timeline.events[1].startBeat).toBe(0.5)
+    if (natural) { expect(result.current.preparing).toBe(false); expect(MockWorker.instances).toHaveLength(2) }
+  })
   it('ignores late success and failure from the previous score', () => {
     const first = score(), second = score()
     const { result, rerender } = renderHook(({ value }) => usePianoExpression(value, true), {

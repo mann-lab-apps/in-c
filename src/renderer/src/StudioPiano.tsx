@@ -1,13 +1,15 @@
 import { Checkbox, IconButton, Text, Tooltip } from '@ddirori/ui'
 import { Volume2 } from 'lucide-react'
+import { StudioWarningTechnicalDetails } from './StudioWarningReport'
 import './studio-piano.css'
 
-export function StudioPiano({ theme, state, progress, error, sustain, onSustain,
+export function StudioPiano({ theme, state, progress, error, errorDetails, sustain, onSustain,
   natural, onNatural, preparing, onPreview, playing }: {
   theme: 'light' | 'dark'
   state: 'idle' | 'loading' | 'ready' | 'error'
   progress: number
   error: string
+  errorDetails?: { message: string;source?:'metronome'|'playback' }
   sustain: boolean
   onSustain: (down: boolean) => void
   natural: boolean
@@ -32,5 +34,6 @@ export function StudioPiano({ theme, state, progress, error, sustain, onSustain,
       <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>
     </details>
     {error && <Text variant="caption" role="alert">{error} 재생을 눌러 다시 시도할 수 있습니다.</Text>}
+    {error && errorDetails ? <div className="studio-piano__technical" role="group" aria-label={errorDetails.source==='playback'?'재생 기술 정보':'메트로놈 기술 정보'}><StudioWarningTechnicalDetails key={errorDetails.message} warning={errorDetails} meta={errorDetails.source==='playback'?'재생 진단':'메트로놈 진단'} /></div> : null}
   </section>
 }

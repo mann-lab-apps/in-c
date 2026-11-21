@@ -25,6 +25,14 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
         undo: { type: 'score-pedal-events.update', pedalEvents: score.pedalEvents } }
     case 'score-rhythm-feel.update':
       return updateScoreRhythmFeel(score, command.rhythmFeel)
+    case 'score-swing-playback.update': {
+      const value = command.swingPlayback
+      if (value && (!['eighth', '16th'].includes(value.unit) || !['2:1', '3:2'].includes(value.ratio))) {
+        throw new Error('지원하지 않는 전역 스윙 재생 설정입니다.')
+      }
+      return { score: { ...score, swingPlayback: value },
+        undo: { type: 'score-swing-playback.update', swingPlayback: score.swingPlayback } }
+    }
     case 'score-octave-shifts.update':
       return updateScoreOctaveShifts(score, command.octaveShifts)
     case 'score-rehearsal-marks.update':

@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor , within } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { serializeMusicXml } from '../../musicxml'
 import { createPartSpanResetFixture } from '../../testing/part-span-reset-fixture'
 import { decodeNativeProject } from '../../project/schema'
 import { registerAppTestHooks, openStudioWorkspace, chooseScoreView, choosePageSetup, playbackMockState } from './App.test-harness'
+
+// Resolve the current public surface after workspace/document remounts; never cache old fields.
+const hvFileTools = () => within(screen.getByRole('region', { name: '파일 및 선택 도구' }))
 
 registerAppTestHooks()
 
@@ -16,7 +19,7 @@ it.each(['success', 'cancel', 'failure'] as const)('studio.xml-layout-save keeps
   const { App } = await import('./App')
   render(<App />)
   openStudioWorkspace('파일')
-  fireEvent.click(screen.getByRole('button', { name: 'MusicXML 가져오기' }))
+  fireEvent.click(hvFileTools().getByRole('button', { name: 'MusicXML 가져오기' }))
   await waitFor(() => expect(playbackMockState.lastScore?.title).toBe('Independent part structural layout'))
   openStudioWorkspace('악보')
   chooseScoreView('악보 보기', 'part')
@@ -28,7 +31,7 @@ it.each(['success', 'cancel', 'failure'] as const)('studio.xml-layout-save keeps
   let fail!: (error: Error) => void
   vi.mocked(window.inC.musicXml.save).mockImplementationOnce(() => new Promise((resolve, reject) => { finish = resolve; fail = reject }))
   openStudioWorkspace('파일')
-  fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+  fireEvent.click(hvFileTools().getByRole('button', { name: 'MusicXML로 저장' }))
   expect(finish).toBeTypeOf('function')
   openStudioWorkspace('내보내기')
   choosePageSetup('PDF 용지', 'Letter')
@@ -47,12 +50,12 @@ it.each(['success', 'cancel', 'failure'] as const)('studio.xml-layout-save keeps
   expect(playbackMockState.lastScore).toEqual(score)
   vi.mocked(window.inC.project.save).mockResolvedValue({filePath:'/fixture/layout.chromatics', fileName:'layout.chromatics'})
   openStudioWorkspace('파일')
-  fireEvent.click(screen.getByRole('button', {name: '프로젝트 저장'}))
+  fireEvent.click(hvFileTools().getByRole('button', {name: '프로젝트 저장'}))
   await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
   const project = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents)
   expect(project.partLayouts.find(p => p.partId === 'P2')?.layout.pageSetup?.pageSize).toBe('letter')
   fireEvent.keyDown(window, {key:'z', code:'KeyZ', ctrlKey:true})
-  fireEvent.click(screen.getByRole('button', {name:'프로젝트 저장'}))
+  fireEvent.click(hvFileTools().getByRole('button', {name:'프로젝트 저장'}))
   await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
   expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1][0].contents).partLayouts.find(p => p.partId === 'P2')?.layout.pageSetup?.pageSize).toBe('a4')
 })
@@ -64,10 +67,10 @@ it('studio.xml-layout-save restores a portable recovery snapshot when the first 
   let finishClear!: () => void
   vi.mocked(window.inC.autosave.clear).mockImplementationOnce(() => new Promise(resolve => { finishClear = resolve }))
   const {App} = await import('./App'); render(<App />)
-  openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'MusicXML 가져오기'}))
+  openStudioWorkspace('파일');fireEvent.click(hvFileTools().getByRole('button',{name:'MusicXML 가져오기'}))
   await waitFor(() => expect(playbackMockState.lastScore?.title).toBe('Independent part structural layout'))
   openStudioWorkspace('악보');chooseScoreView('악보 보기','part');chooseScoreView('파트보 선택','P2')
-  openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'MusicXML로 저장'}))
+  openStudioWorkspace('파일');fireEvent.click(hvFileTools().getByRole('button',{name:'MusicXML로 저장'}))
   await waitFor(() => expect(finishClear).toBeTypeOf('function'))
   openStudioWorkspace('내보내기');choosePageSetup('PDF 용지','Letter')
   await act(async () => finishClear())

@@ -8,12 +8,26 @@
       "exportSettings": "Hand-authored compatibility seed shaped after MuseScore grand staff MusicXML; not a verified MuseScore export.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
       "path": "musescore-grand-staff-basic.musicxml",
-      "expectedPartNames": ["Piano"],
-      "expectedStaffCounts": [2],
-      "expectedClefs": ["G2", "F4"],
-      "expectedEventPitches": ["C4", "C3"],
-      "expectedDynamics": ["mf"],
-      "expectedArticulations": ["staccato"],
+      "expectedPartNames": [
+        "Piano"
+      ],
+      "expectedStaffCounts": [
+        2
+      ],
+      "expectedClefs": [
+        "G2",
+        "F4"
+      ],
+      "expectedEventPitches": [
+        "C4",
+        "C3"
+      ],
+      "expectedDynamics": [
+        "mf"
+      ],
+      "expectedArticulations": [
+        "staccato"
+      ],
       "expectedWarnings": [],
       "expectedWarningPaths": []
     },
@@ -25,19 +39,56 @@
       "exportSettings": "MuseScore Studio 4.7.5 CLI: imported musescore-grand-staff-basic.musicxml with factory settings/default MusicXML font and exported uncompressed MusicXML via -F --musicxml-use-default-font -o.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#2026-09-11-musescore-cli-app-export-fixture",
       "path": "musescore-4-7-5-cli-grand-staff-export.musicxml",
-      "expectedPartNames": ["Piano"],
-      "expectedStaffCounts": [2],
-      "expectedClefs": ["G2", "F4"],
-      "expectedEventPitches": ["C4", "C3"],
-      "expectedVoiceCounts": [1, 1],
-      "expectedVoiceIdsByStaff": [["voice-1"], ["voice-1"]],
-      "expectedRawVoiceValuesByStaff": [["1"], ["5"]],
-      "expectedDynamics": ["mf"],
-      "expectedArticulations": ["staccato"],
-      "expectedWarnings": ["unsupported-direction"],
+      "expectedPartNames": [
+        "Piano"
+      ],
+      "expectedStaffCounts": [
+        2
+      ],
+      "expectedClefs": [
+        "G2",
+        "F4"
+      ],
+      "expectedEventPitches": [
+        "C4",
+        "C3"
+      ],
+      "expectedVoiceCounts": [
+        1,
+        1
+      ],
+      "expectedVoiceIdsByStaff": [
+        [
+          "voice-1"
+        ],
+        [
+          "voice-1"
+        ]
+      ],
+      "expectedRawVoiceValuesByStaff": [
+        [
+          "1"
+        ],
+        [
+          "5"
+        ]
+      ],
+      "expectedDynamics": [
+        "mf"
+      ],
+      "expectedArticulations": [
+        "staccato"
+      ],
+      "expectedWarnings": [
+        "unsupported-direction"
+      ],
       "expectedWarningPaths": [
+        "part-list.score-part[1].midi-instrument[1].midi-channel",
         "part-list.score-part[1].midi-instrument[1].midi-program",
-        "part[1].measure[1].direction[1].sound.dynamics"
+        "part-list.score-part[1].midi-instrument[1].volume",
+        "part-list.score-part[1].midi-instrument[1].pan",
+        "part[1].measure[1].direction[1].sound.dynamics",
+        "part-list.score-part[1].midi-device[1]"
       ]
     },
     {
@@ -48,10 +99,22 @@
       "exportSettings": "Hand-authored compatibility seed shaped after Finale-origin two-part MusicXML; not a verified Finale export.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
       "path": "finale-string-duet-basic.musicxml",
-      "expectedPartNames": ["Violin", "Cello"],
-      "expectedStaffCounts": [1, 1],
-      "expectedClefs": ["G2", "F4"],
-      "expectedEventPitches": ["E5", "C3"],
+      "expectedPartNames": [
+        "Violin",
+        "Cello"
+      ],
+      "expectedStaffCounts": [
+        1,
+        1
+      ],
+      "expectedClefs": [
+        "G2",
+        "F4"
+      ],
+      "expectedEventPitches": [
+        "E5",
+        "C3"
+      ],
       "expectedDynamics": [],
       "expectedArticulations": [],
       "expectedWarnings": [],
@@ -65,11 +128,22 @@
       "exportSettings": "Hand-authored compatibility seed shaped after Sibelius-style same-staff voices; not a verified Sibelius export.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
       "path": "sibelius-multi-voice-basic.musicxml",
-      "expectedPartNames": ["Piano"],
-      "expectedStaffCounts": [1],
-      "expectedClefs": ["G2"],
-      "expectedEventPitches": ["C4", "E4"],
-      "expectedVoiceCounts": [2],
+      "expectedPartNames": [
+        "Piano"
+      ],
+      "expectedStaffCounts": [
+        1
+      ],
+      "expectedClefs": [
+        "G2"
+      ],
+      "expectedEventPitches": [
+        "C4",
+        "E4"
+      ],
+      "expectedVoiceCounts": [
+        2
+      ],
       "expectedDynamics": [],
       "expectedArticulations": [],
       "expectedWarnings": [],
@@ -83,14 +157,26 @@
       "exportSettings": "Hand-authored compatibility seed shaped after Dorico-style unsupported directions; not a verified Dorico export.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
       "path": "dorico-unsupported-directions.musicxml",
-      "expectedPartNames": ["Viola"],
-      "expectedStaffCounts": [1],
-      "expectedClefs": ["C3"],
-      "expectedEventPitches": ["C4"],
+      "expectedPartNames": [
+        "Viola"
+      ],
+      "expectedStaffCounts": [
+        1
+      ],
+      "expectedClefs": [
+        "C3"
+      ],
+      "expectedEventPitches": [
+        "C4"
+      ],
       "expectedDynamics": [],
       "expectedArticulations": [],
-      "expectedWarnings": ["unsupported-notation"],
+      "expectedWarnings": [
+        "unsupported-direction",
+        "unsupported-notation"
+      ],
       "expectedWarningPaths": [
+        "part[1].measure[1].direction[1].pedal[1]",
         "part[1].measure[1].note[1].notations.technical"
       ]
     }

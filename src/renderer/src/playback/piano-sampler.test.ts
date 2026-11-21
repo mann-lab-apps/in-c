@@ -32,6 +32,22 @@ function prepared() {
 }
 
 describe('piano sampler lifecycle', () => {
+  it('cancels even a voice retired by polyphony before its future loop attack',()=>{
+    const {sampler,nodes}=prepared()
+    for(let i=0;i<130;i++){sampler.noteOn('lap-'+i,60,48,.5);sampler.limitNoteAt('lap-'+i,.6)}
+    sampler.stopAll()
+    for(const node of nodes)expect(node.stop.mock.calls.at(-1)?.[0]).toBeLessThan(.02)
+  })
+  it('keeps a loop boundary voice cancellable and prevents pedal release from extending it',()=>{
+    const {sampler,nodes,context}=prepared()
+    sampler.setSustain(true);sampler.noteOn('lap0',60,48,.1);sampler.limitNoteAt('lap0',1)
+    sampler.noteOff('lap0',.5);sampler.setSustain(false,.7)
+    expect(nodes[0].stop.mock.calls.every(call=>call[0]<=1)).toBe(true)
+    sampler.setSustain(true,.6);expect(nodes[0].stop.mock.calls.at(-1)?.[0]).toBeLessThanOrEqual(1)
+    expect(sampler.activeVoices).toBe(1);context.currentTime=.2;sampler.stopAll()
+    expect(nodes[0].stop.mock.calls.at(-1)?.[0]).toBeLessThan(.3);expect(sampler.activeVoices).toBe(0)
+  })
+
   it('escapes sharp-note filenames in both web and packaged file URLs', () => {
     expect(pianoSampleUrl('D#4v11.ogg', 'file:///app/piano/manifest.json'))
       .toBe('file:///app/piano/D%234v11.ogg')

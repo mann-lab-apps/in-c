@@ -10,6 +10,15 @@ function mockOverlayGeometry(){
  vi.spyOn(document.body,'getBoundingClientRect').mockReturnValue(new DOMRect(0,-100,1024,1200))
 }
 
+function reportReadingFixture(){
+ const report=document.createElement('section'),reader=document.createElement('div'),text=document.createElement('code')
+ report.className='studio-warning-report';reader.className='studio-warning-report__viewport';reader.tabIndex=0;text.textContent='part[2].measure[10]'
+ reader.append(text);report.append(reader);document.body.append(report)
+ const select=()=>{const range=document.createRange();range.selectNodeContents(text);const selection=document.getSelection()!;selection.removeAllRanges();selection.addRange(range)}
+ const remove=()=>{document.getSelection()?.removeAllRanges();report.remove()}
+ return {report,reader,text,select,remove}
+}
+
 describe('playback viewport ownership',()=>{
  let canvas:HTMLDivElement,reveal:Mock<(target:Element)=>void>,frames:Map<number,FrameRequestCallback>,next:number
  const flush=(time=performance.now()+1)=>act(()=>{const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(time))})
@@ -228,11 +237,83 @@ describe('playback viewport ownership',()=>{
   act(()=>canvas.dispatchEvent(new KeyboardEvent('keydown',{key:'PageDown',bubbles:true})))
   expect(result.current.following).toBe(false)
  })
+ it('keeps explicit follow activation usable while its own button remains focused',async()=>{
+  const line=cursor(),{result}=renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal));flush();reveal.mockClear()
+  const transport=document.createElement('section'),follow=document.createElement('button'),pause=document.createElement('button')
+  transport.className='studio-playback';transport.append(follow,pause);document.body.append(transport)
+  try{
+   act(()=>follow.focus());flush();expect(reveal).not.toHaveBeenCalled()
+   act(()=>window.dispatchEvent(new WheelEvent('wheel',{deltaY:120})));flush()
+   expect(result.current.following).toBe(false)
+   act(()=>result.current.toggleFollowing());flush()
+   expect(result.current.following).toBe(true);expect(reveal).toHaveBeenCalledOnce();expect(document.activeElement).toBe(follow)
+   await act(async()=>line.setAttribute('x1','48'));flush();expect(reveal).toHaveBeenCalledTimes(2)
+   reveal.mockClear();act(()=>pause.focus());flush();expect(reveal).not.toHaveBeenCalled()
+   act(()=>follow.focus());flush();expect(reveal).not.toHaveBeenCalled()
+   act(()=>window.dispatchEvent(new WheelEvent('wheel',{deltaY:120})));flush();expect(result.current.following).toBe(false)
+   act(()=>result.current.toggleFollowing());flush();expect(reveal).toHaveBeenCalledOnce()
+  }finally{transport.remove()}
+ })
+ it.each(['pending','later']as const)('keeps explicit transport focus above the %s cursor reveal',async timing=>{
+  const line=cursor(),{result}=renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal))
+  if(timing==='later'){flush();reveal.mockClear()}
+  const transport=document.createElement('section'),button=document.createElement('button')
+  transport.className='studio-playback';transport.append(button);document.body.append(transport)
+  try{
+   await act(async()=>{button.focus();line.setAttribute('x1','12')});flush()
+   expect(reveal).not.toHaveBeenCalled();expect(document.activeElement).toBe(button)
+   expect(result.current.following).toBe(true)
+   await act(async()=>{line.setAttribute('x1','24')});flush();expect(reveal).not.toHaveBeenCalled()
+   act(()=>{canvas.tabIndex=0;canvas.focus()});flush()
+   expect(reveal).toHaveBeenCalledOnce();expect(reveal).toHaveBeenLastCalledWith(line)
+   expect(result.current.following).toBe(true)
+  }finally{transport.remove()}
+ })
  it('does not pan a focused inline editor and resumes after focus leaves',async()=>{
   cursor();const {result}=renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal));flush();reveal.mockClear()
   const input=document.createElement('input')
   await act(async()=>{canvas.append(input);input.focus()});flush()
   expect(reveal).not.toHaveBeenCalled();expect(result.current.following).toBe(true)
   act(()=>{canvas.tabIndex=0;canvas.focus()});flush();expect(reveal).toHaveBeenCalledOnce()
+ })
+
+ it.each([
+  {origin:'reader',timing:'pending'}, {origin:'body',timing:'pending'},
+  {origin:'reader',timing:'later'}, {origin:'body',timing:'later'}
+ ]as const)('keeps selected diagnostic reading above the $timing cursor frame from $origin',async({origin,timing})=>{
+  const line=cursor(),f=reportReadingFixture(),{result}=renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal))
+  try{
+   if(timing==='later'){flush();reveal.mockClear()}
+   await act(async()=>{f.reader.focus();if(origin==='body')f.reader.blur();f.select();line.setAttribute('x1','12')});flush()
+   expect(reveal).not.toHaveBeenCalled();expect(document.getSelection()?.toString()).toBe('part[2].measure[10]')
+   expect(result.current.following).toBe(true)
+   await act(async()=>line.setAttribute('x1','24'));flush();expect(reveal).not.toHaveBeenCalled()
+  }finally{f.remove()}
+ })
+ it('resumes following when diagnostic selection collapses without a new cursor mutation',()=>{
+  const line=cursor(),f=reportReadingFixture()
+  try{
+   const {result}=renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal));act(()=>{f.reader.focus();f.select()});flush();reveal.mockClear()
+   act(()=>{document.getSelection()!.collapseToStart();document.dispatchEvent(new Event('selectionchange'))});flush()
+   expect(reveal).toHaveBeenCalledOnce();expect(reveal).toHaveBeenLastCalledWith(line);expect(result.current.following).toBe(true)
+  }finally{f.remove()}
+ })
+ it.each(['score','explicit-follow']as const)('keeps a lingering report range below the explicit %s destination',destination=>{
+  const line=cursor(),f=reportReadingFixture(),transport=document.createElement('section'),follow=document.createElement('button')
+  transport.className='studio-playback';transport.append(follow);document.body.append(transport)
+  try{
+   const {result}=renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal));act(()=>{f.reader.focus();f.select()});flush();reveal.mockClear()
+   if(destination==='score'){act(()=>{canvas.tabIndex=0;canvas.focus();f.select()});flush()}
+   else{act(()=>window.dispatchEvent(new WheelEvent('wheel',{deltaY:120})));flush();act(()=>follow.focus());act(()=>{f.select();result.current.toggleFollowing()});flush()}
+   expect(document.getSelection()?.toString()).toBe('part[2].measure[10]');expect(reveal).toHaveBeenCalledOnce();expect(reveal).toHaveBeenLastCalledWith(line)
+   expect(result.current.following).toBe(true)
+  }finally{f.remove();transport.remove()}
+ })
+ it('does not let hidden diagnostic selection suppress the normal cursor',()=>{
+  const line=cursor(),f=reportReadingFixture()
+  try{
+   act(()=>{f.reader.focus();f.reader.blur();f.select();f.report.hidden=true});renderHook(()=>usePlaybackViewport({current:canvas},'playing',reveal));flush()
+   expect(reveal).toHaveBeenCalledOnce();expect(reveal).toHaveBeenLastCalledWith(line)
+  }finally{f.remove()}
  })
 })

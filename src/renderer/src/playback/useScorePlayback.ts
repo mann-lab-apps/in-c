@@ -5,7 +5,12 @@ import { applyExpressionProfile, createScoreRequest } from './expression-profile
 import { applyVoicingProfile, createVoicingRequest, type AnyExpressionProfile } from './voicing-profile'
 import { PianoSampler } from './piano-sampler'
 import { PianoTransport } from './piano-transport'
+import { resolveTremoloBeatInterval } from './tremolo-interval'
+import { createMetronomePlan } from './metronome'
+import { MetronomeTransport } from './metronome-transport'
 import { collectPianoPitches } from './piano-cache-plan'
+import type {PracticeLoopRange} from './practice-loop'
+import {createPracticeLoopClock,type PracticeLoopClock} from './practice-loop-clock'
 import {
   beatDeltaToSeconds,
   createPlaybackTimeline,
@@ -38,19 +43,27 @@ const MIN_TEMPO = 40
 const MAX_TEMPO = 240
 const DEFAULT_TEMPO = 120
 const EMPTY_PART_MIXER: PlaybackPartMixerMap = {}
-const TREMOLO_BEAT_INTERVAL = {
-  1: 0.5,
-  2: 0.25,
-  3: 0.125
-} as const
 const TRILL_BEAT_INTERVAL = 0.125
 
 export function useScorePlayback(
   score: Score,
-  partMixer: PlaybackPartMixerMap = EMPTY_PART_MIXER,
+  storedPartMixer: PlaybackPartMixerMap = EMPTY_PART_MIXER,
   expressionProfile?: AnyExpressionProfile,
-  pianoTimeline?: PlaybackTimeline
+  pianoTimeline?: PlaybackTimeline,
+  metronomeEnabled = false,
+  practiceLoop?:PracticeLoopRange
 ) {
+  // Preferences can outlive the document that supplied their part IDs. Keep
+  // them stored, but apply solo/mute/gain only to parts in the current score.
+  // Use the full score rather than the cursor/part-view or sounding events:
+  // a current rest-only solo part must still mute the other parts.
+  const partMixer = useMemo(() => {
+    const partIds = new Set(score.parts.map(part => part.id))
+    const entries = Object.entries(storedPartMixer)
+    return entries.every(([id]) => partIds.has(id))
+      ? storedPartMixer
+      : Object.fromEntries(entries.filter(([id]) => partIds.has(id)))
+  }, [score.parts, storedPartMixer])
   const timeline = useMemo(() => {
     const basic = pianoTimeline ?? createPlaybackTimeline(score)
     if (!expressionProfile) return basic
@@ -67,6 +80,12 @@ export function useScorePlayback(
     ? tempoMarkingToQuarterBpm(score.tempo)
     : DEFAULT_TEMPO
   const [tempo, setTempoState] = useState(scoreTempo)
+  const metronomePlan = useMemo(() => createMetronomePlan(score, timeline, tempo), [score, timeline, tempo])
+  const metronomePlanRef = useRef(metronomePlan)
+  const metronomeEnabledRef = useRef(metronomeEnabled)
+  metronomePlanRef.current = metronomePlan
+  metronomeEnabledRef.current = metronomeEnabled
+  const metronomeRef = useRef<MetronomeTransport | undefined>(undefined)
   const [positionBeat, setPositionBeat] = useState(0)
   const [activeEvent, setActiveEvent] = useState<PlaybackEvent | undefined>()
   const audioContextRef = useRef<AudioContext | undefined>(undefined)
@@ -77,6 +96,7 @@ export function useScorePlayback(
   const [audioState, setAudioState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [audioProgress, setAudioProgress] = useState(0)
   const [audioError, setAudioError] = useState('')
+  const [audioErrorDetails, setAudioErrorDetails] = useState<{ message: string;source?:'metronome'|'playback' }>()
   const [sustain, setSustainState] = useState(false)
   const sustainRef = useRef(false)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -89,6 +109,10 @@ export function useScorePlayback(
   const timelineRef = useRef(timeline)
   const statusRef = useRef<PlaybackStatus>(status)
   const partMixerRef = useRef(partMixer)
+  const practiceLoopRef=useRef(practiceLoop)
+  const previousPracticeLoopRef=useRef(practiceLoop)
+  const runningLoopClockRef=useRef<PracticeLoopClock|undefined>(undefined)
+  practiceLoopRef.current=practiceLoop
 
   useEffect(() => {
     tempoRef.current = tempo
@@ -116,6 +140,7 @@ export function useScorePlayback(
     if (previewTimer.current) clearTimeout(previewTimer.current)
     previewTimer.current = undefined
     transportRef.current?.stop()
+    metronomeRef.current?.stop()
     pianoRef.current?.stopAll()
     sourcesRef.current.forEach((source) => {
       try {
@@ -125,6 +150,7 @@ export function useScorePlayback(
       }
     })
     sourcesRef.current = []
+    runningLoopClockRef.current=undefined
   }, [])
 
   const cancelFrame = useCallback(() => {
@@ -142,6 +168,7 @@ export function useScorePlayback(
     }
 
     const elapsedSeconds = context.currentTime - startContextTimeRef.current
+    if(runningLoopClockRef.current)return runningLoopClockRef.current.beatAtElapsed(elapsedSeconds)
     return Math.max(
       startBeatRef.current,
       elapsedSecondsToBeat(
@@ -160,6 +187,7 @@ export function useScorePlayback(
       audioContextRef.current = undefined
       pianoRef.current = undefined
       transportRef.current = undefined
+      metronomeRef.current = undefined
     }
     if (audioContextRef.current) return audioContextRef.current
     const context = new AudioContextClass({ latencyHint: 'interactive', sampleRate: 48000 })
@@ -183,6 +211,7 @@ export function useScorePlayback(
       setPreviewing(false)
       setAudioState('error')
       setAudioProgress(0)
+      setAudioErrorDetails(undefined)
       setAudioError(state === 'closed'
         ? '오디오 장치 연결이 종료되었습니다.' : '오디오 장치가 중단되어 일시정지했습니다.')
       if (state === 'closed') {
@@ -192,6 +221,7 @@ export function useScorePlayback(
         pianoRef.current = undefined
         transportRef.current = undefined
         audioContextRef.current = undefined
+        metronomeRef.current = undefined
       }
     }
     context.addEventListener?.('statechange', onStateChange)
@@ -265,13 +295,39 @@ export function useScorePlayback(
     []
   )
 
+  const failMetronome = useCallback((error: unknown, initial = false) => {
+    const beat = initial ? startBeatRef.current : Math.min(readCurrentBeat(), timelineRef.current.totalBeats)
+    stopSources(); cancelFrame()
+    startBeatRef.current = beat
+    statusRef.current = initial ? 'stopped' : 'paused'
+    setStatus(statusRef.current); setPositionBeat(beat)
+    setActiveEvent(initial ? undefined : findPlaybackEvent(timelineRef.current, beat))
+    setAudioState('error'); setAudioProgress(0)
+    setAudioError('메트로놈 소리를 준비하지 못해 재생을 멈췄습니다.')
+    setAudioErrorDetails({ message: error instanceof Error ? error.message : String(error) })
+  }, [cancelFrame, readCurrentBeat, stopSources])
+
+  const syncMetronome = useCallback((initial = false) => {
+    metronomeRef.current?.stop()
+    const context = audioContextRef.current, plan = metronomePlanRef.current
+    if (!context || !metronomeEnabledRef.current || plan.unavailableReason || statusRef.current !== 'playing') return
+    const transport = metronomeRef.current ?? new MetronomeTransport(context, error => failMetronome(error))
+    metronomeRef.current = transport
+    try {
+      if(runningLoopClockRef.current)transport.start(plan.clicks,timelineRef.current,startBeatRef.current,tempoRef.current,startContextTimeRef.current,practiceLoopRef.current)
+      else transport.start(plan.clicks, timelineRef.current, startBeatRef.current, tempoRef.current, startContextTimeRef.current)
+    } catch(error) { failMetronome(error, initial) }
+  }, [failMetronome])
+
   const startTicker = useCallback(() => {
     const tick = () => {
       const beat = readCurrentBeat()
       const currentTimeline = timelineRef.current
 
-      if (beat >= currentTimeline.totalBeats) {
+      if (!runningLoopClockRef.current && beat >= currentTimeline.totalBeats) {
         transportRef.current?.finish()
+        metronomeRef.current?.stop()
+        statusRef.current = 'stopped'
         setPositionBeat(0)
         setActiveEvent(undefined)
         setStatus('stopped')
@@ -288,6 +344,14 @@ export function useScorePlayback(
     cancelFrame()
     frameRef.current = window.requestAnimationFrame(tick)
   }, [cancelFrame, readCurrentBeat, stopSources])
+
+  const failLoopAudio=useCallback((error:unknown)=>{
+    const beat=readCurrentBeat(),wasLoop=Boolean(runningLoopClockRef.current)
+    stopSources();cancelFrame();startBeatRef.current=beat
+    statusRef.current='paused';setStatus('paused');setPositionBeat(beat);setActiveEvent(findPlaybackEvent(timelineRef.current,beat))
+    setAudioState('error');setAudioProgress(0);setAudioError(wasLoop?'연습 구간의 소리를 예약하지 못해 재생을 멈췄습니다.':'피아노 소리를 예약하지 못해 재생을 멈췄습니다.')
+    setAudioErrorDetails({message:error instanceof Error?error.message:String(error),source:'playback'})
+  },[readCurrentBeat,stopSources,cancelFrame])
 
   const startFromBeat = useCallback(
     async (beat: number, bpm: number) => {
@@ -307,7 +371,7 @@ export function useScorePlayback(
       const generation = generationRef.current
       let context: AudioContext, piano: PianoSampler
       setPreviewing(false)
-      setAudioError('')
+      setAudioError(''); setAudioErrorDetails(undefined)
       try {
         context = acquireAudioContext(AudioContextClass)
         piano = pianoRef.current ?? new PianoSampler(context)
@@ -337,12 +401,14 @@ export function useScorePlayback(
       if (generation !== generationRef.current) return
       setAudioState('ready')
 
-      startBeatRef.current =
-        beat >= timelineRef.current.totalBeats ? 0 : Math.max(0, beat)
-      const transport = transportRef.current ?? new PianoTransport(piano)
+      const requested=beat >= timelineRef.current.totalBeats ? 0 : Math.max(0,beat)
+      const transport = transportRef.current ?? new PianoTransport(piano,failLoopAudio)
       transportRef.current = transport
       try {
-        startContextTimeRef.current = transport.start(
+        const loop=practiceLoopRef.current
+        const clock=loop?createPracticeLoopClock(timelineRef.current,loop,requested,bpm):undefined
+        runningLoopClockRef.current=clock;startBeatRef.current=clock?.fromBeat??requested
+        startContextTimeRef.current = loop?transport.start(timelineRef.current,startBeatRef.current,bpm,partMixerRef.current,sustainRef.current,loop):transport.start(
           timelineRef.current, startBeatRef.current, bpm, partMixerRef.current, sustainRef.current)
       } catch (error) {
         stopSources()
@@ -359,9 +425,10 @@ export function useScorePlayback(
       statusRef.current = 'playing'
       setPositionBeat(startBeatRef.current)
       setActiveEvent(findPlaybackEvent(timelineRef.current, startBeatRef.current))
-      startTicker()
+      syncMetronome(true)
+      if (statusRef.current === 'playing') startTicker()
     },
-    [acquireAudioContext, cancelFrame, startTicker, stopSources]
+    [acquireAudioContext, cancelFrame, startTicker, stopSources, syncMetronome,failLoopAudio]
   )
 
   const play = useCallback(() => {
@@ -371,13 +438,14 @@ export function useScorePlayback(
   const previewNote = useCallback(async (pitch = 60, velocity = 84) => {
     const AudioContextClass = window.AudioContext
     if (!AudioContextClass) {
+      setAudioErrorDetails(undefined)
       setAudioState('error')
       setAudioError('이 환경에서는 피아노 소리를 재생할 수 없습니다.')
       return
     }
     stopSources()
     const generation = generationRef.current
-    setAudioError('')
+    setAudioError(''); setAudioErrorDetails(undefined)
     try {
       const context = acquireAudioContext(AudioContextClass)
       const piano = pianoRef.current ?? new PianoSampler(context)
@@ -439,25 +507,27 @@ export function useScorePlayback(
     setStatus('stopped')
     statusRef.current = 'stopped'
     setAudioState(pianoRef.current?.ready ? 'ready' : 'idle')
-    setAudioError('')
+    setAudioError(''); setAudioErrorDetails(undefined)
     setAudioProgress(0)
   }, [cancelFrame, stopSources])
 
   const jumpToStart = useCallback(() => {
     const wasPlaying = statusRef.current === 'playing'
+    const start=practiceLoopRef.current?.startBeat??0
 
     if (!wasPlaying) {
       stop()
+      startBeatRef.current=start;setPositionBeat(start)
       return
     }
 
     stopSources()
     cancelFrame()
-    startBeatRef.current = 0
-    setPositionBeat(0)
+    startBeatRef.current = start
+    setPositionBeat(start)
     setActiveEvent(undefined)
 
-    void startFromBeat(0, tempoRef.current)
+    void startFromBeat(start, tempoRef.current)
   }, [cancelFrame, startFromBeat, stop, stopSources])
 
   const setTempo = useCallback(
@@ -493,11 +563,25 @@ export function useScorePlayback(
     cancelFrame()
     startBeatRef.current = currentBeat
     void startFromBeat(currentBeat, tempoRef.current)
-  }, [cancelFrame, partMixer, readCurrentBeat, startFromBeat, stopSources])
+  }, [cancelFrame, storedPartMixer, readCurrentBeat, startFromBeat, stopSources])
 
   useEffect(() => {
     stop()
   }, [score, expressionProfile, pianoTimeline, stop])
+
+  useEffect(()=>{
+    if(previousPracticeLoopRef.current===practiceLoop)return
+    previousPracticeLoopRef.current=practiceLoop
+    const beat=readCurrentBeat(),wasPlaying=statusRef.current==='playing'
+    stopSources();cancelFrame();startBeatRef.current=beat;setPositionBeat(beat);setPreviewing(false)
+    if(wasPlaying)void startFromBeat(beat,tempoRef.current)
+    else{
+      setAudioState(current=>current==='loading'?(pianoRef.current?.ready?'ready':'idle'):current)
+      setAudioProgress(0)
+    }
+  },[practiceLoop,readCurrentBeat,stopSources,cancelFrame,startFromBeat])
+
+  useEffect(() => { syncMetronome() }, [metronomeEnabled, metronomePlan, syncMetronome])
 
   useEffect(
     () => () => {
@@ -536,7 +620,7 @@ export function useScorePlayback(
     pause,
     stop,
     jumpToStart,
-    audioState, audioProgress, audioError, sustain, previewing, previewNote,
+    audioState, audioProgress, audioError, audioErrorDetails, sustain, previewing, previewNote,
     setSustain: (down: boolean) => {
       sustainRef.current = down
       setSustainState(down)
@@ -603,15 +687,16 @@ function scheduleTremoloEvent(
   partGain: number
 ): OscillatorNode[] {
   const eventEndBeat = event.startBeat + event.durationBeats
+  const intervalBeats = event.tremoloIntervalBeats ?? resolveTremoloBeatInterval(event.tremolo?.marks ?? 1)
   const pulseBeats = createTremoloPulseBeats(
     event.startBeat,
     eventEndBeat,
     fromBeat,
-    event.tremolo?.marks ?? 1
+    event.tremolo?.marks ?? 1,
+    intervalBeats
   )
 
   return pulseBeats.flatMap((pulseStartBeat) => {
-    const intervalBeats = TREMOLO_BEAT_INTERVAL[event.tremolo?.marks ?? 1]
     const pulseEndBeat = Math.min(
       pulseStartBeat + intervalBeats * 0.82,
       eventEndBeat
@@ -656,10 +741,11 @@ export function createTremoloPulseBeats(
   startBeat: number,
   endBeat: number,
   fromBeat: number,
-  marks: 1 | 2 | 3
+  marks: 1 | 2 | 3,
+  sourceIntervalBeats?: number
 ): number[] {
   const firstBeat = Math.max(startBeat, fromBeat)
-  const intervalBeats = TREMOLO_BEAT_INTERVAL[marks]
+  const intervalBeats = sourceIntervalBeats ?? resolveTremoloBeatInterval(marks)
   const pulseCount = Math.max(
     1,
     Math.ceil((endBeat - firstBeat) / intervalBeats)

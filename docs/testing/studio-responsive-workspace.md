@@ -8,7 +8,7 @@ replace the larger parity worktree's layout or certify Commercial V1/RC.
 | Check | Command after `npm run build` | Meaning |
 | --- | --- | --- |
 | Historical responsive snapshot | `env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs` | Original default workspace metrics. Currently FAIL; retained, not silently rebaselined |
-| Explicit R3 notation profile | `npm run verify:studio-notation-profile` | Reviewed v2 fixture:960 shared/1400 split,available docks280,active palette,fit100%,details/input off |
+| Explicit R3 notation profile | `npm run verify:studio-notation-profile` | Reviewed v3: shared dock at960/1400, available docks280,active palette,fit100%,details/input off; independently measured native0 or15 with separate strict profiles |
 | Fixed-canvas engraving | `env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs --fixed-canvas` | Same historical SVG widths; compares notation marks/event counts independently of dock reflow |
 | Legacy workspace contract (migration pending) | `env -u ELECTRON_RUN_AS_NODE electron scripts/verify-studio-responsive-workspace.cjs` | Real dock controls,200/280/360,show/hide,reopen,fit/fixed and selection/history;48 cases |
 | Current standalone compact workflow (revalidated in UI144) | `env -u ELECTRON_RUN_AS_NODE electron scripts/verify-studio-compact-workspace.cjs --short-window` | 960/1400 ×750/800/1000 geometry, normal-text header density, actual Tab/Enter/Space navigation and dock focus scroll |
@@ -502,3 +502,12 @@ on first observation; this is regression coverage, not a newly reproduced produc
 bug. The initial note/real ink, footer clearance, keyboard, disclosure persistence,
 print hiding, enlarged text, coarse48px and selection/history assertions remain.
 No baseline or product code changed in this follow-up.
+
+
+## 2026-11-04 native scrollbar profile boundary
+
+The original overlay profile and historical baseline remain byte-for-byte unchanged. An actual native classic scrollbar currently consumes15px at both viewports:960 client945/sidebar280/insets80 gives585 SVG; the1400 paper cap retains804. The earlier profile-f/g failures are preserved. Fixed-canvas and the articulation PDF width pairs remain unchanged; this is not a glyph or font-metric correction.
+
+The current profile runner temporarily measures the native scrollbar in a closed shadow root (`all:initial`, `overflow:scroll`) and removes it before capture. Only agreeing native probe/viewport gutters0 or15 may select the corresponding reviewed strict profile. Unknown widths, cross-capture changes, missing samples or an application-only gutter fail explicitly. No metrics are rescaled or rounded to fit a baseline. The classic15 profile was added separately after reviewing actual960/1400 and previous overlay captures. Other platform widths are not silently accepted.
+
+Focused24 and actual profile-d at960/1400 classic15, plus fixed-e, pass. The overlay selection control and original bytes are preserved; the physical overlay environment was not recreated in this session. Candidate capture remains a diagnostic, not verification or adoption. Evidence: `docs/releases/studio-parity-implementation-20261104/smg-012-scrollbar-profile/`. Full AA4317+Node5 predates this QA-only addition; no renderer/product/build change was made for it.

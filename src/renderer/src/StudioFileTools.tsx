@@ -11,6 +11,7 @@ interface Action {
   disabled?: boolean
   busy?: boolean
   hint?: string
+  keyShortcuts?: string
 }
 interface Filter {
   label: string
@@ -29,13 +30,13 @@ interface Props {
 
 function ActionButton({action}: {action: Action}) {
   return <Tooltip text={action.hint ?? action.label}>
-    {action.text ? <Button kind="secondary" aria-label={action.label} title={action.hint}
+    {action.text ? <Button kind="secondary" aria-keyshortcuts={action.keyShortcuts} aria-label={action.label} title={action.hint}
       disabled={action.disabled} busy={action.busy} onClick={action.action}>
       <span className="studio-file-tools__button-content">
         <span className="studio-file-tools__button-icon">{action.icon}</span>
         <span>{action.text}</span>
       </span>
-    </Button> : <IconButton label={action.label} title={action.hint} disabled={action.disabled}
+    </Button> : <IconButton aria-keyshortcuts={action.keyShortcuts} label={action.label} title={action.hint} disabled={action.disabled}
       busy={action.busy} onClick={action.action}>{action.icon}</IconButton>}
   </Tooltip>
 }
