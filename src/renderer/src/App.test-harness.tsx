@@ -775,7 +775,7 @@ const installLocalStorageStub = () => {
 }
 
 const choosePageSetup = (name: string, label: string) => {
-  fireEvent.click(screen.getByRole('combobox', { name }))
+  fireEvent.click(within(document.querySelector<HTMLElement>('section[aria-label="PDF 페이지 설정"]')!).getByRole('combobox', { name }))
   fireEvent.click(screen.getByRole('option', { name: label }))
 }
 

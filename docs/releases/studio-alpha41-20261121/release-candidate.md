@@ -13,3 +13,7 @@ alpha.40 macOS의 App 시간 초과 4건은 POSIX·저장 데이터 실패와 �
 alpha.40 Windows에서 Markdown CRLF가 설명서의 제목·표·앵커 파싱에 영향을 주는 것을 확인했다. 같은 원문을 CRLF로 전달하는 로컬 테스트에서 재현한 뒤 번들 경계에서 LF로 정규화했다. 파일 장애 주입에는 OS 경로 구분자를 사용하며, MusicXML 개행 비교는 Windows의 표준 출력 변환을 피하도록 libxml2 내부에서 문자열을 비교한다. 실제 내보낸 XML의 전체 XSD 확인과 원본 문자열 보존 검사는 유지한다. 파트 페이지 검사도 실제 작업 영역으로 좁혔다.
 
 첫 후보 실행은 Windows 이전 결과 확인 후 태그 생성 전에 취소했다. 보완본의 관련 17파일 124검사와 타입 검사가 통과했다. Windows/Linux의 플랫폼별 preflight 후 새 후보 실행을 진행한다. [취소한 후보 실행](https://github.com/mann-lab-apps/in-c/actions/runs/44896106410)
+
+Windows·Linux 사전검증에서 플랫폼 회귀와 실제 로컬 디렉터리 패키지 실행이 통과했다. 이어진 전체 게이트에서 Linux는 AppImage까지 통과했고, macOS에서 이전과 다른 App 테스트 5개가 시간 초과했다. 대상 작업 영역으로 조회 범위를 좁혀 관련 17검사를 통과했다. [사전검증](https://github.com/mann-lab-apps/in-c/actions/runs/44896216321) · [후속 전체 게이트](https://github.com/mann-lab-apps/in-c/actions/runs/44896461662)
+
+최종 워크플로는 같은 세 플랫폼에서 Vitest를 4개 shard로 분할하고 러너별 worker를 1개로 사용한다. Vitest의 sequencer로 원래 776개 프로젝트·파일 조합이 194개씩 중복 없이 분할되는 것을 대조했다. Node 도구 검사도 각 플랫폼에서 한 번씩 수행한다. 모든 shard가 통과해야 패키징을 시작하며 기존 서명·공증·실행·게시 조건을 유지한다.

@@ -2047,8 +2047,11 @@ describe('App component shell', () => {
     const {createNativeProject,encodeNativeProject,decodeNativeProject}=await import('../../project/schema')
     const initial=parseMusicXml(twoPartMusicXmlWithPrimaryAnnotations)
     vi.mocked(window.inC.project.open).mockResolvedValueOnce({filePath:'/scores/source.chromatics',fileName:'source.chromatics',contents:encodeNativeProject(createNativeProject(initial))})
-    const {App}=await import('./App');render(<App />);openStudioWorkspace('파일')
-    fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}));await screen.findByText(initial.title)
+    const {App}=await import('./App');render(<App />)
+    const fileTools = () => within(document.querySelector<HTMLElement>('section[aria-label="파일 및 선택 도구"]')!)
+    const outputs = () => within(document.querySelector<HTMLElement>('section[aria-label="내보내기 작업"]')!)
+    openStudioWorkspace('파일')
+    fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 열기'}));await screen.findByText(initial.title)
     fireEvent.click(screen.getByRole('button',{name:'악보 정보'}));fireEvent.click(screen.getByRole('button',{name:'악보 제목 편집'}))
     fireEvent.change(screen.getByLabelText('악보 제목'),{target:{value:'원본 편집 유지'}});fireEvent.keyDown(screen.getByLabelText('악보 제목'),{key:'Enter',code:'Enter'})
     if(view==='part'){openStudioWorkspace('악보');chooseScoreView('악보 보기','part');chooseScoreView('파트보 선택','P2')}
@@ -2056,7 +2059,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.autosave.clear).mockClear();vi.mocked(window.inC.recentMusicXml.add).mockClear()
     const raw="Error invoking musicxml:export: EACCES /owned-qa/Private-copy.musicxml",summary='MusicXML 사본 내보내기를 마무리하지 못했습니다.'
     vi.mocked(window.inC.musicXml.exportCopy).mockRejectedValueOnce(new Error(raw))
-    openStudioWorkspace('내보내기');const button=screen.getByRole('button',{name:'MusicXML 내보내기'}),status=screen.getByRole('status',{name:'편집 및 파일 상태'})
+    openStudioWorkspace('내보내기');const button=outputs().getByRole('button',{name:'MusicXML 내보내기'}),status=document.querySelector<HTMLElement>('.editor-status[aria-label="편집 및 파일 상태"]')!
     fireEvent.click(button);await waitFor(()=>expect(status).toHaveTextContent(summary));await waitFor(()=>expect(button).toBeEnabled())
     expect(status).toHaveTextContent('원본 악보와 변경 사항은 유지됩니다.');expect(status).not.toHaveTextContent(raw)
     expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(status).toHaveTextContent('1회 수정')
@@ -2074,7 +2077,7 @@ describe('App component shell', () => {
       if(action.startsWith('replace')){
         expected={...initial,title:'다른 사본 문서'};expectedPath='/scores/new.chromatics'
         vi.mocked(window.inC.project.open).mockResolvedValueOnce({filePath:expectedPath,fileName:'new.chromatics',contents:encodeNativeProject(createNativeProject(expected))})
-        openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}));await screen.findByText(expected.title);await act(async()=>{})
+        openStudioWorkspace('파일');fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 열기'}));await screen.findByText(expected.title);await act(async()=>{})
       }
       const clears=vi.mocked(window.inC.autosave.clear).mock.calls.length,recents=vi.mocked(window.inC.recentMusicXml.add).mock.calls.length
       await act(async()=>{settled=true;if(action==='replace-failure')fail(new Error('older XML export failure'));else finish(action==='cancel'?null:{filePath:'/export/copy.musicxml',fileName:'copy.musicxml'})})
@@ -2090,7 +2093,7 @@ describe('App component shell', () => {
       expect(requests[0]).not.toHaveProperty('filePath');expect(requests[1].contents).toBe(requests[0].contents)
       const exported=parseMusicXml(requests[0].contents);expect(exported.parts.map(part=>part.name)).toEqual(view==='part'?['Cello']:['Violin','Cello'])
       openStudioWorkspace('파일');vi.mocked(window.inC.project.save).mockResolvedValueOnce({filePath:expectedPath,fileName:'saved.chromatics'})
-      fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}));await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalled())
+      fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 저장'}));await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalled())
       const native=vi.mocked(window.inC.project.save).mock.calls.at(-1)![0];expect(native.filePath).toBe(expectedPath);expect(decodeNativeProject(native.contents).score).toEqual(expected)
     }finally{if(!settled)await act(async()=>{finish(null)})}
   })

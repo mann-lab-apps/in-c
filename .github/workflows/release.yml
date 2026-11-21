@@ -76,9 +76,34 @@ jobs:
       - run: npm run package:dir
       - run: ${{ matrix.smoke }}
 
+  verify:
+    name: Verify ${{ matrix.os }} (${{ matrix.shard }})
+    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest, ubuntu-latest]
+        shard: ['1/4', '2/4', '3/4', '4/4']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || (github.event_name == 'workflow_dispatch' && (inputs.candidate && github.sha || inputs.tag)) || github.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --maxWorkers=1 --silent=passed-only --shard=${{ matrix.shard }}
+      - if: matrix.shard == '1/4'
+        run: npm run test:tools
+
   package:
     name: Package ${{ matrix.platform }}
-    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
+    needs: verify
+    if: success() && (github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight')
     strategy:
       fail-fast: false
       matrix:
@@ -126,7 +151,6 @@ jobs:
       - if: github.event_name != 'pull_request'
         run: npm run verify:release-tag
       - run: npm run piano:verify
-      - run: npm run test:all
       - name: Verify macOS signing secrets
         if: runner.os == 'macOS' && github.event_name != 'pull_request'
         env:

@@ -1330,9 +1330,11 @@ describe('App component shell', () => {
       let finish!: (value: {fileName:string} | null) => void, fail!: (error:Error) => void
       const { App } = await import('./App')
       render(<App />)
-      openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
+      const fileTools = () => within(document.querySelector<HTMLElement>('section[aria-label="파일 및 선택 도구"]')!)
+      const outputs = () => within(document.querySelector<HTMLElement>('section[aria-label="내보내기 작업"]')!)
+      openStudioWorkspace('파일');fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 열기'}))
       await screen.findByText(source.title);await act(async () => {})
-      openStudioWorkspace('내보내기');fireEvent.click(screen.getByRole('button',{name:'MIDI 내보내기'}))
+      openStudioWorkspace('내보내기');fireEvent.click(outputs().getByRole('button',{name:'MIDI 내보내기'}))
       await screen.findByRole('region',{name:'MIDI 경고 상세'})
       // The following request owns a distinct completion,not the prior successful report.
       vi.mocked(window.inC.midi.save).mockReset().mockImplementation(() => new Promise((yes,no) => {finish=yes;fail=no}))
@@ -1346,13 +1348,13 @@ describe('App component shell', () => {
         expect(playbackMockState.lastScore?.parts[1]?.staves[0]?.measures[0]?.clef).toEqual({sign:'G',line:2})
         expected.parts[1]!.staves[0]!.measures[0]!.clef = {sign:'G',line:2}
       }
-      openStudioWorkspace('내보내기');fireEvent.click(screen.getByRole('button',{name:'MIDI 내보내기'}))
+      openStudioWorkspace('내보내기');fireEvent.click(outputs().getByRole('button',{name:'MIDI 내보내기'}))
       await waitFor(() => expect(window.inC.midi.save).toHaveBeenCalledTimes(1))
       const bytes = [...vi.mocked(window.inC.midi.save).mock.calls[0]![0].contents]
       if (outcome.startsWith('replace-')) {
         const replacement = midiWarningRestOracle(source);replacement.title='다음 MIDI 문서'
         vi.mocked(window.inC.project.open).mockResolvedValue({filePath:'/scores/next.chromatics',fileName:'next.chromatics',contents:encodeNativeProject(createNativeProject(replacement))})
-        openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}))
+        openStudioWorkspace('파일');fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 열기'}))
         await screen.findByText(replacement.title);await act(async () => {})
         Object.assign(expected,replacement)
       } else if (outcome === 'edit-success') {
@@ -1374,7 +1376,7 @@ describe('App component shell', () => {
       } else if (outcome.startsWith('replace-') || outcome === 'cancel') expect(document.querySelector('.editor-status > span:last-child')!.textContent).toBe(status)
       else if (outcome === 'failure') expect(screen.getByText('Expected MIDI request failure')).toBeInTheDocument()
       expect(vi.mocked(window.inC.midi.save).mock.calls[0]![0].contents).toEqual(bytes)
-      openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}))
+      openStudioWorkspace('파일');fireEvent.click(fileTools().getByRole('button',{name:'프로젝트 저장'}))
       await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
       expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents).score).toEqual(JSON.parse(JSON.stringify(expected)))
     }
@@ -1652,22 +1654,24 @@ describe('App component shell', () => {
     render(<App />)
 
     openStudioWorkspace('내보내기')
+    const options = within(document.querySelector<HTMLElement>('section[aria-label="PDF 페이지 설정"]')!)
+    const outputs = within(document.querySelector<HTMLElement>('section[aria-label="내보내기 작업"]')!)
     choosePageSetup('PDF 용지', 'Letter')
     choosePageSetup('PDF 방향', '가로')
-    fireEvent.change(screen.getByLabelText('PDF 여백 mm'), {
+    fireEvent.change(options.getByLabelText('PDF 여백 mm'), {
       target: { value: '12' }
     })
-    fireEvent.blur(screen.getByLabelText('PDF 여백 mm'))
-    fireEvent.change(screen.getByRole('slider', { name: /^PDF 보표 크기/ }), {
+    fireEvent.blur(options.getByLabelText('PDF 여백 mm'))
+    fireEvent.change(options.getByRole('slider', { name: /^PDF 보표 크기/ }), {
       target: { value: '90' }
     })
-    fireEvent.change(screen.getByRole('slider', { name: /^PDF 시스템 간격/ }), {
+    fireEvent.change(options.getByRole('slider', { name: /^PDF 시스템 간격/ }), {
       target: { value: '120' }
     })
 
     expect(screen.getByText('PDF 페이지 설정을 갱신했습니다.')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+    fireEvent.click(outputs.getByRole('button', { name: 'PDF 변환' }))
 
     await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
     expect(printingPreview()).toHaveAttribute(
@@ -1732,15 +1736,17 @@ describe('App component shell', () => {
     expect(scorePage).toHaveAttribute('data-show-page-margins', 'false')
 
     openStudioWorkspace('내보내기')
-    const marginGuideToggle = screen.getByLabelText('PDF 여백 가이드 표시')
+    const options = within(document.querySelector<HTMLElement>('section[aria-label="PDF 페이지 설정"]')!)
+    const outputs = within(document.querySelector<HTMLElement>('section[aria-label="내보내기 작업"]')!)
+    const marginGuideToggle = options.getByLabelText('PDF 여백 가이드 표시')
 
     expect(marginGuideToggle).not.toBeChecked()
 
     fireEvent.click(marginGuideToggle)
-    fireEvent.change(screen.getByLabelText('PDF 여백 mm'), {
+    fireEvent.change(options.getByLabelText('PDF 여백 mm'), {
       target: { value: '12' }
     })
-    fireEvent.blur(screen.getByLabelText('PDF 여백 mm'))
+    fireEvent.blur(options.getByLabelText('PDF 여백 mm'))
 
     expect(marginGuideToggle).toBeChecked()
     expect(scorePage).toHaveAttribute('data-show-page-margins', 'true')
@@ -1748,7 +1754,7 @@ describe('App component shell', () => {
       '--score-page-margin-guide-inset': '12mm'
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+    fireEvent.click(outputs.getByRole('button', { name: 'PDF 변환' }))
 
     await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
     expect(scorePage).toHaveAttribute('data-show-page-margins', 'true')
