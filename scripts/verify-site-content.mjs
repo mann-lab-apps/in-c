@@ -252,6 +252,8 @@ function verifyStudioDiscovery() {
   ]
   for (const [page, pdf, screenshot] of guides) {
     assert(studioPage.includes(`href="./studio/${page}"`), `Studio missing static guide link: ${page}`)
+    const source = readFileSync(resolve(siteRoot, 'studio', page), 'utf8')
+    assert(source.includes('src="./guide.js"'), `Studio guide missing the page-view entry: ${page}`)
     const guide = readFileSync(resolve(outSiteRoot, 'studio', page), 'utf8')
     assert(guide.includes('href="../chromatics.html#download"'), `Guide has no Studio download link: ${page}`)
     for (const name of ['walking-duet.musicxml', pdf, screenshot]) {
