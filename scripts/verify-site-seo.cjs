@@ -4,6 +4,11 @@ const { resolve } = require('node:path')
 const siteRoot = resolve(__dirname, '../site')
 const productionOrigin = 'https://in-c.mannlab.app'
 const socialImageUrl = `${productionOrigin}/social-preview.png`
+const studioPreviews = {
+  'chromatics.html': 'walking-duet-score.png',
+  'studio/musicxml-to-pdf.html': 'walking-duet-score.png',
+  'studio/part-pdf.html': 'walking-duet-part.png'
+}
 
 function readSiteFile(relativePath) {
   return readFileSync(resolve(siteRoot, relativePath), 'utf8')
@@ -65,6 +70,13 @@ function verifyPage({ filePath, publicPath }) {
   const title = getTitle(html)
   const metas = getMeta(html)
   const expectedUrl = `${productionOrigin}/${publicPath}`
+  const studioPreview = studioPreviews[filePath]
+  const expectedImage = studioPreview
+    ? `${productionOrigin}/studio-examples/${studioPreview}`
+    : socialImageUrl
+  if (studioPreview) {
+    assert(existsSync(resolve(siteRoot, 'public/studio-examples', studioPreview)), `${filePath} missing ${studioPreview}`)
+  }
 
   assert(title, `${filePath} missing title`)
   assertMeta(metas, 'description', filePath)
@@ -76,13 +88,13 @@ function verifyPage({ filePath, publicPath }) {
   assert(assertMeta(metas, 'og:url', filePath) === expectedUrl, `${filePath} og:url must be ${expectedUrl}`)
   assert(assertMeta(metas, 'og:site_name', filePath) === 'in C', `${filePath} og:site_name must be in C`)
   assert(assertMeta(metas, 'og:locale', filePath) === 'ko_KR', `${filePath} og:locale must be ko_KR`)
-  assert(assertMeta(metas, 'og:image', filePath) === socialImageUrl, `${filePath} og:image must be ${socialImageUrl}`)
+  assert(assertMeta(metas, 'og:image', filePath) === expectedImage, `${filePath} og:image must be ${expectedImage}`)
   assertMeta(metas, 'og:image:alt', filePath)
 
   assert(assertMeta(metas, 'twitter:card', filePath) === 'summary_large_image', `${filePath} twitter:card must be summary_large_image`)
   assertMeta(metas, 'twitter:title', filePath)
   assertMeta(metas, 'twitter:description', filePath)
-  assert(assertMeta(metas, 'twitter:image', filePath) === socialImageUrl, `${filePath} twitter:image must be ${socialImageUrl}`)
+  assert(assertMeta(metas, 'twitter:image', filePath) === expectedImage, `${filePath} twitter:image must be ${expectedImage}`)
   assertMeta(metas, 'twitter:image:alt', filePath)
 
   return expectedUrl
@@ -106,13 +118,12 @@ function getPages() {
     { filePath: 'in-c-app-privacy.html', publicPath: 'in-c-app-privacy.html' }
   ]
 
-  const columnsRoot = resolve(siteRoot, 'columns')
-  for (const entry of readdirSync(columnsRoot, { withFileTypes: true })) {
-    if (entry.isFile() && entry.name.endsWith('.html') && !entry.name.startsWith('_')) {
-      pages.push({
-        filePath: `columns/${entry.name}`,
-        publicPath: `columns/${entry.name}`
-      })
+  for (const directory of ['columns', 'studio']) {
+    for (const entry of readdirSync(resolve(siteRoot, directory), { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.endsWith('.html') && !entry.name.startsWith('_')) {
+        const filePath = `${directory}/${entry.name}`
+        pages.push({ filePath, publicPath: filePath })
+      }
     }
   }
 

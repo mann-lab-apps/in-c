@@ -18,6 +18,7 @@ const getHtmlPages = (root: string, prefix: string) =>
   )
 
 const columnPages = getHtmlPages(resolve(__dirname, 'columns'), 'columns')
+const studioGuidePages = getHtmlPages(resolve(__dirname, 'studio'), 'studio')
 
 export default defineConfig({
   plugins: [
@@ -58,7 +59,8 @@ export default defineConfig({
         support: resolve(__dirname, 'support.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         inCAppPrivacy: resolve(__dirname, 'in-c-app-privacy.html'),
-        ...columnPages
+        ...columnPages,
+        ...studioGuidePages
       }
     }
   }

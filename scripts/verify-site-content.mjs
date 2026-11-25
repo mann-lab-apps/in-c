@@ -21,6 +21,7 @@ const loadDataModule = async (path) => {
 }
 const columnsModule = await loadDataModule(resolve(siteRoot, 'columns-data.js'))
 const productModule = await loadDataModule(resolve(siteRoot, 'product-data.js'))
+const { detectDesktopPlatform } = await loadDataModule(resolve(siteRoot, 'download-platform.js'))
 const featureMapContext = { window: {} }
 runInNewContext(
   readFileSync(resolve(repoRoot, 'docs/product/feature-map-data.js'), 'utf8'),
@@ -222,6 +223,43 @@ function verifyDownloadManifest() {
     ...source.downloads.filter(download => download.available).map(download => download.url)
   ]) {
     assert(studioPage.includes(`href="${href}"`), `Studio static download link is missing: ${href}`)
+  }
+}
+
+function verifyStudioDiscovery() {
+  const platforms = [
+    ['Mac', { platform: 'MacIntel' }, 'macos'],
+    ['Windows', { platform: 'Win32' }, 'windows'],
+    ['Linux', { platform: 'Linux x86_64' }, 'linux'],
+    ['iPhone', { userAgent: 'iPhone like Mac OS X', platform: 'iPhone' }, null],
+    ['iPad in desktop mode', { platform: 'MacIntel', maxTouchPoints: 5 }, null],
+    ['Android', { userAgent: 'Linux Android 15', platform: 'Linux armv8l' }, null],
+    ['Chromebook', { userAgent: 'X11; CrOS x86_64' }, null],
+    ['mobile client hint', { userAgentData: { platform: 'Windows', mobile: true } }, null],
+    ['unavailable platform', {}, null]
+  ]
+  for (const [name, signals, expected] of platforms) {
+    assert(detectDesktopPlatform(signals) === expected, `Studio download platform mismatch: ${name}`)
+  }
+
+  const studioPage = readFileSync(resolve(outSiteRoot, 'chromatics.html'), 'utf8')
+  const primary = studioPage.match(/<a[^>]*data-primary-download[^>]*>/)?.[0] ?? ''
+  assert(primary.includes('href="#download"') && !primary.includes('data-track-event'),
+    'Studio static CTA must open the platform picker without a file-download event')
+  const guides = [
+    ['musicxml-to-pdf.html', 'walking-duet-full-score.pdf', 'walking-duet-score.png'],
+    ['part-pdf.html', 'walking-duet-cello.pdf', 'walking-duet-part.png']
+  ]
+  for (const [page, pdf, screenshot] of guides) {
+    assert(studioPage.includes(`href="./studio/${page}"`), `Studio missing static guide link: ${page}`)
+    const source = readFileSync(resolve(siteRoot, 'studio', page), 'utf8')
+    assert(source.includes('src="./guide.js"'), `Studio guide missing the page-view entry: ${page}`)
+    const guide = readFileSync(resolve(outSiteRoot, 'studio', page), 'utf8')
+    assert(guide.includes('href="../chromatics.html#download"'), `Guide has no Studio download link: ${page}`)
+    for (const name of ['walking-duet.musicxml', pdf, screenshot]) {
+      assert(guide.includes(`studio-examples/${name}`), `Guide missing sample link: ${page}, ${name}`)
+      assert(existsSync(resolve(outSiteRoot, 'studio-examples', name)), `Missing built Studio example: ${name}`)
+    }
   }
 }
 
@@ -1091,6 +1129,7 @@ function verifyLoginAuthSurface() {
 
 try {
   verifyDownloadManifest()
+  verifyStudioDiscovery()
   verifyCompositions()
   verifyColumnAssets()
   verifyProductRelations()
