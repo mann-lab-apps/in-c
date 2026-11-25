@@ -255,7 +255,20 @@ function verifyStudioDiscovery() {
     const source = readFileSync(resolve(siteRoot, 'studio', page), 'utf8')
     assert(source.includes('src="./guide.js"'), `Studio guide missing the page-view entry: ${page}`)
     const guide = readFileSync(resolve(outSiteRoot, 'studio', page), 'utf8')
-    assert(guide.includes('href="../chromatics.html#download"'), `Guide has no Studio download link: ${page}`)
+    const downloadLink = guide.match(/<a class="button button--primary" href="([^"]+)"/)?.[1]
+    assert(downloadLink, `Guide has no primary download link: ${page}`)
+    const target = new URL(downloadLink.replaceAll('&amp;', '&'))
+    assert(
+      target.origin === 'https://ddirori.com' && target.pathname === '/studio/' && target.hash === '#download',
+      `Guide must link to the official Studio download: ${page}`
+    )
+    assert(
+      target.searchParams.get('utm_source') === 'in-c.mannlab.app' &&
+        target.searchParams.get('utm_medium') === 'referral' &&
+        target.searchParams.get('utm_campaign') === 'studio_guides' &&
+        target.searchParams.get('utm_content') === basename(page, '.html'),
+      `Studio download referral must identify the guide: ${page}`
+    )
     for (const name of ['walking-duet.musicxml', pdf, screenshot]) {
       assert(guide.includes(`studio-examples/${name}`), `Guide missing sample link: ${page}, ${name}`)
       assert(existsSync(resolve(outSiteRoot, 'studio-examples', name)), `Missing built Studio example: ${name}`)
