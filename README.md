@@ -3,16 +3,22 @@
 in C는 클래식에 대해 모르는 것을 숨기지 않고, 각자가 들은 것과 듣지 못한 것을
 솔직하게 나눌 수 있는 소통 공간을 만듭니다.
 
-현재 레포에는 in C 웹 표면, Columns, Compositions, 공개 소개 페이지, 그리고
-Chromatics 악보 편집 표면이 함께 들어 있습니다. Chromatics는 in C 안에서 무료 사보
-및 악보 편집을 맡으며, 악보 라이브러리와 커뮤니티에서 함께 이야기할 음악적 객체를
-만드는 도구입니다.
+현재 저장소에는 in C 웹, Columns, Compositions, 공개 소개 페이지와
+띠로리 Studio의 소스가 들어 있습니다.
 
 in C의 문제 인식은 두 그룹을 함께 봅니다. 비전문가에게는 클래식 문화에 들어가기
 어렵고 관심이 깊어질수록 주변 사람과 공유할 언어가 부족한 문제가 있습니다.
 전문가에게는 공연 홍보와 정보교류가 오프라인 관계망, 개인 SNS, 단체 채팅방,
 예매처 상세페이지에 흩어지는 문제가 있습니다. in C는 작품, 악보, 질문, 공연,
 사람을 연결해 두 그룹이 만날 수 있는 맥락을 만듭니다.
+
+## 띠로리 Studio
+
+띠로리 Studio는 macOS·Windows·Linux용 데스크톱 악보 편집 앱입니다.
+MusicXML·MXL 악보를 열어 편집하고 총보나 파트보를 PDF로 저장할 수 있습니다.
+
+- [띠로리 Studio 공식 다운로드](https://ddirori.com/studio/#download)
+- [MusicXML 악보 열기와 PDF 저장 가이드](https://in-c.mannlab.app/studio/musicxml-to-pdf.html)
 
 ## 디렉토리 구조
 
