@@ -1,5 +1,7 @@
 # 띠로리 Studio alpha.43 후보
 
+게시·공개 다운로드 검증은 [게시 결과](publication.md)에 기록했다.
+
 ## 소스 범위
 
 - 소스 작업 트리 `studio-post-alpha42-parity-20261122`, 기준 태그 `v0.1.0-alpha.42`, 기준 SHA `82ba969c26464b95b4ae5a3c51cca785ddf32c44`. 별도 후보 브랜치 `release/studio-alpha43-20261125`에 수정 149개, 추가 45개, 삭제 1개를 반영했다.
