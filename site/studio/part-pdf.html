@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>총보에서 파트보 PDF 만들기 | 띠로리 Studio</title>
+    <meta name="description" content="띠로리 Studio에서 합주 총보를 열고 첼로 파트만 선택해 PDF로 출력하는 방법을 예제 악보와 실제 출력으로 확인하세요." />
+    <link rel="canonical" href="https://in-c.mannlab.app/studio/part-pdf.html" />
+    <meta property="og:title" content="총보에서 파트보 PDF 만들기" />
+    <meta property="og:description" content="플루트·첼로 총보에서 첼로만 골라 연주자에게 전달할 PDF를 만드세요." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://in-c.mannlab.app/studio/part-pdf.html" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="https://in-c.mannlab.app/studio-examples/walking-duet-part.png" />
+    <meta property="og:image:alt" content="띠로리 Studio의 파트보 선택에서 첼로를 고른 화면" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="총보에서 파트보 PDF 만들기" />
+    <meta name="twitter:description" content="첼로 한 파트만 골라 저장하는 절차와 실제 파트보 PDF를 확인하세요." />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/studio-examples/walking-duet-part.png" />
+    <meta name="twitter:image:alt" content="띠로리 Studio의 첼로 파트보 보기" />
+    <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="in C 홈">
+        <img src="../assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="Studio 메뉴">
+        <a href="../chromatics.html">띠로리 Studio</a>
+        <a href="../chromatics.html#guides">사용 안내</a>
+      </nav>
+    </header>
+    <main class="column-page studio-guide-page">
+      <article class="column-document">
+        <header class="column-document__header">
+          <h1>총보에서 파트보 PDF 만들기</h1>
+          <p class="column-article__summary">띠로리 Studio에서 합주 총보를 열고 파트보 보기로 바꾸면 선택한 악기만 PDF에 담을 수 있습니다. 예제에서는 플루트와 첼로 총보에서 첼로용 PDF 한 장을 만듭니다.</p>
+          <p class="column-published">확인한 환경은 macOS용 띠로리 Studio 0.1.0-alpha.43입니다.</p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="../chromatics.html#download">띠로리 Studio 다운로드</a>
+            <a class="button button--secondary" href="/studio-examples/walking-duet.musicxml" download>예제 MusicXML 받기</a>
+          </div>
+        </header>
+        <div class="markdown-body">
+          <h2 id="select-part">출력할 파트 고르기</h2>
+          <ol>
+            <li><a href="./musicxml-to-pdf.html#import">MusicXML 가져오기</a>로 플루트와 첼로가 모두 들어 있는 예제 총보를 엽니다.</li>
+            <li><strong>보기 → 총보·파트보 보기</strong>를 열고 <strong>악보 보기</strong>를 <strong>파트보</strong>로 바꿉니다.</li>
+            <li><strong>파트보 선택</strong>에서 <strong>첼로</strong>를 고릅니다. 악보 제목 아래에서 첼로가 선택됐는지 확인합니다.</li>
+          </ol>
+          <figure class="column-figure">
+            <img src="/studio-examples/walking-duet-part.png" alt="악보 보기가 파트보이고 파트보 선택에 첼로가 표시된 Studio 화면" width="1360" height="840" loading="lazy" />
+            <figcaption>첼로를 선택한 파트보 보기</figcaption>
+          </figure>
+          <h2 id="export-part">선택한 파트만 PDF로 저장하기</h2>
+          <ol>
+            <li><strong>파일 → 내보내기 설정 → PDF 변환</strong>을 누릅니다.</li>
+            <li>연주자가 파일만 보고 자기 파트를 알 수 있도록 파일 이름에 악기 이름을 붙여 저장합니다.</li>
+            <li>저장한 PDF를 열어 첼로 제목과 낮은음자리표 보표 한 줄을 확인합니다.</li>
+          </ol>
+          <ul>
+            <li><a href="/studio-examples/walking-duet-cello.pdf">예제 첼로 파트보 PDF 보기</a></li>
+            <li><a href="/studio-examples/walking-duet-full-score.pdf">플루트·첼로 총보 PDF와 비교하기</a></li>
+          </ul>
+          <h2 id="return-to-score">총보로 돌아가기</h2>
+          <p>파트보 보기에서는 같은 악보의 선택한 파트를 표시합니다. <strong>악보 보기</strong>를 다시 <strong>총보</strong>로 바꾸면 다른 파트도 볼 수 있습니다. 파트보 선택이 비활성이면 먼저 파트보 보기로 전환하세요.</p>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>

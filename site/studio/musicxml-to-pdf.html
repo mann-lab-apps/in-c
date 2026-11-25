@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MusicXML 악보 열기와 PDF 저장 | 띠로리 Studio</title>
+    <meta name="description" content="띠로리 Studio에서 MusicXML 또는 MXL 악보를 열고 편집한 뒤 총보 PDF로 저장하는 방법을 예제 악보와 실제 출력으로 확인하세요." />
+    <link rel="canonical" href="https://in-c.mannlab.app/studio/musicxml-to-pdf.html" />
+    <meta property="og:title" content="MusicXML 악보 열기와 PDF 저장" />
+    <meta property="og:description" content="플루트와 첼로 예제 악보로 MusicXML 가져오기부터 총보 PDF 저장까지 따라가세요." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://in-c.mannlab.app/studio/musicxml-to-pdf.html" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="https://in-c.mannlab.app/studio-examples/walking-duet-score.png" />
+    <meta property="og:image:alt" content="띠로리 Studio에서 플루트와 첼로 악보를 가져온 편집 화면" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MusicXML 악보 열기와 PDF 저장" />
+    <meta name="twitter:description" content="예제 MusicXML과 실제 총보 PDF로 가져오기와 저장 절차를 확인하세요." />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/studio-examples/walking-duet-score.png" />
+    <meta name="twitter:image:alt" content="띠로리 Studio에서 MusicXML 예제 악보를 열어 둔 화면" />
+    <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="../index.html" aria-label="in C 홈">
+        <img src="../assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="Studio 메뉴">
+        <a href="../chromatics.html">띠로리 Studio</a>
+        <a href="../chromatics.html#guides">사용 안내</a>
+      </nav>
+    </header>
+    <main class="column-page studio-guide-page">
+      <article class="column-document">
+        <header class="column-document__header">
+          <h1>MusicXML 악보 열기와 PDF 저장</h1>
+          <p class="column-article__summary">띠로리 Studio에서 MusicXML이나 MXL 악보를 열고, 편집한 총보를 PDF로 저장할 수 있습니다. 아래의 플루트·첼로 4마디 예제로 가져오기와 출력 결과를 비교해 보세요.</p>
+          <p class="column-published">확인한 환경은 macOS용 띠로리 Studio 0.1.0-alpha.43입니다.</p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="../chromatics.html#download">띠로리 Studio 다운로드</a>
+            <a class="button button--secondary" href="/studio-examples/walking-duet.musicxml" download>예제 MusicXML 받기</a>
+          </div>
+        </header>
+        <div class="markdown-body">
+          <h2 id="import">MusicXML 악보를 여는 방법</h2>
+          <ol>
+            <li>예제 파일 <strong>walking-duet.musicxml</strong>을 내려받습니다.</li>
+            <li>Studio 시작 화면에서 <strong>MusicXML 가져오기</strong>를 누릅니다. 이미 악보를 열어 둔 경우에는 <strong>파일 → MusicXML 가져오기</strong>를 사용합니다.</li>
+            <li>파일을 고른 뒤 제목 <strong>나란히 걷는 선율</strong>과 플루트·첼로 두 파트가 표시되는지 확인합니다.</li>
+          </ol>
+          <figure class="column-figure">
+            <img src="/studio-examples/walking-duet-score.png" alt="나란히 걷는 선율을 가져온 Studio의 총보 편집 화면" width="1360" height="840" loading="lazy" />
+            <figcaption>MusicXML 예제를 가져온 총보 화면</figcaption>
+          </figure>
+          <h2 id="pdf">총보를 PDF로 저장하는 방법</h2>
+          <ol>
+            <li><strong>보기 → 총보·파트보 보기</strong>에서 <strong>총보</strong>를 선택합니다.</li>
+            <li><strong>파일 → 내보내기 설정 → PDF 변환</strong>을 누르고 새 파일 이름으로 저장합니다.</li>
+            <li>저장한 PDF를 열어 플루트와 첼로가 모두 보이는지 확인합니다. 아래 예제 결과는 A4 한 장입니다.</li>
+          </ol>
+          <p><a href="/studio-examples/walking-duet-full-score.pdf">예제 총보 PDF 보기</a></p>
+          <h2 id="limitations">가져온 악보가 원본과 다르게 보일 때</h2>
+          <p>MusicXML은 악보를 교환하는 형식입니다. 마디 폭과 줄바꿈은 Studio에서 다시 배치될 수 있습니다. 가져오기 경고가 있으면 표시된 파트와 마디를 원본과 비교하세요. 이어서 편집할 작업은 Studio 프로젝트로 따로 보관할 수 있습니다.</p>
+          <p>연주자에게 한 파트만 보낼 때는 <a href="./part-pdf.html">총보에서 파트보 PDF 만들기</a>를 따라가세요.</p>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>

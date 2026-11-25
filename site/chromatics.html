@@ -3,31 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>띠로리 Studio | 데스크톱 사보 앱</title>
+    <title>띠로리 Studio | MusicXML·PDF를 지원하는 악보 편집 프로그램</title>
     <meta
       name="description"
-      content="띠로리 Studio는 총보와 파트보를 만들고 MusicXML, PDF, MIDI, PNG로 내보내는 데스크톱 사보 앱입니다."
+      content="띠로리 Studio에서 MusicXML 악보를 열어 편집하고, 총보와 파트보를 PDF로 저장하세요. macOS·Windows·Linux용 데스크톱 사보 앱입니다."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/chromatics.html" />
     <meta property="og:title" content="띠로리 Studio" />
     <meta
       property="og:description"
-      content="총보와 파트보를 만들고 MusicXML, PDF, MIDI, PNG로 내보내는 데스크톱 사보 앱입니다."
+      content="MusicXML 악보를 열어 편집하고, 총보와 파트보를 PDF로 저장하는 데스크톱 사보 앱입니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://in-c.mannlab.app/chromatics.html" />
     <meta property="og:site_name" content="in C" />
     <meta property="og:locale" content="ko_KR" />
-    <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
-    <meta property="og:image:alt" content="in C 앱 아이콘" />
+    <meta property="og:image" content="https://in-c.mannlab.app/studio-examples/walking-duet-score.png" />
+    <meta property="og:image:alt" content="띠로리 Studio에서 MusicXML 예제 악보를 열어 둔 화면" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="띠로리 Studio" />
     <meta
       name="twitter:description"
       content="macOS, Windows, Linux에서 사용할 수 있는 데스크톱 사보 앱입니다."
     />
-    <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
-    <meta name="twitter:image:alt" content="in C 앱 아이콘" />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/studio-examples/walking-duet-score.png" />
+    <meta name="twitter:image:alt" content="띠로리 Studio에서 MusicXML 예제 악보를 열어 둔 화면" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "띠로리 Studio",
+        "url": "https://in-c.mannlab.app/chromatics.html",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": ["macOS", "Windows", "Linux"],
+        "description": "MusicXML 악보를 열어 편집하고, 총보와 파트보를 PDF로 저장하는 데스크톱 사보 앱입니다."
+      }
+    </script>
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
     <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
     <link rel="stylesheet" href="./styles.css" />
@@ -42,7 +53,7 @@
         <a href="./columns.html">Columns</a>
         <a href="./concerts.html">Concerts</a>
         <a href="./community.html">Community</a>
-        <a aria-current="page" href="./chromatics.html">Studio</a>
+        <a aria-current="page" href="./chromatics.html">띠로리 Studio</a>
         <a class="nav-login-link" href="./login.html">로그인</a>
       </nav>
     </header>
@@ -53,8 +64,8 @@
           <p class="eyebrow">데스크톱 사보 앱</p>
           <h1 id="hero-title">띠로리 Studio</h1>
           <p class="hero__lead">
-            총보와 파트보를 만들고 연주를 미리 듣는 데스크톱 사보 앱입니다.
-            악보를 프로젝트로 저장하고, MusicXML·PDF·MIDI·PNG 사본을 필요한 곳에 공유할 수 있습니다.
+            MusicXML 악보를 열어 편집하고, 총보나 파트보를 PDF로 저장하세요.
+            macOS·Windows·Linux용 데스크톱 앱입니다.
           </p>
           <div class="hero__actions">
             <a
@@ -62,9 +73,10 @@
               data-primary-download
               href="#download"
             >
-              Studio 다운로드
+              운영체제별 다운로드
             </a>
-            <a class="button button--secondary" href="#features">기능 보기</a>
+            <a class="button button--secondary" data-alternate-download href="#download" hidden>다른 운영체제</a>
+            <a class="button button--secondary" href="#guides">사용 안내</a>
           </div>
           <dl class="release-strip" aria-label="릴리즈 상태">
             <div>
@@ -83,10 +95,10 @@
         </div>
         <figure class="hero__preview">
           <img
-            src="./assets/app-preview.svg"
-            width="1440"
-            height="900"
-            alt="악보 편집 화면과 빨간 편집 커서가 놓인 Studio 편집 화면 예시"
+            src="/studio-examples/walking-duet-score.png"
+            width="1360"
+            height="840"
+            alt="띠로리 Studio에서 예제 악보 나란히 걷는 선율을 열어 둔 총보 편집 화면"
           />
         </figure>
       </section>
@@ -99,11 +111,11 @@
         <div class="feature-grid">
           <article>
             <h3>빠른 음표 입력</h3>
-            <p>숫자 음가, A-G 입력, 쉼표, 타이, 셋잇단음표, range 편집을 키보드 중심으로 다룹니다.</p>
+            <p>숫자 음가, A-G 입력, 쉼표, 붙임줄, 셋잇단음표와 구간 편집을 키보드 중심으로 다룹니다.</p>
           </article>
           <article>
             <h3>총보와 파트보</h3>
-            <p>피아노 grand staff와 2-4 part ensemble을 만들고, 선택한 part view를 PDF 출력 대상으로 사용할 수 있습니다.</p>
+            <p>피아노 큰보표와 2~4파트 합주 악보를 만들고, 선택한 파트만 PDF로 저장할 수 있습니다.</p>
           </article>
           <article>
             <h3>교환 포맷</h3>
@@ -111,15 +123,31 @@
           </article>
           <article>
             <h3>표기와 레이아웃</h3>
-            <p>셈여림, 가사, 코드 심벌, slur, hairpin, rehearsal mark, 페이지 설정을 사용해 악보를 다듬을 수 있습니다.</p>
+            <p>셈여림, 가사, 코드, 이음줄, 셈여림선, 연습표와 페이지 설정을 사용해 악보를 다듬을 수 있습니다.</p>
           </article>
           <article>
             <h3>재생과 믹서</h3>
-            <p>tempo map, repeat, tie/tuplet timing, part별 mute/solo/volume을 확인하며 악보를 점검할 수 있습니다.</p>
+            <p>반복과 빠르기를 확인하고, 파트별 음소거·솔로·음량을 조절해 악보를 점검할 수 있습니다.</p>
           </article>
           <article>
             <h3>예측 가능한 편집</h3>
             <p>선택한 음표는 위·아래 방향키로 반음, ⌘/Ctrl과 방향키로 옥타브를 옮길 수 있습니다. 편집은 실행 취소로 되돌릴 수 있습니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="guides" class="section" aria-labelledby="guides-title">
+        <div class="section__header">
+          <h2 id="guides-title">예제 악보로 따라 하기</h2>
+        </div>
+        <div class="feature-grid studio-guide-links">
+          <article>
+            <h3><a href="./studio/musicxml-to-pdf.html">MusicXML 악보 열기와 PDF 저장</a></h3>
+            <p>플루트·첼로 악보를 가져와 총보 PDF로 저장합니다.</p>
+          </article>
+          <article>
+            <h3><a href="./studio/part-pdf.html">총보에서 파트보 PDF 만들기</a></h3>
+            <p>합주 악보에서 첼로만 골라 연주자용 PDF를 만듭니다.</p>
           </article>
         </div>
       </section>
@@ -129,13 +157,12 @@
           <p class="eyebrow">다운로드</p>
           <h2 id="download-title">운영체제별 설치 파일</h2>
           <p>
-            프리릴리즈는 GitHub Releases에서 배포합니다. 설치 전 파일 이름과 체크섬을 확인해 주세요.
+            Mac, Windows 또는 Linux 컴퓨터에서 설치할 파일을 고르세요. 설치 전 파일 이름과 체크섬을 확인할 수 있습니다.
           </p>
         </div>
         <div class="download-grid" data-downloads aria-live="polite">
           <article class="download-card">
-            <h3>릴리즈 정보 불러오는 중</h3>
-            <p>JavaScript를 사용할 수 없으면 운영체제별 설치 파일을 직접 받을 수 있습니다.</p>
+            <h3>설치 파일 선택</h3>
             <div class="hero__actions">
               <a
                 class="button button--secondary"
@@ -196,7 +223,6 @@
           <h2 id="limits-title">설치와 파일 호환성</h2>
         </div>
         <ul class="limit-list">
-          <li>수동 악보 완성 QA, 외부 사보앱 MusicXML fixture, PDF/MIDI 앱 열기 확인은 릴리즈 후보마다 계속 기록합니다.</li>
           <li>Linux는 x86_64 AppImage로 배포합니다.</li>
           <li>악보를 외부 앱과 교환할 때는 MusicXML 사본과 Studio 프로젝트를 함께 보관하세요.</li>
           <li>독립 종료 박이 있는 헤어핀을 저장하면 프로젝트 형식 v3을 사용합니다. 새 종료 역할이나 앞꾸밈음 설정이 들어간 v2 프로젝트도 alpha.42에서 열리지 않을 수 있습니다. 이 파일을 편집할 때는 alpha.43으로 업데이트하고 원본 사본을 보관하세요.</li>
