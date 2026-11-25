@@ -1,7 +1,7 @@
 import { Annotation, BarlineType, Stave, type StaveNote } from 'vexflow'
 import { sortVoiceEvents, type Measure, type Voice as ScoreVoice, type VoiceEvent } from '../../../score-core'
 import { leadingNotationPadding } from './system-layout'
-import { toVexFlowClef, toVexFlowKeySignature } from './vexflow-adapter'
+import { addVexFlowClef, sameDisplayedClef, toVexFlowKeySignature } from './vexflow-adapter'
 import { minimumSharedRhythmWidth } from './shared-rhythm-layout'
 import { lyricDisplayText } from './lyric-text'
 import type { HarmonySpacingWidths } from './harmony-spacing'
@@ -44,13 +44,13 @@ export function minimumLyricColumnWidth(
     if (measure.repeat?.end) stave.setEndBarType(BarlineType.REPEAT_END)
     const previous = header?.previousMeasures[index]
     const showsClef = !header || header.isSystemStart || !previous ||
-      previous.clef.sign !== measure.clef.sign || previous.clef.line !== measure.clef.line
+      !sameDisplayedClef(previous.clef, measure.clef)
     const showsKeySignature = !header || header.isSystemStart || !previous ||
       previous.keySignature.fifths !== measure.keySignature.fifths || previous.keySignature.mode !== measure.keySignature.mode
     const showsTimeSignature = !header || !previous ||
       previous.timeSignature.beats !== measure.timeSignature.beats || previous.timeSignature.beatType !== measure.timeSignature.beatType
     const cancellation = header ? keySignatureCancellation(measure.keySignature, previous?.keySignature) : undefined
-    if (showsClef) stave.addClef(toVexFlowClef(measure.clef))
+    if (showsClef) addVexFlowClef(stave, measure.clef)
     if (showsKeySignature) stave.addKeySignature(toVexFlowKeySignature(measure.keySignature), cancellation?.keySpec)
     if (showsTimeSignature) stave.addTimeSignature(`${measure.timeSignature.beats}/${measure.timeSignature.beatType}`)
     stave.setNoteStartX(stave.getNoteStartX() + leadingNotationPadding(measure,

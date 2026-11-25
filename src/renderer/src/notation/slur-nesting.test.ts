@@ -13,6 +13,28 @@ it('plans three strictly nested automatic spans inside out without mutating sour
 it('keeps an already inner-first geometry sequence and unrelated slots stable', () => {
   expect(planSlurNesting([entry(0,200,400),entry(1,0,800),entry(2,900,1000)]).order).toEqual([0,1,2])
 })
+it('clears contained automatic bows on an endpoint voice of a cross-voice slur', () => {
+  const outer = { ...entry(0, 0, 1000), voiceKey: undefined, crossVoiceKeys: ['upper', 'lower'] as const }
+  const lower = { ...entry(1, 200, 400), voiceKey: 'lower' }
+  const unrelated = { ...entry(2, 280, 580), voiceKey: 'another' }
+  expect(planSlurNesting([outer, lower, unrelated])).toEqual({
+    order: [1, 0, 2], innerByIndex: new Map([[0, [1]]])
+  })
+  expect(planSlurNesting([outer, { ...lower, automatic: false }]).innerByIndex.size).toBe(0)
+  expect(strictlyContainsSlur(outer, lower)).toBe(false)
+})
+it('places contained bows before an outer slur that continues into another system', () => {
+  const outer = { ...entry(0, 500, 450), endSystemIndex: 1 }
+  const inFirst = entry(1, 550, 800)
+  const inContinuation = { ...entry(2, 130, 370), systemIndex: 1 }
+  const beforeStart = entry(3, 100, 360)
+  const afterStop = { ...entry(4, 470, 550), systemIndex: 1 }
+  const onAnotherStaff = { ...inContinuation, index: 5, staffIndex: 1 }
+  expect(planSlurNesting([outer, inFirst, inContinuation, beforeStart, afterStop, onAnotherStaff])).toEqual({
+    order: [1, 2, 0, 3, 4, 5], innerByIndex: new Map([[0, [1, 2]]])
+  })
+  expect(strictlyContainsSlur(outer, inContinuation)).toBe(false)
+})
 it('does not infer nesting across manual, shared-endpoint, voice, staff, system or unknown scope', () => {
   for(const changed of [{automatic:false},{startX:0},{endX:1000},{voiceKey:'other'},{staffIndex:1},
     {systemIndex:1},{voiceKey:undefined},{systemIndex:undefined},{startX:NaN}]) {

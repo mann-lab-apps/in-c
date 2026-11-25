@@ -402,7 +402,7 @@
     "entry": "편집 메뉴 또는 파일 작업 → 선택 편집",
     "shortcut": "⌘/Ctrl+X (지원되는 단순 음표/쉼표), ⌘/Ctrl+C, ⌘/Ctrl+V, Delete/Backspace",
     "scope": "음표 삭제는 리듬을 유지하는 쉼표 변환입니다. 표기 객체 삭제는 선택 종류를 따릅니다. 입력창에서는 텍스트 편집이 우선입니다.",
-    "disabled": "잘라내기는 입력 preview·표기 필터·선택 span을 제외하고 기존 복사·삭제가 모두 가능한 같은 마디/성부의 단순 선택만 허용. 붙여넣기는 같은 길이의 지원 범위만 허용.",
+    "disabled": "잘라내기는 입력 preview·표기 필터·선택 span을 제외하고 기존 복사·삭제가 모두 가능한 같은 마디/성부의 단순 선택만 허용. 붙여넣기는 같은 길이의 지원 범위만 허용. 같은 보표·성부의 연속 마디 전체는 마디별 실제 길이가 같은 대상에 한 번에 붙여넣습니다. 대상의 첫 음표나 쉼표 또는 마디 범위를 선택하세요.",
     "sources": [
       "src/renderer/src/StudioFileTools.tsx"
     ],
@@ -450,9 +450,9 @@
     "id": "measures",
     "title": "마디 추가·삭제·우클릭",
     "chapter": "structure",
-    "entry": "마디 우클릭 → 앞/뒤에 마디 추가·마디 제거·마디 속성…",
-    "shortcut": "우클릭, 메뉴 ↑/↓/Home/End/Enter/Esc",
-    "scope": "모든 파트·보표의 같은 위치에 한 마디씩 추가하거나 제거합니다. 구조를 바꾸면 마디 번호를 1부터 순서대로 다시 매깁니다. 조표·음자리표 같은 비구조 편집의 원본 번호 보존과 다릅니다. 이 버전의 마디 속성은 현재 구조·조표·박자표 작업대를 열고 조표에 focus하며 그 자체로 악보/undo를 바꾸지 않습니다.",
+    "entry": "마디 우클릭 → 앞/뒤에 마디 추가·이 보표의 마디 내용 지우기·마디 제거·마디 속성…",
+    "shortcut": "마디 선택: Delete/Backspace는 내용 지우기, ⌘/Ctrl+Delete 또는 ⌘/Ctrl+Backspace는 구조 제거",
+    "scope": "모든 파트·보표의 같은 위치에 한 마디씩 추가하거나 제거합니다. 구조를 바꾸면 마디 번호를 1부터 순서대로 다시 매깁니다. 보표의 마디 내용 지우기는 마디 주소·번호·실제 길이를 유지합니다. 이 버전의 마디 속성은 현재 구조·조표·박자표 작업대를 열고 조표에 focus하며 그 자체로 악보/undo를 바꾸지 않습니다.",
     "disabled": "보표별 마디 수가 다르거나 마지막 마디를 제거하려면 거부합니다. 삭제한 마디의 음표와 연결 표기도 함께 바뀔 수 있으므로 실행 취소로 비교하세요.",
     "sources": [
       "src/renderer/src/App.tsx",
@@ -488,9 +488,9 @@
     "id": "meter",
     "title": "마디 박자표와 변박자",
     "chapter": "structure",
-    "entry": "마디 우클릭 → 박자표 변경…",
+    "entry": "마디 우클릭 → 박자표 변경… → 선택 보표 또는 이 마디의 총보 박자표…",
     "shortcut": "없음",
-    "scope": "선택 보표 한 마디만 변경합니다. 이 버전은 사용자 지정 박자표에서 분자1–128·분모1/2/4/8/16/32/64를 입력할 수 있습니다. 이후 마디/다른 보표 자동 전파는 없습니다. 이 버전의 박자표 편집은 유효한 원본 마디 번호를 다시 매기지 않습니다.",
+    "scope": "선택 보표 한 마디를 바꾸거나, 총보에서 명시적으로 같은 위치의 한 마디를 모든 보표에 적용합니다. 분자1–128·분모1/2/4/8/16/32/64를 입력하며 이후 마디의 박자표를 유지합니다. 이 버전의 박자표 편집은 유효한 원본 마디 번호를 다시 매기지 않습니다.",
     "disabled": "새 마디 길이를 넘는 음표나 사라질 쉼표의 부착 기호·범위 끝점이 있으면 거부합니다. 새 악보 만들기에서도 같은 범위의 사용자 지정을 제공합니다. 이 버전은 축소 후 마디 밖에 남을 빠르기·코드·표현 글자도 보호합니다.",
     "sources": [
       "src/renderer/src/StudioMeasureTools.tsx",
@@ -554,6 +554,24 @@
     "manual": "04-structure.md#part-view",
     "sourceReviewed": true,
     "runtimeVerification": "See checks.json; individual physical user verification pending",
+    "userChecked": false
+  },
+  {
+    "id": "concert-pitch",
+    "title": "실음 보기",
+    "chapter": "workspace",
+    "entry": "보기 → 실음 보기",
+    "shortcut": "보기 메뉴의 방향키·Enter",
+    "scope": "이조가 일정한 단일 파트의 읽기 전용 화면입니다. 선택과 재생을 유지하며 기보음으로 프로젝트·PDF·MusicXML을 출력합니다.",
+    "disabled": "음표 입력과 미확정 값을 마친 뒤 전환합니다. 혼합 이조나 현재 조판에서 표현할 수 없는 음이름에는 이유가 표시됩니다.",
+    "sources": [
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/editor/concert-pitch.ts"
+    ],
+    "support": "일부 지원",
+    "manual": "02-workspace.md#concert-pitch",
+    "sourceReviewed": true,
+    "runtimeVerification": "Isolated Electron checks in studio-post-alpha42-parity-20261122 handoff",
     "userChecked": false
   },
   {
@@ -725,7 +743,7 @@
     "chapter": "notation",
     "entry": "반복·볼타 설정 / 마디 우클릭",
     "shortcut": "없음",
-    "scope": "현재 제공하는 1번/2번 볼타와 기존 explicit/manual 범위를 보존하는 경로입니다. 모든 임의 ending 편집기가 아닙니다.",
+    "scope": "1번·2번 볼타를 설정하고, 단순 반복의 기존 괄호에 복수 회차나 3번 이상을 입력합니다. 적용한 목록은 표기·재생·Native·MusicXML에 반영됩니다.",
     "disabled": "범위/반복 구조가 유효해야 합니다. 외부 중첩 볼타 의미 차이를 해결된 것으로 설명하지 않습니다.",
     "sources": [
       "src/renderer/src/StudioRepeatTools.tsx"
@@ -1033,15 +1051,34 @@
     "userChecked": false
   },
   {
+    "id": "leading-grace-playback",
+    "title": "앞꾸밈음 발음",
+    "chapter": "playback",
+    "entry": "형식 → 악보 설정 → 앞꾸밈음 발음",
+    "shortcut": "없음",
+    "scope": "일반 단음 앞의 꾸밈음 한 개를 재생과 MIDI에 적용합니다. 기존 프로젝트는 꺼짐입니다.",
+    "disabled": "뒤꾸밈음과 복수 꾸밈음, 화음·타이·잇단음표·장식이 있는 본음의 꾸밈음은 발음 범위에 포함되지 않습니다.",
+    "sources": [
+      "src/renderer/src/StudioTempoTools.tsx",
+      "src/renderer/src/playback/timeline.ts"
+    ],
+    "support": "직접 사용 가능",
+    "manual": "07-playback.md#leading-grace-playback",
+    "sourceReviewed": true,
+    "runtimeVerification": "960/1400 Electron, Native reopen, MIDI and offline audio",
+    "userChecked": false
+  },
+  {
     "id": "repeat-play",
     "title": "반복·볼타·빠르기·타이·헤어핀 재생 범위",
     "chapter": "playback",
-    "entry": "반복 악보 → 재생 / MIDI 내보내기",
+    "entry": "반복 악보 → 재생 / MIDI 내보내기 · 추가 → 반복·볼타 팔레트 → 반복 이동",
     "shortcut": "없음",
-    "scope": "복귀 위치의 유효 빠르기를 복원하고 미완결 헤어핀 적용은 반복 복귀에서 중단합니다. 원본 표기는 보존합니다.",
+    "scope": "복귀 위치의 유효 빠르기를 복원하고 미완결 헤어핀 적용은 반복 복귀에서 중단합니다. 원본 표기는 보존합니다. 명시적 중첩 반복은 안쪽 반복을 바깥의 각 회차에서 다시 시작합니다.",
     "disabled": "외부 MuseScore의 중첩 반복/볼타·중간 이조 차이는 미해결입니다. 가져온 미지원 타이/기호는 경고를 확인합니다.",
     "sources": [
-      "src/renderer/src/App.tsx"
+      "src/renderer/src/App.tsx",
+      "src/renderer/src/StudioNavigationTools.tsx"
     ],
     "support": "직접 사용 가능",
     "manual": "07-playback.md#repeat-play",
@@ -1225,7 +1262,7 @@
     "chapter": "files",
     "entry": "파일 → 내보내기 설정 → PDF 변환",
     "shortcut": "없음",
-    "scope": "목표 장수는 출력 배치와 관련된 요청값이며 안전 검사를 무시하는 강제 페이지 수가 아닙니다. 성공은 프로젝트 저장과 별개입니다.",
+    "scope": "목표 장수는 출력 배치와 관련된 요청값이며 안전 검사를 무시하는 강제 페이지 수가 아닙니다. 성공은 프로젝트 저장과 별개입니다. 파트보의 모든 보표가 함께 쉬는 구간은 별도 명령으로 연속 온마디 쉼표를 묶어 PDF에 표기할 수 있습니다.",
     "disabled": "페이지 경계·과대 악보단·잘못된 장수 등은 저장 전 차단될 수 있습니다. 파일 대화상자 취소도 실패와 다릅니다.",
     "sources": [
       "src/renderer/src/StudioExportTools.tsx"

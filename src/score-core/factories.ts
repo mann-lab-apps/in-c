@@ -139,6 +139,7 @@ export function createMeasure(input?: {
   transposition?: Measure['transposition']
   repeat?: Measure['repeat']
   volta?: Measure['volta']
+  navigation?: Measure['navigation']
   voices?: Voice[]
   timing?: Measure['timing']
 }): Measure {
@@ -155,6 +156,7 @@ export function createMeasure(input?: {
     transposition: input?.transposition,
     repeat: input?.repeat,
     volta: input?.volta,
+    ...(input?.navigation?.length ? { navigation: input.navigation } : {}),
     voices:
       input?.voices ??
       [

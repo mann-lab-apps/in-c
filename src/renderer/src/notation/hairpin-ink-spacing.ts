@@ -27,3 +27,24 @@ export function resolveHairpinInkMinimums(music: readonly StaffInk[], spans: rea
   for (const [id, value] of required) next.set(id, value)
   return next
 }
+
+export function resolveHairpinStackOffset(
+  span: readonly StaffInk[], occupied: readonly StaffInk[], minimumOffset = 0
+): number {
+  const clearance = 8
+  const conflicts: { above: number; below: number }[] = []
+  for (const ink of span) for (const other of occupied) {
+    if (ink.staffIndex !== other.staffIndex || ink.systemIndex !== other.systemIndex ||
+      Math.min(ink.x + ink.width, other.x + other.width) <= Math.max(ink.x, other.x)) continue
+    // This interval describes the downward shifts that would violate the gap.
+    conflicts.push({
+      above: other.y - clearance - (ink.y + ink.height),
+      below: other.y + other.height + clearance - ink.y
+    })
+  }
+  let offset = minimumOffset
+  for (const { above, below } of conflicts.sort((a, b) => a.above - b.above)) {
+    if (above < offset && offset < below) offset = Math.ceil(below * 100) / 100
+  }
+  return offset
+}

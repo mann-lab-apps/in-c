@@ -6,10 +6,11 @@ import { StudioPropertyDisclosure, useRevealPropertyDisclosure } from './StudioP
 import { hasManualSpanEngraving } from '../../project/span-engraving'
 import { useEffect, useRef, useState } from 'react'
 import type { Score, SpanEngraving } from '../../score-core'
+import { measureDurationTicks } from '../../score-core'
 import { locateEvent } from './editor/editor-state'
 import { draftSaveGuidance, isDocumentSaveShortcut } from './editor/draft-save'
 import { useDocumentDraftSaveGuard } from './editor/document-drafts'
-import { findSpan, listSpans, spanEndpointOptions, spanEndpointOrderIsValid, type SpanReference } from './editor/span-editing'
+import { describeHairpinTimeEnd, findSpan, listSpans, selectedSpanEndTick, spanEndpointOptions, spanEndpointsAreOrdered, type SpanReference } from './editor/span-editing'
 
 interface Props {
   theme?: 'light' | 'dark'
@@ -33,7 +34,15 @@ export function SpanProperties({ theme = 'light', score, partId, scopeLabel, sel
   const options = selected ? spanEndpointOptions(score, selected) : []
   const startOption = span ? options.find(option => option.id === span.startEventId) : undefined
   const endOption = span ? options.find(option => option.id === span.endEventId) : undefined
-  const invalidOrder = Boolean(startOption && endOption && !spanEndpointOrderIsValid(startOption, endOption))
+  const timeEnd = span && 'endTime' in span ? span.endTime : undefined
+  const endTick = span && startOption && endOption ? selectedSpanEndTick(span, startOption, endOption) : undefined
+  const endLabel = endOption?.event.type === 'rest' ? '쉼표' : '음'
+  const anchorHelp = endOption && endTick !== undefined && endTick > endOption.tick
+    ? endTick === measureDurationTicks(endOption.measure)
+      ? `선택한 ${endLabel}의 길이 끝인 마디 끝에 연결됩니다.`
+      : `선택한 ${endLabel}의 길이 끝에 연결됩니다.`
+    : span && 'type' in span && span.endAnchor === 'onset' ? `선택한 ${endLabel}의 시작에 연결됩니다.` : undefined
+  const invalidOrder = Boolean(span && startOption && endOption && !spanEndpointsAreOrdered(span, startOption, endOption))
   const focusObjectPicker = () => root.current?.querySelector<HTMLButtonElement>('[role="combobox"]')?.focus()
   const pickerOptions = [{ value:'', label:'선택 없음' }, ...references.map((reference, index) => {
     const item = findSpan(score, reference)!
@@ -84,13 +93,20 @@ export function SpanProperties({ theme = 'light', score, partId, scopeLabel, sel
             ? '수동 배치: 선택한 선을 마우스로 끌어 공통 이동(이동량 0.25 sp 격자), Escape로 미리보기 취소. 선에 포커스 후 방향키 0.25 sp 격자 · Cmd/Ctrl 1 sp 격자. 총보·파트보의 모든 구간에 공통 적용합니다.'
             : '자동 배치는 직접 이동하지 않습니다. 속성에서 수동 배치를 설정한 뒤 선에서 방향키를 사용하세요.'}
         </Text>
-        {(['startEventId', 'endEventId'] as const).map(endpoint => {
-          const supported = options.some(option => option.id === span[endpoint])
+        {timeEnd ? <dl className="studio-span-properties__identity">
+          <div><dt>표기 시작점</dt><dd>{startOption?.label ?? '?'}</dd></div>
+          <div><dt>표기 끝점</dt><dd aria-label="헤어핀 시간 끝점">{describeHairpinTimeEnd(score, timeEnd)}</dd></div>
+        </dl> : (['startEventId', 'endEventId'] as const).map(endpoint => {
+          const current = span[endpoint] ?? ''
+          const supported = options.some(option => option.id === current)
           const opposite = endpoint === 'startEventId' ? endOption : startOption
-          return <Select key={`${selected.kind}:${selected.id}:${endpoint}`} label={endpoint === 'startEventId' ? '표기 시작점' : '표기 끝점'} value={span[endpoint]}
-            options={[...(!supported ? [{value:span[endpoint],label:'지원되지 않는 끝점',disabled:true}] : []), ...options.map(option => ({value:option.id,label:option.label,
-              disabled: endpoint === 'startEventId' ? !spanEndpointOrderIsValid(option, opposite) : !spanEndpointOrderIsValid(opposite, option)}))]}
-            help={opposite
+          return <Select key={`${selected.kind}:${selected.id}:${endpoint}`} label={endpoint === 'startEventId' ? '표기 시작점' : '표기 끝점'} value={current}
+            options={[...(!supported ? [{value:current,label:'지원되지 않는 끝점',disabled:true}] : []), ...options.map(option => ({value:option.id,label:option.label,
+              disabled: !opposite || (endpoint === 'startEventId'
+                ? !spanEndpointsAreOrdered(span, option, opposite) : !spanEndpointsAreOrdered(span, opposite, option))}))]}
+            help={endpoint === 'endEventId' && anchorHelp
+              ? anchorHelp
+              : opposite
               ? endpoint === 'startEventId' ? '시작점은 현재 끝점보다 앞에 있어야 합니다.' : '끝점은 현재 시작점보다 뒤에 있어야 합니다.'
               : endpoint === 'startEventId' ? '끝점의 지원 범위를 먼저 수정해 주세요.' : '시작점의 지원 범위를 먼저 수정해 주세요.'}
             error={!supported ? '같은 파트·보표의 지원되는 끝점을 선택해 주세요.' : invalidOrder ? '끝점은 시작점보다 뒤에 있어야 합니다.' : undefined}

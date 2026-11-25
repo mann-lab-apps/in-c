@@ -20,6 +20,7 @@
     "view:properties": "inspector",
     "view:mixer": "mixer",
     "view:score-view": "part-view",
+    "view:concert-pitch": "concert-pitch",
     "view:guides": "page",
     "view:score": "focus",
     "add:notation": "palette",
@@ -129,6 +130,9 @@
       "metadata",
       "drafts"
     ],
+    "StudioNavigationTools.tsx": [
+      "repeat-play"
+    ],
     "StudioNotationPalette.tsx": [
       "palette",
       "clef",
@@ -208,6 +212,7 @@
       "tempo-point"
     ],
     "StudioTempoTools.tsx": [
+      "leading-grace-playback",
       "tempo"
     ],
     "StudioWarningReport.tsx": [

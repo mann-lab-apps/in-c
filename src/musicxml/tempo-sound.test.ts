@@ -29,6 +29,22 @@ function replaceSound(xml:string,index:number,quarter:number){
 }
 
 describe('MusicXML tempo sound units',()=>{
+  it('reports a whole-beat offset difference even when the source units are small decimals', () => {
+    const { score } = fixture({ ...cases[0], scope: 'position' })
+    const decimals = (units: string) => `0.${units.padStart(11, '0')}`
+    const xml = serializeMusicXml(score).replace(
+      /<(divisions|duration|offset)([^>]*)>(\d+)<\/\1>/g,
+      (_match, name, attributes, value) => `<${name}${attributes}>${decimals(value)}</${name}>`
+    ).replace('<sound tempo="96"/>',
+      `<sound tempo="96"><offset>${decimals(String(TICKS_PER_QUARTER * 2))}</offset></sound>`)
+    const imported = parseMusicXmlWithReport(xml)
+    expect(imported.score.tempoEvents?.[0].tick).toBe(TICKS_PER_QUARTER)
+    expect(imported.report.warnings).toEqual([expect.objectContaining({
+      path: 'part[1].measure[1].direction[2].sound.offset',
+      message: expect.stringContaining('Independent tempo offset')
+    })])
+  })
+
   it('keeps the source part in independent-tempo diagnostics',()=>{
     const {score}=fixture({...cases[1],scope:'position'}),xml=serializeMusicXml(score)
     const originalPart=xml.match(/<part id="part-1">[\s\S]*?<\/part>/)![0]

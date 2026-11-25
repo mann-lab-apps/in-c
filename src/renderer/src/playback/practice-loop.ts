@@ -1,4 +1,4 @@
-import {measureDurationTicks,voiceEventDurationTicks,TICKS_PER_QUARTER,type Score} from '../../../score-core'
+import {createScoreRepeatPlaybackPlan,measureDurationTicks,voiceEventDurationTicks,TICKS_PER_QUARTER,type Score} from '../../../score-core'
 import {createRangeSelection,locateEvent,type EditorSelection} from '../editor/editor-state'
 import {metronomeUnavailableReason} from './metronome'
 import {createPerformedBeatMapper,createPlaybackTimeline} from './timeline'
@@ -12,6 +12,9 @@ export function createPracticeLoopPlan(score:Score,selection:EditorSelection):Pr
   const staves=score.parts.flatMap(part=>part.staves)
   if(staves.some(staff=>staff.measures.some(bar=>bar.repeat?.start||bar.repeat?.end||bar.volta))) {
     return reject('반복·볼타가 있는 악보는 아직 연습 루프를 사용할 수 없습니다. 일반 재생은 사용할 수 있습니다.')
+  }
+  if (createScoreRepeatPlaybackPlan(score)?.entries.some(entry => entry.navigationJump)) {
+    return reject('재생 이동 지시가 있는 악보는 아직 연습 루프를 사용할 수 없습니다. 일반 재생은 사용할 수 있습니다.')
   }
   if(metronomeUnavailableReason(score))return reject('보표의 박자·마디 수·길이가 서로 달라 연습 루프를 사용할 수 없습니다.')
   if(selection.type==='measure')return reject('연습할 음표·쉼표 또는 연속 범위를 선택해 주세요.')

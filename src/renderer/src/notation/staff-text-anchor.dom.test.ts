@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
-import { applyStaffTextAnchors } from './staff-text-anchor'
+import { applyStaffAnnotationAnchors } from './staff-text-anchor'
 import * as readers from './staff-ink-spacing'
 
 const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
@@ -27,7 +27,7 @@ function obstacle(svg: SVGSVGElement, measure: string, y: number) {
 }
 it('uses the actual staff/onset anchor and moves only its existing measured hit rectangle', () => {
   const f = fixture(), attrs = f.text.getAttribute('style'), parent = f.text.parentElement!.outerHTML
-  const result = applyStaffTextAnchors(f.svg, f.owners)
+  const result = applyStaffAnnotationAnchors(f.svg, f.owners)
   expect(f.text.getAttribute('x')).toBe('110'); expect(f.text.getAttribute('y')).toBe('240')
   expect(f.text.getAttribute('style')).toBe(attrs)
   expect(result).toEqual([{ x: 111, y: 228, width: 60, height: 14, ...f.owner }])
@@ -37,25 +37,25 @@ it('uses the actual staff/onset anchor and moves only its existing measured hit 
 })
 it('clears same-staff high ink and a second higher obstacle using half a staff space without moving them', () => {
   const f = fixture(), one = obstacle(f.svg, 'm', 230), two = obstacle(f.svg, 'm', 210)
-  applyStaffTextAnchors(f.svg, f.owners)
+  applyStaffAnnotationAnchors(f.svg, f.owners)
   expect(Number(f.text.getAttribute('y')) + 2).toBe(205)
   expect(f.svg.children[1].outerHTML).toBe(one); expect(f.svg.children[2].outerHTML).toBe(two)
 })
 it.each(['neighbor', 'later'])('leaves %s clearance to the staff/system spacing pipeline', id => {
   const f = fixture(); obstacle(f.svg, id, 230)
-  applyStaffTextAnchors(f.svg, f.owners); expect(f.text.getAttribute('y')).toBe('240')
+  applyStaffAnnotationAnchors(f.svg, f.owners); expect(f.text.getAttribute('y')).toBe('240')
 })
 it('clears owned manual span bounds while preserving manual nodes and explicit zero geometry', () => {
   const f = fixture(); f.svg.insertAdjacentHTML('beforeend', '<path data-offset="0" data-height="4" fill="transparent" stroke="none" d="M 110 230 L 150 230"/>')
   const before = f.svg.lastElementChild!.outerHTML
-  applyStaffTextAnchors(f.svg, f.owners, [{ x: 110, y: 230, width: 40, height: 4, ...f.owner }])
+  applyStaffAnnotationAnchors(f.svg, f.owners, [{ x: 110, y: 230, width: 40, height: 4, ...f.owner }])
   expect(Number(f.text.getAttribute('y')) + 2).toBe(225)
   expect(f.svg.lastElementChild!.outerHTML).toBe(before)
 })
 it('positions higher text rows deterministically without reordering model/DOM/keyboard owners', () => {
   const f = fixture(); f.text.dataset.staffAnchorY = '222'
   f.svg.insertAdjacentHTML('beforeend', '<text class="notation-staff-text" data-measure-id="m" data-staff-anchor-x="110" data-staff-anchor-y="240" data-staff-anchor-space="10" x="22" y="205" style="fill:black">Second</text>')
-  applyStaffTextAnchors(f.svg, f.owners)
+  applyStaffAnnotationAnchors(f.svg, f.owners)
   const texts = [...f.svg.querySelectorAll('text')]
   expect(texts.map(t => t.textContent)).toEqual(['보표 글자', 'Second'])
   expect(Number(texts[1].getAttribute('y'))).toBe(240)
@@ -63,7 +63,7 @@ it('positions higher text rows deterministically without reordering model/DOM/ke
 })
 it('keeps long ink intact and uses existing horizontal page diagnostics rather than shrinking text', () => {
   const f = fixture(); f.svg.setAttribute('width', '40')
-  applyStaffTextAnchors(f.svg, f.owners)
+  applyStaffAnnotationAnchors(f.svg, f.owners)
   expect(f.text.getAttribute('x')).toBe('110'); expect(f.text.textContent).toBe('보표 글자')
   expect(f.text.getAttribute('transform')).toBeNull()
 })
@@ -76,27 +76,64 @@ it.each(['loading', 'owner', 'paint', 'metrics', 'anchor', 'hidden'] as const)('
   if (kind === 'anchor') f.text.dataset.staffAnchorX = 'NaN'
   if (kind === 'hidden') f.text.style.display = 'none'
   const before = f.svg.outerHTML
-  applyStaffTextAnchors(f.svg, f.owners); expect(f.svg.outerHTML).toBe(before)
+  applyStaffAnnotationAnchors(f.svg, f.owners); expect(f.svg.outerHTML).toBe(before)
 })
 
 it('uses five real painted staff stroke centers instead of assuming Vex origin or half-pixel alignment', () => {
   const f = fixture(); f.text.dataset.staffAnchorTop = '250'
   f.svg.insertAdjacentHTML('beforeend', '<g class="vf-stave" data-measure-id="m">' + [0,1,2,3,4].map(i => `<rect x="0" y="${250+i*10}" width="500" height="1" style="fill:black"/>`).join('') + '</g>')
-  applyStaffTextAnchors(f.svg, f.owners)
+  applyStaffAnnotationAnchors(f.svg, f.owners)
   expect(f.text.getAttribute('y')).toBe('240.5')
 })
 
 it('keeps the conservative lane when an actual stave is expected but five measured lines are unavailable', () => {
   const f = fixture(); f.text.dataset.staffAnchorTop = '250'
   const before = f.svg.outerHTML
-  applyStaffTextAnchors(f.svg, f.owners); expect(f.svg.outerHTML).toBe(before)
+  applyStaffAnnotationAnchors(f.svg, f.owners); expect(f.svg.outerHTML).toBe(before)
 })
 
 it.each(['notation-range-selection-layer', 'notation-playhead'])('does not treat the screen-only %s as authored notation ink', kind => {
   const f = fixture()
   f.svg.insertAdjacentHTML('beforeend', `<g class="${kind}" aria-hidden="true"><rect x="110" y="230" width="35" height="14" style="fill:black"/></g>`)
   const overlay = f.svg.lastElementChild!, before = overlay.outerHTML
-  applyStaffTextAnchors(f.svg, f.owners)
+  applyStaffAnnotationAnchors(f.svg, f.owners)
   expect(f.text.getAttribute('y')).toBe('240')
   expect(overlay.outerHTML).toBe(before)
+})
+
+it.each([
+  { highInk: undefined, top: 241 },
+  { highInk: 248, top: 219 },
+  { highInk: 205, top: 180 }
+])('keeps the rehearsal frame near its own staff with measured clearance $highInk', ({ highInk, top }) => {
+  const { svg, owners } = fixture()
+  svg.replaceChildren()
+  svg.insertAdjacentHTML('beforeend',
+    '<g class="notation-rehearsal-mark" data-print-measure-id="m" data-rehearsal-anchor-top="270" data-rehearsal-anchor-space="10" role="button" tabindex="0">' +
+      '<rect x="110" y="180" width="24" height="24" style="fill:white;stroke:black"/>' +
+      '<text x="112" y="195" style="fill:black">A</text></g>')
+  const mark = svg.querySelector('.notation-rehearsal-mark')!
+  owners.set('m', { ...owners.get('m')!, systemIndex: 1 })
+  const older = obstacle(svg, 'neighbor', 188)
+  const high = highInk === undefined ? undefined : obstacle(svg, 'm', highInk)
+  applyStaffAnnotationAnchors(svg, owners)
+  expect(mark.querySelector('rect')?.getAttribute('y')).toBe(String(top))
+  expect(mark.querySelector('text')?.getAttribute('y')).toBe(String(top + 15))
+  expect(mark.getAttribute('data-print-measure-id')).toBe('m')
+  expect(mark.getAttribute('tabindex')).toBe('0')
+  expect(svg.children[1].outerHTML).toBe(older)
+  if (high !== undefined) expect(svg.children[2].outerHTML).toBe(high)
+})
+
+it('positions a measured navigation glyph against the formatted staff and existing ink', () => {
+  const f = fixture()
+  f.text.setAttribute('class', 'notation-navigation-symbol')
+  f.text.textContent = '\uE047'
+  f.hit.remove()
+  const painted = obstacle(f.svg, 'm', 230)
+  const [glyph] = applyStaffAnnotationAnchors(f.svg, f.owners)
+  expect(glyph).toMatchObject({ ...f.owner, x: 111, height: 14 })
+  expect(glyph.y + glyph.height).toBe(225)
+  expect(f.text.textContent).toBe('\uE047')
+  expect(f.svg.lastElementChild!.outerHTML).toBe(painted)
 })

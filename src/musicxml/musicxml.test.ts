@@ -1466,14 +1466,25 @@ describe('MusicXML MVP', () => {
     expect(() => parseMusicXml(xml)).toThrow('slur의 종료 표식이 없습니다')
   })
 
-  it('rejects MusicXML integer fields with decimal or trailing text', () => {
+  it('reads exact decimal divisions and durations without changing the imported score', () => {
+    const decimal = fixture.replace(/<(divisions|duration)>(\d+)<\/\1>/g, (_match, element, digits) =>
+      `<${element}>${Number(digits) / 10}</${element}>`
+    )
+    expect(parseMusicXml(decimal)).toEqual(parseMusicXml(fixture))
+  })
+
+  it('rejects non-decimal time values and durations between two Studio ticks', () => {
     expect(() =>
-      parseMusicXml(fixture.replace('<divisions>4</divisions>', '<divisions>4.5</divisions>'))
-    ).toThrow('MusicXML 정수 값이 올바르지 않습니다: divisions')
+      parseMusicXml(fixture.replace('<divisions>4</divisions>', '<divisions>4e0</divisions>'))
+    ).toThrow('MusicXML 소수 값이 올바르지 않습니다: divisions')
 
     expect(() =>
       parseMusicXml(fixture.replace('<duration>4</duration>', '<duration>4abc</duration>'))
-    ).toThrow('MusicXML 정수 값이 올바르지 않습니다: duration')
+    ).toThrow('MusicXML 소수 값이 올바르지 않습니다: duration')
+
+    expect(() =>
+      parseMusicXml(fixture.replace('<duration>4</duration>', '<duration>3.99999999999999999999</duration>'))
+    ).toThrow('MusicXML duration을 정수 tick으로 변환할 수 없습니다: 3.99999999999999999999/4')
   })
 
   it('rejects note-level staff assignments outside declared staves', () => {

@@ -51,3 +51,36 @@ it('keeps reading legacy kind value attributes while writing standard kind conte
   expect(legacy).not.toBe(xml)
   expect(parseMusicXml(legacy).harmonies?.[0]).toMatchObject({text:'Cmaj7/G',kind:'major-seventh',root:{step:'C'},bass:{step:'G'}})
 })
+
+const importLabels = [
+  ['suspended-second', 'sus2'], ['dominant-ninth', '9'], ['major-sixth', '6'], ['minor-sixth', 'm6'],
+  ['augmented', 'aug'], ['half-diminished', 'm7b5'], ['power', '5'], ['diminished-seventh', 'dim7']
+] as const
+
+it.each(importLabels)('combines the root and bass with MusicXML %s', (kind, suffix) => {
+  const text = `Db${suffix}/Ab`
+  const score = createScore({ harmonies: [{
+    id: 'source-chord', measureId: 'measure-1', tick: 0,
+    text, kind, root: { step: 'D', alter: -1 }, bass: { step: 'A', alter: -1 }
+  }] })
+  const authored = serializeMusicXml(score)
+  const marker = `<kind text="${text}">${kind}</kind>`
+  expect(authored).toContain(marker)
+  for (const replacement of [`<kind>${kind}</kind>`, `<kind text="${suffix}">${kind}</kind>`]) {
+    const parsed = parseMusicXml(authored.replace(marker, replacement))
+    expect(parsed.harmonies?.[0]).toMatchObject({
+      text, kind, root: { step: 'D', alter: -1 }, bass: { step: 'A', alter: -1 }, tick: 0
+    })
+    expect(parseMusicXml(serializeMusicXml(parsed)).harmonies).toEqual(parsed.harmonies)
+    expect(serializeMidi(parsed)).toEqual(serializeMidi(score))
+  }
+})
+
+it('retains explicit custom suspended-second labels through MusicXML', () => {
+  const harmony: HarmonyMark = {
+    id: 'alternate-text', measureId: 'measure-1', tick: 0,
+    text: 'C(second suspension)/E', kind: 'suspended-second', root: { step: 'C' }, bass: { step: 'E' }
+  }
+  const restored = parseMusicXml(serializeMusicXml(createScore({ harmonies: [harmony] })))
+  expect(restored.harmonies?.[0]).toMatchObject({ text: harmony.text, root: harmony.root, bass: harmony.bass })
+})

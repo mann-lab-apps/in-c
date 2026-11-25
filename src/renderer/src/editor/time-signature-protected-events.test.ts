@@ -4,7 +4,7 @@ import {
   createTimePosition, type Rest, type Score
 } from '../../../score-core'
 import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../../project/schema'
-import { buildTimeSignatureCommand } from './time-signature'
+import { buildScoreMeasureTimeSignatureCommand, buildTimeSignatureCommand } from './time-signature'
 import { createNewScore } from './new-score'
 
 const rest = (id: string, tick: number, half = false): Rest => createRest({
@@ -90,4 +90,38 @@ it('continues allowing plain rest cleanup and preserves a different part’s end
   const result = applyScoreCommand(s, c!)
   expect(result.score.parts[1]).toEqual(s.parts[1]); expect(result.score.hairpins).toEqual(s.hairpins)
   expect(createNativeProject(applyScoreCommand(result.score, result.undo).score)).toEqual(before)
+})
+
+it.each(['staff', 'score'] as const)('protects a hairpin release when %s meter divides its clipped rest', scope => {
+  const score = source()
+  const bar = measure(score)
+  const clipped = createRest({
+    id: 'clipped', position: createTimePosition(T), duration: createDuration('half', 1)
+  })
+  bar.voices[0].events = [rest('head', 0), clipped]
+  score.hairpins = [{ id: 'ending', startEventId: 'head', endEventId: clipped.id,
+    type: 'diminuendo', endAnchor: 'release' }]
+  const before = structuredClone(score)
+  const selection = { type: 'measure' as const, measureId: bar.id }
+  const splitMeter = { beats: 9, beatType: 16 }
+
+  if (scope === 'staff') {
+    expect(buildTimeSignatureCommand(score, selection, splitMeter)).toBeUndefined()
+  } else {
+    expect(buildScoreMeasureTimeSignatureCommand(score, selection, splitMeter)).toMatchObject({ kind: 'blocked' })
+  }
+  expect(score).toEqual(before)
+
+  const shorter = applyScoreCommand(score, command(score, 3)!).score
+  expect(measure(shorter).voices[0].events.at(-1)).toMatchObject({
+    id: clipped.id, position: { tick: T }, duration: { value: 'half' }
+  })
+  expect(shorter.hairpins).toEqual(score.hairpins)
+
+  const onsetScore = structuredClone(score)
+  onsetScore.hairpins![0].endAnchor = 'onset'
+  const onset = applyScoreCommand(onsetScore, buildTimeSignatureCommand(onsetScore, selection, splitMeter)!).score
+  expect(measure(onset).voices[0].events.map(event => event.position.tick)).toEqual([0, T, 2 * T])
+  expect(measure(onset).voices[0].events[1].id).toBe(clipped.id)
+  expect(onset.hairpins).toEqual(onsetScore.hairpins)
 })

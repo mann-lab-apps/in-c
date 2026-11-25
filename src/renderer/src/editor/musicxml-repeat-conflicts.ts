@@ -1,4 +1,4 @@
-import { scoreRepeatSource, type Measure, type Score } from '../../../score-core'
+import { inspectAlternativeEndingRepeats, scoreRepeatSource, type Measure, type Score } from '../../../score-core'
 import { musicXmlBarlineStaff } from '../../../musicxml/barline-scope'
 import { createPartOptionLabels } from './part-option-labels'
 
@@ -12,7 +12,8 @@ export class MusicXmlRepeatConflictError extends Error {
 // Describe only repeat/volta information the existing part-level XML barline
 // cannot retain. The caller must still run the strict complete save signature.
 export function createMusicXmlRepeatConflictError(score: Score, diagnostic: string): MusicXmlRepeatConflictError | undefined {
-  if (!scoreRepeatSource(score)) return undefined
+  const canonical = scoreRepeatSource(score)
+  if (!canonical) return undefined
   const shape = (measure: Measure) => JSON.stringify({ repeat: measure.repeat ?? null, volta: measure.volta ?? null })
   const labels = createPartOptionLabels(score.parts)
   const locations: { label: string; path: string }[] = []
@@ -30,7 +31,17 @@ export function createMusicXmlRepeatConflictError(score: Score, diagnostic: stri
       })
     }
   }
-  if (!locations.length) return undefined
+  if (!locations.length) {
+    for (const group of inspectAlternativeEndingRepeats(canonical.measures).groups.values()) {
+      const marker = group.legacySecondMarkers[0]
+      if (!marker) continue
+      return new MusicXmlRepeatConflictError(
+        `MusicXML 저장 검증에 실패했습니다. ${marker.number}마디의 기존 2번 볼타는 여러 끝 도돌이표가 있는 반복에서 구조 유지 MusicXML로 저장하면 재생 순서가 달라집니다. 기존 연주 순서는 반복 펼치기 MusicXML 사본을 사용해 주세요.`,
+        `${diagnostic}\nLegacy second ending at measure ${marker.number} (${marker.id}) uses different playback from shared-opening alternative repeats in MusicXML.`
+      )
+    }
+    return undefined
+  }
   return new MusicXmlRepeatConflictError(
     `MusicXML 저장 검증에 실패했습니다. 보표별 반복·볼타 설정이 달라 MusicXML로 모두 보존할 수 없습니다. 프로젝트로 저장해 원본을 유지해 주세요. 확인할 위치: ${locations[0].label}${locations.length > 1 ? ` 외 ${locations.length - 1}곳` : ''}`,
     `${diagnostic}\n${locations.map(location => location.path).join('\n')}`

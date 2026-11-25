@@ -3,6 +3,7 @@ import { applyScoreCommand } from '../../../score-core'
 import { parseMusicXml, serializeMusicXml, serializeMusicXmlWithReport } from '../../../musicxml'
 import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../../project/schema'
 import fixture from '../../../musicxml/fixtures/rest-hairpin-input.musicxml?raw'
+import barlineHairpin from '../../../musicxml/fixtures/hairpin-long-note-end.musicxml?raw'
 import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, listSpans, spanEndpointOptions } from './span-editing'
 
 function setup() {
@@ -14,6 +15,27 @@ function setup() {
 }
 
 describe('span endpoint editing', () => {
+  it('retains a release through geometry edits and reselection and clears it when changing the ending event', () => {
+    const score = parseMusicXml(barlineHairpin)
+    const hairpin = score.hairpins![0]
+    hairpin.endAnchor = 'release'
+    const reference = { kind: 'hairpin' as const, id: hairpin.id }
+    const engraving = { height: 2, offsetX: -.5 }
+    const adjusted = applyScoreCommand(score, buildSpanEngravingCommand(score, reference, engraving)).score
+    const reselected = applyScoreCommand(adjusted,
+      buildSpanEndpointCommand(adjusted, reference, { endEventId: hairpin.endEventId })).score
+    expect(reselected.hairpins?.[0]).toEqual({ ...hairpin, engraving })
+    const endEventId = score.parts[0].staves[0].measures[0].voices[1].events[1].id
+    const command = buildSpanEndpointCommand(reselected, reference, { endEventId })
+    const changed = applyScoreCommand(reselected, command)
+    expect(changed.score.hairpins?.[0]).toMatchObject({ id: hairpin.id, endEventId, engraving })
+    expect(changed.score.hairpins?.[0]).not.toHaveProperty('endAnchor')
+    const undone = applyScoreCommand(changed.score, changed.undo)
+    expect(undone.score).toEqual(reselected)
+    expect(applyScoreCommand(undone.score, undone.undo).score).toEqual(changed.score)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(reselected))).score).toEqual(reselected)
+  })
+
   it('preserves unrelated markings and supports history/native/XML for rest hairpins', () => {
     const { score, events } = setup()
     const original = structuredClone(score)

@@ -29,7 +29,7 @@ export function StudioShortcutSettings({ theme, store, onClose }: { theme: 'ligh
     }}>
     <Dialog open title="단축키 설정" onClose={close}>
       <Text as="p" variant="description">실행 취소·다시 실행·잘라내기·복사·붙여넣기·삭제를 이 기기에서 변경합니다. 악보 파일에는 저장하지 않습니다. 입력창의 텍스트 편집은 기존 키를 사용합니다.</Text>
-      {action === 'delete' ? <Text as="p" variant="description">기존 Delete 동작을 변경합니다. 음표·범위는 기존 리듬을 보존하며 지우고, 선택한 선은 제거합니다. 마디를 선택한 상태에서는 그 마디를 제거하므로 대상을 먼저 확인하세요. 마디 표기만 지우는 메뉴와는 다릅니다.</Text> : null}
+      {action === 'delete' ? <Text as="p" variant="description">선택한 음표·범위·표기 또는 선택 보표의 마디 내용을 지우는 키입니다. 모든 보표의 마디 제거는 ⌘/Ctrl+Delete 또는 ⌘/Ctrl+Backspace를 사용합니다.</Text> : null}
       <Select label="단축키 명령" value={action} options={editShortcutActions.map(item => ({ value: item.id, label: item.label }))} onChange={value => { clearDraft(); setAction(value as EditShortcutAction) }} />
       <Text as="p">현재 단축키: {describeEditShortcut(store.overrides, action)}</Text>
       <Input label="새 단축키" readOnly value={draft ? `⌘/Ctrl+Shift+${draft.code.slice(3)}` : ''} help="이 필드에 포커스를 두고 ⌘/Ctrl+Shift와 영문 글쇠를 누르세요. 한글 자판에서도 같은 물리 글쇠를 사용합니다. 예약된 조합은 사용할 수 없습니다. Escape는 기록 취소, Tab은 다음 항목입니다."

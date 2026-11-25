@@ -16,6 +16,7 @@ import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?
 import tupletInputProgressMusicXml from '../../musicxml/fixtures/tuplet-input-progress.musicxml?raw'
 import richPartExportMusicXml from '../../musicxml/fixtures/expanded-v1-part-export.musicxml?raw'
 import restHairpinMusicXml from '../../musicxml/fixtures/rest-hairpin-input.musicxml?raw'
+import slurFileOrderMusicXml from '../../musicxml/fixtures/slur-file-order.musicxml?raw'
 import { parseMusicXml } from '../../musicxml'
 import { TICKS_PER_QUARTER } from '../../score-core'
 import { listSpans, spanEndpointOptions } from './editor/span-editing'
@@ -1239,6 +1240,180 @@ describe('App component shell', () => {
     expect(playbackMockState.lastScore).toEqual(score);expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id',selected);expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정');expect(document.querySelector('.studio-document__state')).toHaveTextContent('변경 없음')
   })
 
+  it('exports volta pass lists after reopening a Native project', async () => {
+    const { createMeasure, createPart, createScore, createStaff } = await import('../../score-core')
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const score = createScore({
+      title: 'Volta list after reopen',
+      parts: [createPart({ name: 'Flute', staves: [createStaff({ measures: [
+        createMeasure({ number: 1, repeat: { start: true } }),
+        createMeasure({ number: 2, repeat: { end: true, times: 3 }, volta: { start: true, end: true, passes: [1, 2] } }),
+        createMeasure({ number: 3, volta: { end: true, start: true, passes: [3] } })
+      ] })] })]
+    })
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/scores/volta-passes.chromatics', fileName: 'volta-passes.chromatics',
+      contents: encodeNativeProject(createNativeProject(score))
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText(score.title)
+    openStudioWorkspace('내보내기')
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
+
+    await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledOnce())
+    const [{ contents }] = vi.mocked(window.inC.musicXml.exportCopy).mock.calls[0]
+    const copied = parseMusicXml(contents)
+    expect(copied.parts[0].staves[0].measures.map(bar => bar.volta?.passes)).toEqual([undefined, [1, 2], [3]])
+    expect(playbackMockState.lastScore).toEqual(score)
+    expect(screen.getByRole('status', { name: '편집 및 파일 상태' })).toHaveTextContent('0회 수정')
+  })
+
+  it('offers a performed copy when a legacy second ending has two different repeat ends', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { createMeasure, createPart, createScore, createStaff } = await import('../../score-core')
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const { parseMusicXml } = await import('../../musicxml')
+    const { serializeMidi } = await import('./midi/serialize-midi')
+    const score = createScore({
+      title: 'Legacy alternative endings',
+      parts: [createPart({ name: 'Flute', staves: [createStaff({ measures: [
+        createMeasure({ number: 1, repeat: { start: true } }),
+        createMeasure({ number: 2, repeat: { end: true }, volta: { start: true, end: true, number: 1 } }),
+        createMeasure({ number: 3, repeat: { end: true }, volta: { start: true, end: true, number: 2 } }),
+        createMeasure({ number: 4, volta: { start: true, end: true, passes: [3] } })
+      ] })] })]
+    })
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/scores/legacy-alternatives.chromatics', fileName: 'legacy-alternatives.chromatics',
+      contents: encodeNativeProject(createNativeProject(score))
+    })
+    vi.mocked(window.inC.musicXml.exportCopy).mockResolvedValue({
+      filePath: '/scores/repeat-performance.musicxml', fileName: 'repeat-performance.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText(score.title)
+    openStudioWorkspace('내보내기')
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
+    const status = screen.getByRole('status', { name: '편집 및 파일 상태' })
+    await waitFor(() => expect(status).toHaveTextContent('반복 펼치기 MusicXML 사본을 사용해 주세요'))
+    expect(window.inC.musicXml.exportCopy).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: '반복 펼치기 MusicXML 내보내기' }))
+    await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledOnce())
+    const [{ contents }] = vi.mocked(window.inC.musicXml.exportCopy).mock.calls[0]
+    expect(contents).not.toMatch(/<repeat |<ending /)
+    expect(serializeMidi(parseMusicXml(contents))).toEqual(serializeMidi(score))
+    expect(playbackMockState.lastScore).toEqual(score)
+    expect(status).toHaveTextContent('0회 수정')
+  })
+
+  it.each(['save', 'copy'] as const)('writes a legacy second ending with a conversion notice and the same MIDI (%s)', async channel => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { createMeasure, createPart, createScore, createStaff } = await import('../../score-core')
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const { parseMusicXml } = await import('../../musicxml')
+    const { serializeMidi } = await import('./midi/serialize-midi')
+    const score = createScore({
+      title: 'Legacy second ending',
+      parts: [createPart({ name: 'Flute', staves: [createStaff({ measures: [
+        createMeasure({ number: 1, repeat: { start: true } }),
+        createMeasure({ number: 2, repeat: { end: true, times: 3 }, volta: { start: true, end: true, number: 2 } }),
+        createMeasure({ number: 3, volta: { start: true, end: true, passes: [3] } })
+      ] })] })]
+    })
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/scores/legacy-second.chromatics', fileName: 'legacy-second.chromatics',
+      contents: encodeNativeProject(createNativeProject(score))
+    })
+    const writeXml = vi.mocked(channel === 'save' ? window.inC.musicXml.save : window.inC.musicXml.exportCopy)
+    writeXml.mockResolvedValue({
+      filePath: '/scores/legacy-copy.musicxml', fileName: 'legacy-copy.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText(score.title)
+    openStudioWorkspace(channel === 'save' ? '파일' : '내보내기')
+    fireEvent.click(screen.getByRole('button', { name: channel === 'save' ? 'MusicXML로 저장' : 'MusicXML 내보내기' }))
+
+    await waitFor(() => expect(writeXml).toHaveBeenCalledOnce())
+    const [{ contents }] = writeXml.mock.calls[0]
+    expect(contents).toContain('<ending number="2,3" type="start"/>')
+    expect(serializeMidi(parseMusicXml(contents))).toEqual(serializeMidi(score))
+    const report = within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' }))
+    expect(report.getByText(/기존 2번 볼타의 재생을 보존하도록 회차 목록으로 내보냈습니다/)).toBeVisible()
+    expect(playbackMockState.lastScore?.parts[0].staves[0].measures[1].volta).toEqual(score.parts[0].staves[0].measures[1].volta)
+    expect(screen.getByRole('status', { name: '편집 및 파일 상태' })).toHaveTextContent('0회 수정')
+  })
+
+  it('explains why a visible third ending will not play when the repeat count is two', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { createMeasure, createPart, createScore, createStaff } = await import('../../score-core')
+    const { serializeMusicXml } = await import('../../musicxml')
+    const score = createScore({
+      title: 'Unreachable third ending',
+      parts: [createPart({ name: 'Flute', staves: [createStaff({ measures: [
+        createMeasure({ number: 1, repeat: { start: true } }),
+        createMeasure({ number: 2, repeat: { end: true }, volta: { start: true, end: true, passes: [1, 2] } }),
+        createMeasure({ number: 3, volta: { start: true, end: true, passes: [3] } })
+      ] })] })]
+    })
+    const contents = serializeMusicXml(score)
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({
+      filePath: '/scores/volta-unreachable.musicxml', fileName: 'volta-unreachable.musicxml', contents
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML 가져오기' }))
+
+    const report = within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' }))
+    expect(report.getByText(/1번째 파트 · 3마디 · 도돌이표의 반복 횟수를 넘는 볼타 회차/)).toBeVisible()
+    const raw = report.getByText(/Volta passes outside the repeat count: .*"passes":\[3\],"repeatCount":2/)
+    expect(raw).not.toBeVisible()
+    fireEvent.click(report.getByRole('button', { name: '기술 정보' }))
+    expect(raw).toBeVisible()
+    expect(playbackMockState.lastScore?.parts[0].staves[0].measures[2].volta?.passes).toEqual([3])
+    expect(screen.getByRole('status', { name: '편집 및 파일 상태' })).toHaveTextContent('0회 수정')
+  })
+
+  it('offers technical details for volta appearance loss on the public import path', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { createMeasure, createPart, createScore, createStaff } = await import('../../score-core')
+    const { serializeMusicXml } = await import('../../musicxml')
+    const score = createScore({
+      title: 'Volta appearance',
+      parts: [createPart({ name: 'Flute', staves: [createStaff({ measures: [
+        createMeasure({ number: 1, volta: { start: true, end: true, passes: [1, 2] } })
+      ] })] })]
+    })
+    const control = serializeMusicXml(score)
+    const contents = control.replace('<ending number="1,2" type="start"/>',
+      '<ending number="1,2" type="start" print-object="no">Prima volta</ending>')
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({
+      filePath: '/scores/volta-appearance.musicxml', fileName: 'volta-appearance.musicxml', contents
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML 가져오기' }))
+
+    const report = within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' }))
+    expect(report.getByText(/1번째 파트 · 1마디 · 볼타의 원래 문구·숨김·열린 끝 설정/)).toBeVisible()
+    const raw = report.getByText(/Unrepresented volta appearance .*"label":"Prima volta"/)
+    expect(raw).not.toBeVisible()
+    fireEvent.click(report.getByRole('button', { name: '기술 정보' }))
+    expect(raw).toBeVisible()
+    expect(playbackMockState.lastScore).toEqual(parseMusicXml(control))
+    expect(screen.getByRole('status', { name: '편집 및 파일 상태' })).toHaveTextContent('0회 수정')
+  })
+
   it.each([false,true])('studio.tempo-save-guard rejects off-primary tempo loss for copy=%s while preserving native history', async copy=>{
     window.history.replaceState({}, '', '/?fixture=release-test')
     const {createScore,createNote,TICKS_PER_QUARTER}=await import('../../score-core'),{createNativeProject,encodeNativeProject,decodeNativeProject}=await import('../../project/schema')
@@ -1382,7 +1557,7 @@ describe('App component shell', () => {
     openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}));await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(1));expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents).score).toEqual(expected)
     fireEvent.keyDown(window,{key:'z',ctrlKey:true});expect(playbackMockState.lastScore).toEqual(score)
     fireEvent.keyDown(window,{key:'Escape'});expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id',origin)
-    fireEvent.click(preview().getByRole('button',{name:'1마디 선택'}));fireEvent.keyDown(window,{key:'Delete'})
+    fireEvent.click(preview().getByRole('button',{name:'1마디 선택'}));fireEvent.keyDown(window,{key:'Delete',code:'Delete',ctrlKey:true})
     expect(playbackMockState.lastScore!.parts.every(part=>part.staves[0].measures.length===1)).toBe(true)
     fireEvent.keyDown(window,{key:'z',ctrlKey:true});expect(playbackMockState.lastScore).toEqual(score)
   },15000)
@@ -2429,6 +2604,35 @@ describe('App component shell', () => {
     expect(
       await screen.findByText('release-test.musicxml을 MusicXML로 내보냈습니다.')
     ).toBeInTheDocument()
+  })
+
+  it('exports slurs whose MusicXML numbers change while their endpoints stay the same', async () => {
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const source = parseMusicXml(slurFileOrderMusicXml)
+    const [first, second] = source.parts[0].staves[0].measures[0].voices
+    source.slurs![2] = {
+      ...source.slurs![2], startEventId: first.events[0].id, endEventId: second.events[1].id
+    }
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/scores/slurs.chromatics',
+      fileName: 'slurs.chromatics',
+      contents: encodeNativeProject(createNativeProject(source))
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText(source.title)
+    openStudioWorkspace('내보내기')
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML 내보내기' }))
+
+    await waitFor(() => expect(window.inC.musicXml.exportCopy).toHaveBeenCalledOnce())
+    const output = parseMusicXml(vi.mocked(window.inC.musicXml.exportCopy).mock.calls[0][0].contents)
+    const endpoints = (score: typeof source) => score.slurs!.map(slur =>
+      `${slur.startEventId}→${slur.endEventId}`
+    ).sort()
+    expect(output.slurs!.map(slur => slur.number).sort()).toEqual([1, 2, 2])
+    expect(endpoints(output)).toEqual(endpoints(source))
+    expect(playbackMockState.lastScore?.slurs).toEqual(source.slurs)
   })
 
   it('studio.property-hierarchy puts focused event controls before ancillary text and keeps a single dot command group', async () => {

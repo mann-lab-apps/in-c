@@ -39,3 +39,82 @@ it.each([['8va',12],['8vb',-12],['15ma',24],['15mb',-24]] as const)('%s keeps al
  const dir=process.env.STUDIO_OCTAVE_SCOPE_QA_DIR
  if(dir){mkdirSync(dir,{recursive:true});writeFileSync(join(dir,`${type}.musicxml`),xml,{flag:'wx'});writeFileSync(join(dir,`${type}.chromatics`),native,{flag:'wx'});writeFileSync(join(dir,`${type}.mid`),serializeMidi(changed.score),{flag:'wx'})}
 })
+
+it('uses different numbers only when octave directions across staves overlap in file order', () => {
+  const score = source()
+  const [upper, lower] = score.parts[0].staves
+  score.parts = score.parts.slice(0, 1)
+  for (const [index, staff] of [upper, lower].entries()) {
+    const next = structuredClone(staff.measures[0])
+    next.number = 2
+    next.id = 'next-' + next.id
+    next.voices.forEach(voice => voice.events.forEach(event => { event.id = 'next-' + event.id }))
+    staff.measures.push(next)
+    const prefix = index === 0 ? 'upper' : 'lower'
+    ;(score.octaveShifts ??= []).push({
+      id: prefix + '-octave', startEventId: prefix + '-1', endEventId: 'next-' + prefix + '-2',
+      type: index === 0 ? '8va' : '8vb'
+    })
+  }
+  const numbers = (xml: string) => [...xml.matchAll(/<octave-shift type="(up|down|stop)"([^>]*)\/>/g)]
+    .map(match => [match[1], match[2].match(/number="([^"]+)"/)?.[1] ?? '1'])
+  const crossing = serializeMusicXml(score)
+  expect(numbers(crossing)).toEqual([['down','1'],['up','2'],['stop','1'],['stop','2']])
+  expect(serializeMidi(parseMusicXml(crossing))).toEqual(serializeMidi(score))
+
+  score.octaveShifts!.forEach(span => { span.endEventId = span.endEventId.replace('next-', '') })
+  const separate = serializeMusicXml(score)
+  expect(numbers(separate)).toEqual([['down','1'],['stop','1'],['up','1'],['stop','1']])
+  expect(serializeMidi(parseMusicXml(separate))).toEqual(serializeMidi(score))
+})
+
+it('preserves inherited accidentals in octave-shift chords and graces, and after the line ends', () => {
+  const score = createScore({ title: 'Accidentals at an octave line' })
+  const bar = score.parts[0].staves[0].measures[0]
+  const voice = bar.voices[0]
+  const c = { step: 'C', octave: 4 } as const
+  const g = { step: 'G', octave: 4 } as const
+  const f = { step: 'F', octave: 4 } as const
+
+  voice.events = [
+    createNote({ id: 'written-c-sharp', pitch: { ...c, alter: 1 } }),
+    createNote({
+      id: 'chord', position: { tick: TICKS_PER_QUARTER },
+      pitch: g, pitches: [g, c], graceNotes: [{ pitch: c, slash: true }]
+    }),
+    createNote({ id: 'written-f-sharp', position: { tick: 2 * TICKS_PER_QUARTER }, pitch: { ...f, alter: 1 } }),
+    createNote({ id: 'after-line', position: { tick: 3 * TICKS_PER_QUARTER }, pitch: f })
+  ]
+  score.octaveShifts = [{ id: 'octave-line', type: '8va', startEventId: 'chord', endEventId: 'written-f-sharp' }]
+  const source = structuredClone(score)
+  const native = encodeNativeProject(createNativeProject(score))
+  const midiPitches = (candidate: Score) => createPlaybackTimeline(candidate).events.map(event =>
+    event.frequencies?.map(frequency => Math.round(69 + 12 * Math.log2(frequency / 440))))
+  const expected = [[61], [79, 73], [78], [66]]
+
+  expect(midiPitches(score)).toEqual(expected)
+  expect(midiPitches(decodeNativeProject(native).score)).toEqual(expected)
+  const xml = serializeMusicXml(score)
+  expect(xml).toMatch(/<grace[^>]*\/>\s*<pitch>\s*<step>C<\/step>\s*<alter>1<\/alter>\s*<octave>5<\/octave>/)
+  const reopened = parseMusicXml(xml)
+  expect(midiPitches(reopened)).toEqual(expected)
+  expect(serializeMidi(reopened)).toEqual(serializeMidi(score))
+  expect(score).toEqual(source)
+})
+
+it('does not add an accidental at the played octave of a shifted note', () => {
+  const score = createScore()
+  const bar = score.parts[0].staves[0].measures[0]
+  const voice = bar.voices[0]
+  voice.events = [
+    createNote({ id: 'shifted', pitch: { step: 'C', alter: 1, octave: 4 } }),
+    createNote({ id: 'natural-one', position: { tick: TICKS_PER_QUARTER }, pitch: { step: 'C', octave: 5 } }),
+    createNote({ id: 'natural-two', position: { tick: 2 * TICKS_PER_QUARTER }, pitch: { step: 'C', octave: 5 } }),
+    createNote({ id: 'explicit-flat', position: { tick: 3 * TICKS_PER_QUARTER }, pitch: { step: 'C', alter: -1, octave: 5 } })
+  ]
+  score.octaveShifts = [{ id: 'line', type: '8va', startEventId: 'shifted', endEventId: 'shifted' }]
+  const pitches = (candidate: Score) => createPlaybackTimeline(candidate).events.map(event =>
+    Math.round(69 + 12 * Math.log2(event.frequency! / 440)))
+  expect(pitches(score)).toEqual([73, 72, 72, 71])
+  expect(pitches(parseMusicXml(serializeMusicXml(score)))).toEqual([73, 72, 72, 71])
+})

@@ -4,6 +4,8 @@ import {
   TICKS_PER_QUARTER,validateTieRelations,voiceEventDurationTicks,
   type Score,type TempoEvent,type TempoMarking,type VoiceEvent
 } from '../score-core'
+import { hairpinEndTick } from '../score-core/span-references'
+import type { Hairpin, HairpinTimeEnd } from '../score-core'
 
 const unsupported=()=>new Error('이 악보의 일부 표기는 아직 반복 펼치기로 옮길 수 없습니다. 일반 MusicXML 내보내기나 프로젝트 저장을 사용해 주세요.')
 const id=(kind:string,occurrence:number,source:string)=>`expanded-${occurrence+1}-${kind}-${source}`
@@ -12,10 +14,11 @@ const quarterBpm=(tempo:TempoMarking)=>tempo.bpm*durationToTicks({value:tempo.be
 /** Explicit compatibility copy only. Never mutates the editor/native snapshot.
  * Unsupported transformations fail closed; this is not a new score schema. */
 export function expandScoreRepeatsForMusicXml(score:Score):Score {
-  const marked=score.parts.some(p=>p.staves.some(s=>s.measures.some(m=>m.repeat?.start||m.repeat?.end||m.volta)))
+  const marked=score.parts.some(p=>p.staves.some(s=>s.measures.some(m=>m.repeat?.start||m.repeat?.end||m.volta||m.navigation?.length)))
   if(!marked)return structuredClone(score)
   const plan=createScoreRepeatPlaybackPlan(score)
   if(!plan)throw new Error('보표의 마디 수와 길이가 달라 반복을 펼칠 수 없습니다. 일반 MusicXML 내보내기를 사용해 주세요.')
+  if(plan.navigationIssue)throw new Error(plan.navigationIssue)
   if(collectUnsupportedChordTieWarnings(score).length||validateTieRelations(score).length)throw unsupported()
 
   const resolve=createGlobalMeasureResolver(score)
@@ -35,7 +38,7 @@ export function expandScoreRepeatsForMusicXml(score:Score):Score {
   if(score.dynamics?.some(mark=>!measures.has(mark.measureId)))throw new Error('이 악보의 셈여림 위치는 현재 반복 펼치기에서 지원하지 않습니다. 일반 MusicXML 내보내기나 프로젝트 저장을 사용해 주세요.')
   const output=structuredClone(score)
   output.parts=score.parts.map(p=>({...structuredClone(p),staves:p.staves.map(s=>({...structuredClone(s),measures:plan.entries.map((entry,occurrence)=>{
-    const m=structuredClone(s.measures[entry.measureIndex]);m.id=id('measure',occurrence,m.id);m.number=occurrence+1;delete m.repeat;delete m.volta
+    const m=structuredClone(s.measures[entry.measureIndex]);m.id=id('measure',occurrence,m.id);m.number=occurrence+1;delete m.repeat;delete m.volta;delete m.navigation
     for(const v of m.voices){
       // A voice is a continuing owner, not a per-measure event identity.
       for(const e of v.events){const original=e.id;e.id=id('event',occurrence,original);eventSource.set(e.id,original);if(e.type==='note')delete e.ties}
@@ -44,17 +47,27 @@ export function expandScoreRepeatsForMusicXml(score:Score):Score {
     return m
   })}))}))
 
-  const copiedRanges=<T extends {id:string;startEventId:string;endEventId:string}>(
+  const copiedRanges=<T extends {id:string;startEventId:string;endEventId?:string;endTime?:HairpinTimeEnd;endAnchor?:Hairpin['endAnchor']}>(
     spans:T[]|undefined,kind:'slur'|'hairpin'|'octave',notesOnly:boolean
   ):T[]|undefined=>{
    let previousStart=-1
    const ranges=spans?.flatMap(span=>{
-    const from=eventLocations.get(span.startEventId),to=eventLocations.get(span.endEventId)
-    if(!from||!to||(notesOnly&&(from.event.type!=='note'||to.event.type!=='note'))||
-      from.part!==to.part||from.staff!==to.staff||from.voice!==to.voice||
-      from.index>to.index||(from.index===to.index&&
-        (from.event.position.tick>to.event.position.tick||
-        (from.event.position.tick===to.event.position.tick&&(kind!=='octave'||span.startEventId!==span.endEventId)))))throw unsupported()
+    const from=eventLocations.get(span.startEventId)
+    const toEvent=span.endEventId === undefined ? undefined : eventLocations.get(span.endEventId)
+    const to=span.endTime ? measures.get(span.endTime.measureId) : toEvent
+    if(!from||!to||(notesOnly&&(from.event.type!=='note'||toEvent?.event.type!=='note'))||
+      from.part!==to.part||from.staff!==to.staff||from.index>to.index)throw unsupported()
+    const sameMeasure = from.index === to.index
+    const staff = score.parts[from.part].staves[from.staff]
+    const endTick = span.endTime?.tick ?? (kind === 'hairpin' ? hairpinEndTick(span.endAnchor,
+      { event: from.event, measure: staff.measures[from.index], voiceId: from.voice },
+      { event: toEvent!.event, measure: staff.measures[to.index], voiceId: toEvent!.voice }) : toEvent!.event.position.tick)
+    const closedInMeasure = kind === 'hairpin' && sameMeasure &&
+      (span.endAnchor !== undefined || endTick > (toEvent?.event.position.tick ?? 0))
+    if((toEvent && from.voice !== toEvent.voice && !closedInMeasure)||(sameMeasure&&
+        (from.event.position.tick>endTick||
+        (from.event.position.tick===endTick&&
+          (kind!=='octave'||span.startEventId!==span.endEventId)))))throw unsupported()
     // The serializer reads directions by starting measure. Reordering ranges
     // across source measures could change precedence for overlapping ramps.
     if(kind==='hairpin'&&from.index<previousStart)throw unsupported()
@@ -67,9 +80,11 @@ export function expandScoreRepeatsForMusicXml(score:Score):Score {
       for(let step=0;step<=distance;step++){
         if(plan.entries[occurrence+step]?.measureIndex!==from.index+step)throw unsupported()
       }
+      const endpoint = span.endTime
+        ? { endTime: { ...span.endTime, measureId: id('measure', occurrence + distance, span.endTime.measureId) } }
+        : { endEventId: id('event', occurrence + distance, span.endEventId!) }
       return [{occurrence,span:{...structuredClone(span),id:id(kind,occurrence,span.id),
-        startEventId:id('event',occurrence,span.startEventId),
-        endEventId:id('event',occurrence+distance,span.endEventId)}}]
+        startEventId:id('event',occurrence,span.startEventId),...endpoint}}]
     })
    })
    // XML directions are read in measure order. Interleave performed copies,

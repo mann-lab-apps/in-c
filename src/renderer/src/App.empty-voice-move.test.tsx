@@ -4,19 +4,48 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { expect, it, vi } from 'vitest'
 import { createVoiceMoveFixture } from '../../testing/voice-move-fixture'
 import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../project/schema'
+import { pitchToMidi, resolveNotePitch } from '../../score-core'
 import { serializeMidi } from './midi/serialize-midi'
 import { serializeMusicXml } from '../../musicxml'
 import { playbackMockState, registerAppTestHooks, openStudioWorkspace } from './App.test-harness'
 registerAppTestHooks()
-async function setup() {
+async function setup(score = createVoiceMoveFixture(true)) {
   window.history.replaceState({}, '', '/?fixture=release-test')
-  const project = createNativeProject(createVoiceMoveFixture(true))
+  const project = createNativeProject(score)
   vi.mocked(window.inC.project.open).mockResolvedValueOnce({ fileName: 'voices.chromatics', filePath: '/fixture/voices.chromatics', contents: encodeNativeProject(project) })
   const { App } = await import('./App'); render(<App />); openStudioWorkspace('파일')
   fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' })); await waitFor(() => expect(playbackMockState.lastScore).toEqual(project.score))
   fireEvent.click(screen.getByRole('button', { name: 'moving 선택' }))
   return project
 }
+
+it('preserves the following grace when moving the only explicit accidental to another voice', async () => {
+  const score = createVoiceMoveFixture(true)
+  const measure = score.parts[0].staves[0].measures[0]
+  const [leading, moving, following] = measure.voices[0].events
+  if (leading.type !== 'note' || moving.type !== 'note' || following.type !== 'note') throw new Error('Expected three notes')
+  leading.pitch = { step: 'G', octave: 4 }
+  moving.pitch = { step: 'F', octave: 4, alter: 1 }
+  following.pitch = { step: 'A', octave: 4 }
+  following.graceNotes = [{ pitch: { step: 'F', octave: 4 }, slash: true }]
+  const project = await setup(score)
+
+  fireEvent.click(within(screen.getByRole('navigation', { name: '앱 메뉴' })).getByRole('button', { name: '도구' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: '선택 음표 성부 이동' }))
+  fireEvent.click(screen.getByRole('button', { name: '선택 음표를 성부로 옮기기' }))
+
+  const changed = playbackMockState.lastScore!
+  const bar = changed.parts[0].staves[0].measures[0]
+  const voice = bar.voices.find(voice => voice.id === 'voice-1')!
+  const tail = voice.events.find(event => event.id === 'following')
+  if (tail?.type !== 'note' || !tail.graceNotes?.[0]) throw new Error('Missing following grace')
+  expect(pitchToMidi(resolveNotePitch(bar, voice, { ...tail, pitch: tail.graceNotes[0].pitch }))).toBe(66)
+  expect(tail.pitch).toEqual(following.pitch)
+  expect(serializeMidi(changed)).toEqual(serializeMidi(project.score))
+  expect(screen.getByTestId('notation-preview').getAttribute('data-selected-event-address')).toContain('voice-2')
+  fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+  expect(playbackMockState.lastScore).toEqual(project.score)
+})
 it('offers a separate move through Tools, keeps the note ID/address and one exact undo/redo plus native save', async () => {
   const project = await setup()
   fireEvent.click(within(screen.getByRole('navigation', { name: '앱 메뉴' })).getByRole('button', { name: '도구' }))

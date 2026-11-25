@@ -21,6 +21,7 @@ vi.mock('./piano-transport', async importOriginal => {
     state.starts.push({ mixer: structuredClone(mixer), commands: loop ? actual.createLoopPianoCommands(timeline, beat, loop.endBeat, bpm, mixer) : actual.createPianoCommands(timeline, beat, bpm, mixer) })
     return state.contexts[0].currentTime
   }
+  reschedule = this.start
   stop() {}
   finish() {}
 } }

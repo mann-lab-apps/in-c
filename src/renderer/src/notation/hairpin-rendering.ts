@@ -39,7 +39,7 @@ export function resolveHairpinOpenings(
 
 export function resolveHairpinSegments(
   start: Point,
-  end: Point,
+  end: Point & { exactEnd?: boolean },
   startSystem: number,
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>
@@ -57,8 +57,14 @@ export function resolveHairpinSegments(
 
     const isFirst = systemIndex === startSystem
     const isLast = systemIndex === endSystem
-    const x1 = isFirst ? start.x + 10 : bounds.x1 + 22
-    const x2 = isLast ? Math.max(x1 + 24, end.x + 22) : bounds.x2 - 18
+    const insetStart = isFirst ? start.x + 10 : bounds.x1 + 22
+    const closingX = end.exactEnd ? end.x : Math.max(insetStart + 24, end.x + 22)
+    const x2 = isLast ? closingX : bounds.x2 - 18
+    // A short exact ending can still fit if the opening uses less of its
+    // usual inset. Keep the supplied ending and the opening at or after the note.
+    const x1 = isFirst && isLast && end.exactEnd
+      ? Math.min(insetStart, Math.max(start.x, x2 - 9))
+      : insetStart
 
     if (x2 > x1 + 8) {
       segments.push({ systemIndex, x1, x2, staffY: bounds.y, isFirst, isLast })

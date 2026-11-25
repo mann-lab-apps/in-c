@@ -3,12 +3,14 @@ import {
   createFullMeasureRest,
   createMeasure,
   createVoice,
+  sameVoltaPasses,
   type Measure,
   type Part,
   type Score,
   type ScoreCommand,
   type StaffAddress
 } from '../../../score-core'
+import { collectSpanEndpointIds } from '../../../score-core/span-references'
 import { getSelectionFocusEventId, type EditorSelection } from './editor-state'
 import type { NoteInputState } from './note-input-state'
 
@@ -16,6 +18,41 @@ export interface MeasureEditResult {
   command: ScoreCommand
   inputState?: NoteInputState
   selection: EditorSelection
+}
+
+type ClearMeasureContentsResult =
+  | { kind: 'change'; command: ScoreCommand }
+  | { kind: 'missing' | 'empty' | 'protected' }
+
+export function buildClearMeasureContents(
+  score: Score, measureId: string, createEventId: () => string
+): ClearMeasureContentsResult {
+  const location = locateMeasureForEdit(score, measureId)
+  if (!location) return { kind: 'missing' }
+  const { measure, staff, staffAddress, measureIndex } = location
+  const events = measure.voices.flatMap(voice => voice.events)
+  const endpoints = collectSpanEndpointIds(score)
+  const linked = events.some(event => endpoints.has(event.id))
+  if (linked || measure.voices.some(voice => voice.tuplets?.length) ||
+    events.some(event => event.duration.tuplet || event.type === 'note' && (event.ties?.start || event.ties?.stop))) {
+    return { kind: 'protected' }
+  }
+
+  const voices = measure.voices.map(voice => {
+    const [only] = voice.events
+    if (voice.events.length === 1 && only.type === 'rest' && only.fullMeasure && !only.fermata && !only.breathMark) {
+      return voice
+    }
+    return { ...voice, events: [createFullMeasureRest({ id: createEventId() })] }
+  })
+  if (voices.every((voice, index) => voice === measure.voices[index])) return { kind: 'empty' }
+
+  // Keep existing bar addresses, signatures, timing and measure-anchored markings.
+  const next = { ...measure, voices }
+  const measures = staff.measures.map((bar, index) => index === measureIndex ? next : bar)
+  return { kind: 'change', command: { type: 'score-parts.replace', parts: score.parts.map(part =>
+    part.id === staffAddress.partId ? { ...part, staves: part.staves.map(item =>
+      item === staff ? { ...item, measures } : item) } : part) } }
 }
 
 export function buildInsertMeasureAfter(
@@ -111,6 +148,13 @@ function buildInsertMeasure(
   }
 }
 
+export function timeEndInRemovedMeasure(score: Score, measureId: string) {
+  const location = locateMeasureForEdit(score, measureId)
+  if (!location) return undefined
+  const removed = new Set(score.parts.flatMap(part => part.staves.map(staff => staff.measures[location.measureIndex]?.id)))
+  return score.hairpins?.find(span => span.endTime && removed.has(span.endTime.measureId))?.endTime
+}
+
 export function buildRemoveMeasure(
   score: Score,
   measureId: string,
@@ -118,7 +162,7 @@ export function buildRemoveMeasure(
 ): MeasureEditResult | undefined {
   const location = locateMeasureForEdit(score, measureId)
 
-  if (!location || !hasAlignedMeasures(score) || location.staff.measures.length <= 1) {
+  if (!location || !hasAlignedMeasures(score) || location.staff.measures.length <= 1 || timeEndInRemovedMeasure(score, measureId)) {
     return undefined
   }
 
@@ -165,15 +209,15 @@ function removeMeasureKeepingVoltaRange(measures: Measure[], removedIndex: numbe
     if (measure.volta?.start) startIndex = index
     if (startIndex === undefined || !measure.volta?.end) continue
     const start = measures[startIndex]!
-    if (start.volta?.number === measure.volta.number &&
+    if (start.volta && sameVoltaPasses(start.volta, measure.volta) &&
       (removedIndex === startIndex || removedIndex === index)) {
       const surviving = measures.slice(startIndex, index + 1)
         .filter(item => item.id !== measures[removedIndex]!.id)
       const first = remaining.find(item => item.id === surviving[0]?.id)
       const last = remaining.find(item => item.id === surviving.at(-1)?.id)
       if (first && last) {
-        first.volta = { ...first.volta, number: measure.volta.number, start: true }
-        last.volta = { ...last.volta, number: measure.volta.number, end: true }
+        first.volta = { ...start.volta, start: true, end: first.volta?.end }
+        last.volta = { ...measure.volta, start: last.volta?.start, end: true }
       }
     }
     startIndex = undefined
@@ -229,7 +273,8 @@ function buildStructuralCommand(score: Score, nextParts: Part[]): ScoreCommand {
   if (score.staffTexts) commands.push({ type: 'score-staff-texts.update', staffTexts: markings(score.staffTexts) })
   if (score.systemTexts) commands.push({ type: 'score-system-texts.update', systemTexts: markings(score.systemTexts) })
   if (score.expressionTexts) commands.push({ type: 'score-expression-texts.update', expressionTexts: markings(score.expressionTexts) })
-  if (score.hairpins) commands.push({ type: 'score-hairpins.update', hairpins: spans(score.hairpins) })
+  if (score.hairpins) commands.push({ type: 'score-hairpins.update', hairpins: score.hairpins.filter(span =>
+    eventIds.has(span.startEventId) && (span.endTime ? measureIds.has(span.endTime.measureId) : eventIds.has(span.endEventId))) })
   if (score.slurs) commands.push({ type: 'score-slurs.update', slurs: spans(score.slurs) })
   if (score.octaveShifts) commands.push({ type: 'score-octave-shifts.update', octaveShifts: spans(score.octaveShifts) })
   if (score.layout) {

@@ -1,7 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Button, Group, Input, Text } from '@ddirori/ui'
+import { Button, Group, Input, Stack, Text } from '@ddirori/ui'
 import { draftSaveGuidance, isDocumentSaveShortcut } from './editor/draft-save'
 import { useDocumentDraftSaveGuard } from './editor/document-drafts'
+import { StudioNavigationTools } from './StudioNavigationTools'
+import { voltaNumberText, type NavigationMark, type VoltaMark } from '../../score-core'
+import { parseVoltaPassEdit, type VoltaPassEditScope } from './editor/repeat-scope'
+import type { NavigationEditEntry, NavigationEditScope } from './editor/navigation-edit-scope'
 import './studio-repeat-tools.css'
 
 // Scope and repeat/volta command semantics remain owned by App.
@@ -11,11 +15,20 @@ export function StudioRepeatTools(props: {
   end: boolean
   times: number
   volta?: 1 | 2
+  voltaPasses?: readonly number[]
   enabled: boolean
   onStart: () => void
   onEnd: () => void
   onTimes: (times: number) => void
   onVolta: (number: 1 | 2) => void
+  voltaPassEditor?: {
+    scope: VoltaPassEditScope
+    onChange: (mark: VoltaMark) => boolean
+  }
+  navigation?: {
+    scope: NavigationEditScope
+    onChange: (entry: NavigationEditEntry | undefined, mark: NavigationMark | undefined) => boolean
+  }
 }) {
   const [draft, setDraft] = useState(String(props.times))
   const [saveNotice, setSaveNotice] = useState<string>()
@@ -62,7 +75,97 @@ export function StudioRepeatTools(props: {
         }
       }}/>
     <Group label="볼타">
-      {([1, 2] as const).map(number => <Button key={number} kind="secondary" aria-label={`${number}번 볼타`} selected={props.volta === number} onClick={() => props.onVolta(number)}>{number}번</Button>)}
+      {props.voltaPasses ? <Text as="p" variant="description">
+        {props.voltaPasses.length ? `볼타 회차: ${props.voltaPasses.join(', ')}` : '회차 번호가 없는 볼타'}
+      </Text> : null}
+      {([1, 2] as const).map(number => <Button key={number} kind="secondary" aria-label={`${number}번 볼타`} selected={props.volta === number} disabled={props.voltaPasses !== undefined} onClick={() => props.onVolta(number)}>{number}번</Button>)}
     </Group>
+    {props.voltaPassEditor ? <VoltaPassEditor {...props.voltaPassEditor} /> : null}
+    {props.navigation ? <StudioNavigationTools scope={props.navigation.scope} onChange={props.navigation.onChange} /> : null}
   </section>
+}
+
+function VoltaPassEditor({ scope, onChange }: {
+  scope: VoltaPassEditScope
+  onChange: (mark: VoltaMark) => boolean
+}) {
+  const [open, setOpen] = useState(false)
+  return <details className="studio-volta-pass" open={open}>
+    <summary onClick={event => { event.preventDefault(); setOpen(current => !current) }}>볼타 회차 편집</summary>
+    {open ? <VoltaPassField scope={scope} onChange={onChange} /> : null}
+  </details>
+}
+
+function VoltaPassField({ scope, onChange }: {
+  scope: VoltaPassEditScope
+  onChange: (mark: VoltaMark) => boolean
+}) {
+  const legacySecond = scope.mark.number === 2 && scope.repeatCount > 2
+  const original = legacySecond ? '' : voltaNumberText(scope.mark)
+  const [draft, setDraft] = useState(original)
+  const [error, setError] = useState<string>()
+  const [notice, setNotice] = useState<string>()
+  const [composing, setComposing] = useState(false)
+  const composition = useRef(false)
+  const dirty = draft !== original
+  const reset = () => {
+    setDraft(original)
+    setError(undefined)
+    setNotice(undefined)
+  }
+  useEffect(reset, [original])
+  const trackInput = useDocumentDraftSaveGuard({
+    workspace: 'notation', hasPendingValue: () => dirty || composition.current,
+    isComposing: () => composition.current, onBlocked: () => setNotice(draftSaveGuidance)
+  })
+  const apply = () => {
+    if (!dirty || composition.current) return
+    const result = parseVoltaPassEdit(draft, scope)
+    if ('error' in result) {
+      setError(result.error)
+      return
+    }
+    if (onChange(result.mark)) {
+      setDraft(voltaNumberText(result.mark))
+      setError(undefined)
+      setNotice(undefined)
+    }
+  }
+  const exactSecond = scope.mark.passes?.length === 1 && scope.mark.passes[0] === 2
+  const help = legacySecond
+    ? '현재 2번 프리셋은 두 번째 이후에 재생합니다. 목록을 적용하면 지정한 회차를 사용합니다.'
+    : exactSecond
+      ? '이 볼타는 두 번째 회차에만 재생합니다. 목록을 적용하면 지정한 회차를 사용합니다.'
+      : '쉼표로 구분한 번호를 입력합니다. 예 1, 2'
+  return <Stack gap="sm" className="studio-volta-pass__editor">
+    <Text as="p" variant="description">{scope.label}</Text>
+    <Input label="재생 회차" value={draft} maxLength={400} help={notice ?? help} error={error}
+      onChange={event => {
+        trackInput(event.currentTarget)
+        setDraft(event.currentTarget.value)
+        setError(undefined)
+        setNotice(undefined)
+      }}
+      onCompositionStart={event => { composition.current = true; setComposing(true); trackInput(event.currentTarget) }}
+      onCompositionEnd={() => { composition.current = false; setComposing(false) }}
+      onKeyDown={event => {
+        if (composition.current || event.nativeEvent.isComposing || event.keyCode === 229) {
+          event.stopPropagation()
+          return
+        }
+        if (isDocumentSaveShortcut(event) && dirty) {
+          event.preventDefault()
+          event.stopPropagation()
+          setNotice(draftSaveGuidance)
+        } else if (event.key === 'Enter' || (event.key === 'Escape' && dirty)) {
+          event.preventDefault()
+          event.stopPropagation()
+          if (event.key === 'Enter') apply()
+          else reset()
+        }
+      }} />
+    <Group label="볼타 회차 명령">
+      <Button kind="secondary" disabled={composing || !dirty} onClick={apply}>회차 적용</Button>
+    </Group>
+  </Stack>
 }

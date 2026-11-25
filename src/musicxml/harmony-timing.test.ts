@@ -18,7 +18,9 @@ const cases=[
   {kind:'low-divisions',source:xml(bar(480,code(480)+quarters(480))),ticks:[q]},
   {kind:'relative-cursor',source:xml(bar(1,note(1)+code(1)+note(1).repeat(3))),ticks:[q*2]},
   {kind:'fractional-offset',source:xml(bar(1,code(0.5)+quarters(1))),ticks:[q/2]},
+  {kind:'exact-decimal-ratio',source:xml(bar(0.15,code(0.01)+quarters(0.15))),ticks:[896]},
   {kind:'voice-backup',source:xml(bar(1,quarters(1)+'<backup><duration>4</duration></backup>'+note(4,2)+code(-1))),ticks:[q*3]},
+  {kind:'decimal-voice-backup',source:xml(bar(0.15,quarters(0.15)+'<backup><duration>0.6</duration></backup>'+note(0.6,2)+code(-0.01))),ticks:[q*4-896]},
   {kind:'inherited-divisions',source:xml(bar(480,code(480)+quarters(480))+bar(480,note(480)+code(240)+note(480).repeat(3),2,false)),ticks:[q,q*1.5]},
   {kind:'lower-staff',source:xml('<measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time><staves>2</staves><clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef></attributes>'+quarters(1).replaceAll('</type>','</type><staff>1</staff>')+'<backup><duration>4</duration></backup>'+note(1).replace('<octave>4','<octave>3').replace('<voice>1','<voice>5').replace('</type>','</type><staff>2</staff>')+code(0).replace('</harmony>','<staff>2</staff></harmony>')+note(1).repeat(3).replaceAll('<octave>4','<octave>3').replaceAll('<voice>1','<voice>5').replaceAll('</type>','</type><staff>2</staff>')+'</measure>'),ticks:[q]}
 ]
@@ -39,6 +41,10 @@ it.each(cases)('reads source divisions and current cursor for harmony $kind',({k
 })
 it.each([-1,0.00001])('rejects a harmony onset outside the representable nonnegative tick domain: %s',offset=>{
   expect(()=>parseMusicXml(xml(bar(1,code(offset)+quarters(1))))).toThrow('MusicXML harmony offset을 유효한 tick으로 변환할 수 없습니다.')
+})
+it('does not round a source offset to the nearest Studio tick',()=>{
+  const score=xml(bar(1,code(1)+quarters(1))).replace('<offset>1</offset>','<offset>0.9999999999999999999</offset>')
+  expect(()=>parseMusicXml(score)).toThrow('MusicXML harmony offset을 유효한 tick으로 변환할 수 없습니다.')
 })
 it.skipIf(!available).each(cases)('validates foreign input $kind against the pinned complete XSD',({source})=>{
   const dir=mkdtempSync(join(tmpdir(),'studio-harmony-time-')),file=join(dir,'input.musicxml')

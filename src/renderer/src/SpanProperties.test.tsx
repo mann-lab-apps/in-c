@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { parseMusicXml } from '../../musicxml'
+import longEndFixture from '../../musicxml/fixtures/hairpin-long-note-end.musicxml?raw'
 import fixture from '../../musicxml/fixtures/rest-hairpin-input.musicxml?raw'
 import { SpanProperties } from './SpanProperties'
 import { spanEndpointOptions } from './editor/span-editing'
@@ -248,4 +249,38 @@ it('reset transfers focus to a real geometry input before dispatch, without a dr
  const input=screen.getByLabelText('표기 가로 이동'),reset=screen.getByRole('button',{name:'표기 자동 배치 복원'})
  reset.focus();commit.mockImplementationOnce(()=>expect(input).toHaveFocus());fireEvent.click(reset)
  expect(commit).toHaveBeenCalledExactlyOnceWith(undefined);expect(input).toHaveFocus();expect(globalKey).not.toHaveBeenCalled()
+})
+
+it('recognizes the current imported hairpin ending at the length of a simultaneous note', () => {
+  const score = parseMusicXml(longEndFixture)
+  const onEndpointChange = vi.fn()
+  render(<SpanProperties score={score} selected={{kind:'hairpin', id:score.hairpins![0].id}}
+    onSelect={vi.fn()} onDelete={vi.fn()} onEndpointChange={onEndpointChange} onEngravingChange={vi.fn()}/>)
+  const start = screen.getByRole('combobox', { name: '표기 시작점' })
+  const end = screen.getByRole('combobox', { name: '표기 끝점' })
+  expect(start).not.toHaveAttribute('aria-invalid', 'true')
+  expect(end).not.toHaveAttribute('aria-invalid', 'true')
+  expect(end).toHaveAccessibleDescription(/음의 길이 끝/)
+  fireEvent.click(end)
+  expect(screen.getAllByRole('option').find(option => option.getAttribute('aria-selected') === 'true'))
+    .not.toHaveAttribute('aria-disabled', 'true')
+  fireEvent.keyDown(end, { key: 'Enter' })
+  expect(onEndpointChange).not.toHaveBeenCalled()
+})
+
+it.each([
+  { endAnchor: 'onset', eventIndex: 3, help: '선택한 쉼표의 시작에 연결됩니다.' },
+  { endAnchor: 'release', eventIndex: 2, help: '선택한 쉼표의 길이 끝에 연결됩니다.' },
+  { endAnchor: 'release', eventIndex: 3, help: '선택한 쉼표의 길이 끝인 마디 끝에 연결됩니다.' }
+] as const)('describes a rest connected at $endAnchor of event $eventIndex', ({ endAnchor, eventIndex, help }) => {
+  const score = parseMusicXml(fixture)
+  const voice = score.parts[0].staves[0].measures[0].voices[1]
+  const { id, duration, position } = voice.events[eventIndex]
+  voice.events[eventIndex] = { type: 'rest', id, duration, position }
+  score.hairpins = [{ id: 'rest-anchor', type: 'crescendo', startEventId: voice.events[0].id, endEventId: id, endAnchor }]
+  render(<SpanProperties score={score} selected={{ kind: 'hairpin', id: 'rest-anchor' }}
+    onSelect={vi.fn()} onDelete={vi.fn()} onEndpointChange={vi.fn()} onEngravingChange={vi.fn()} />)
+  const end = screen.getByRole('combobox', { name: '표기 끝점' })
+  expect(end).toHaveTextContent('쉼표')
+  expect(end).toHaveAccessibleDescription(help)
 })

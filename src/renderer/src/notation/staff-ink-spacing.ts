@@ -80,7 +80,7 @@ export function readSvgShapeInk(node: SVGGraphicsElement): Bounds | undefined {
 }
 
 export function measureStaffInkSpacing(svg: SVGSVGElement, owners: ReadonlyMap<string,MeasureInkOwner|undefined>, existing: ReadonlyMap<number,number>, spanInk: readonly StaffInk[] = []): ReadonlyMap<number,number> {
-  const lowerNodes=[...svg.querySelectorAll<SVGTextContentElement>('.notation-harmony-mark,.notation-staff-text,.notation-system-text,.notation-tempo-marking--positioned,.notation-staff-label')]
+  const lowerNodes=[...svg.querySelectorAll<SVGTextContentElement>('.notation-harmony-mark,.notation-staff-text,.notation-system-text,.notation-tempo-marking--positioned,.notation-staff-label,.notation-navigation-symbol')]
   if(!document.fonts||typeof svg.getCTM!=='function')return existing
   const byStaff=new Map<string,number|undefined>()
   for(const owner of owners.values())if(owner){
@@ -107,6 +107,18 @@ export function measureStaffInkSpacing(svg: SVGSVGElement, owners: ReadonlyMap<s
     }
     for(const node of event.querySelectorAll<SVGGraphicsElement>('path,line,circle,ellipse,polygon,polyline')){
       const bounds=readSvgShapeInk(node);if(bounds)notes.push({...bounds,...owner})
+    }
+  }
+  for (const group of svg.querySelectorAll<SVGGElement>('[data-measure-count][data-print-measure-id]')) {
+    const owner = owners.get(group.dataset.printMeasureId ?? '')
+    if (!owner) continue
+    for (const node of group.querySelectorAll<SVGTextContentElement>('text')) {
+      const bounds = readSvgTextInk(node, context)
+      if (bounds) notes.push({ ...bounds, ...owner })
+    }
+    for (const node of group.querySelectorAll<SVGGraphicsElement>('path,line,rect')) {
+      const bounds = readSvgShapeInk(node)
+      if (bounds) notes.push({ ...bounds, ...owner })
     }
   }
   for(const node of svg.querySelectorAll<SVGGraphicsElement>('.vf-beam[data-measure-id] path')){

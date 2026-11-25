@@ -3,6 +3,7 @@ import type { SystemInk } from './system-ink-spacing'
 type InkBounds = Pick<SystemInk, 'x' | 'y' | 'width' | 'height'> & {
   /** Preserve ordinary bows already separated from notehead ink bounds. */
   collisionOnly?: boolean
+  nestedSlur?: boolean
 }
 export interface AutomaticSlurCurve {
   x1: number; x2: number; controlX: number
@@ -79,21 +80,40 @@ export function resolveSlurContinuationStartCurve(curve: AutomaticSlurCurve, sym
 
 /** A hanging continuation can lift its free endpoint instead of making a tall bow. */
 export function resolveSlurFermataCurve(curve: AutomaticSlurCurve, fermatas: readonly InkBounds[], freeStart: boolean, freeEnd: boolean): AutomaticSlurCurve {
-  const needed = resolveSlurFermataControlY(curve, fermatas)
-  if (needed === curve.controlY) return curve
-  const next = {...curve}, width = curve.x2-curve.x1
+  const startY = freeStart ? clearNestedSlurEdge(curve, fermatas, curve.x1, curve.y1) : curve.y1
+  const endY = freeEnd ? clearNestedSlurEdge(curve, fermatas, curve.x2, curve.y2) : curve.y2
+  const adjusted = startY === curve.y1 && endY === curve.y2 ? curve : {
+    ...curve, y1: startY, y2: endY,
+    controlY: curve.controlY + (startY - curve.y1 + endY - curve.y2) / 2
+  }
+  const needed = resolveSlurFermataControlY(adjusted, fermatas)
+  if (needed === adjusted.controlY) return adjusted
+  const next = {...adjusted}, width = curve.x2-curve.x1
   for (const ink of fermatas) {
-    if (resolveSlurFermataControlY(curve,[ink]) === curve.controlY) continue
+    if (resolveSlurFermataControlY(adjusted,[ink]) === adjusted.controlY) continue
     const target = curve.side==='above' ? ink.y-8-curve.strokeWidth/2 : ink.y+ink.height+8+curve.strokeWidth/2
     if (freeStart && ink.x+ink.width<curve.x1+width/3) next.y1=curve.side==='above'?Math.min(next.y1,target):Math.max(next.y1,target)
     if (freeEnd && ink.x>curve.x2-width/3) next.y2=curve.side==='above'?Math.min(next.y2,target):Math.max(next.y2,target)
   }
   // Preserve the original bow depth before applying the exact glyph constraint.
   next.controlY=curve.side==='above'
-    ? Math.min(next.y1,next.y2)-(Math.min(curve.y1,curve.y2)-curve.controlY)
-    : Math.max(next.y1,next.y2)+(curve.controlY-Math.max(curve.y1,curve.y2))
+    ? Math.min(next.y1,next.y2)-(Math.min(adjusted.y1,adjusted.y2)-adjusted.controlY)
+    : Math.max(next.y1,next.y2)+(adjusted.controlY-Math.max(adjusted.y1,adjusted.y2))
   next.controlY=resolveSlurFermataControlY(next,fermatas)
   return next
+}
+
+function clearNestedSlurEdge(curve: AutomaticSlurCurve, obstacles: readonly InkBounds[], x: number, y: number) {
+  const half = curve.strokeWidth / 2
+  // At the common break, curvature alone cannot separate the two end caps.
+  // Reserve the inner edge's ink only where it shares this free endpoint.
+  for (const ink of obstacles) {
+    if (!ink.nestedSlur || ink.x > x + half || ink.x + ink.width < x - half) continue
+    y = curve.side === 'above'
+      ? Math.min(y, ink.y - 8 - half)
+      : Math.max(y, ink.y + ink.height + 8 + half)
+  }
+  return y
 }
 
 /** Interior glyph clearance only. Authored endpoints and manual curves are not moved. */

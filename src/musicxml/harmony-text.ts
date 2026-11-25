@@ -4,7 +4,19 @@ const kindMap: Record<string, string> = {
   '': 'major', '7': 'dominant', m: 'minor', m7: 'minor-seventh',
   maj7: 'major-seventh', dim: 'diminished', sus4: 'suspended-fourth'
 }
-const suffixByKind = new Map(Object.entries(kindMap).map(([suffix, kind]) => [kind, suffix]))
+// Additional MusicXML kinds have a standard display label. The editor's
+// text grammar remains the smaller kindMap above.
+const suffixByKind = new Map<string, string>([
+  ...Object.entries(kindMap).map(([suffix, kind]) => [kind, suffix] as const),
+  ['suspended-second', 'sus2'],
+  ['dominant-ninth', '9'],
+  ['major-sixth', '6'],
+  ['minor-sixth', 'm6'],
+  ['augmented', 'aug'],
+  ['half-diminished', 'm7b5'],
+  ['power', '5'],
+  ['diminished-seventh', 'dim7']
+])
 
 export function parseHarmonyText(
   text: string
@@ -34,7 +46,7 @@ export function parseHarmonyText(
 }
 
 /** For standard kinds without a custom display attribute, assemble the label
- * from the structured pitches using exactly the editor's existing vocabulary.
+ * from the structured pitches using its recognized display suffix.
  * Unknown kinds and explicit/legacy full labels keep the prior import policy. */
 export function formatStandardHarmonyText(
   root: HarmonyMark['root'], kind: string | undefined, bass: HarmonyMark['bass']
@@ -47,7 +59,7 @@ export function formatStandardHarmonyText(
 }
 
 /** A standard kind's text can be only its suffix, not the whole chord name.
- * Recognize exactly the existing vocabulary; preserve legacy full names and
+ * Recognize known suffixes; preserve legacy full names and
  * opaque/custom spellings rather than guessing their structure. */
 export function resolveHarmonyDisplayText(
   root: HarmonyMark['root'], kind: string | undefined,

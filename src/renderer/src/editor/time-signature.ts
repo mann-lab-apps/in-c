@@ -6,12 +6,15 @@ import {
   durationToTicks,
   measureDurationTicks,
   sortVoiceEvents,
+  timeSignatureDurationTicks,
   validateMeasureRhythm,
   validateVoiceTuplets,
   voiceEventDurationTicks,
+  type HairpinTimeEnd,
   type Measure,
   type Score,
   type ScoreCommand,
+  type Staff,
   type TimeSignature,
   type Voice,
   type VoiceEvent
@@ -28,6 +31,81 @@ export function buildTimeSignatureCommand(
   selection: EditorSelection,
   timeSignature: TimeSignature
 ): ScoreCommand | undefined {
+  const target = findMeasureTarget(score, selection)
+  if (!target) return undefined
+  const { staff, measureIndex, partId } = target
+  const nextMeasure = fitMeasureTimeSignature(score, createGlobalMeasureResolver(score), staff.measures[measureIndex], timeSignature)
+  if (!nextMeasure) return undefined
+  const measures = staff.measures.map((measure, index) =>
+    index === measureIndex ? nextMeasure : measure
+  )
+
+  return {
+    // This edit keeps the same bars. The structural staff replacement command
+    // renumbers them (including on undo), which loses valid imported numbers
+    // and can leave number-based global tempo references dangling.
+    type: 'score-parts.replace',
+    parts: score.parts.map((candidate) => candidate.id !== partId ? candidate : {
+      ...candidate,
+      staves: candidate.staves.map((candidateStaff) =>
+        candidateStaff.id === staff.id ? { ...candidateStaff, measures } : candidateStaff)
+    })
+  }
+}
+
+type ScoreMeasureMeterResult =
+  | { kind: 'change'; command: ScoreCommand }
+  | { kind: 'unchanged' | 'unaligned' }
+  | { kind: 'blocked'; partName: string; staffNumber: number; timeEnd?: HairpinTimeEnd }
+
+export function buildScoreMeasureTimeSignatureCommand(
+  score: Score, selection: EditorSelection, timeSignature: TimeSignature
+): ScoreMeasureMeterResult {
+  const target = findMeasureTarget(score, selection)
+  if (!target) return { kind: 'unaligned' }
+  const { measureIndex } = target
+  const start = barStart(target.staff, measureIndex)
+  const length = measureDurationTicks(target.staff.measures[measureIndex])
+  const resolveGlobal = createGlobalMeasureResolver(score)
+  const nextMeasures = new Map<Staff, Measure>()
+  let nextLength: number | undefined
+  for (const part of score.parts) {
+    for (const [index, staff] of part.staves.entries()) {
+      const bar = staff.measures[measureIndex]
+      if (!bar || barStart(staff, measureIndex) !== start || measureDurationTicks(bar) !== length) {
+        return { kind: 'unaligned' }
+      }
+      const timeEnd = timeEndBeyondNewMeter(score, bar, timeSignature)
+      if (timeEnd) return { kind: 'blocked', partName: part.name, staffNumber: index + 1, timeEnd }
+      const next = fitMeasureTimeSignature(score, resolveGlobal, bar, timeSignature)
+      if (!next || (next !== bar && next.timing.type === 'pickup' &&
+        next.timing.durationTicks >= timeSignatureDurationTicks(timeSignature))) {
+        return { kind: 'blocked', partName: part.name, staffNumber: index + 1 }
+      }
+      const duration = measureDurationTicks(next)
+      if (nextLength !== undefined && duration !== nextLength) return { kind: 'unaligned' }
+      nextLength = duration
+      if (next !== bar) nextMeasures.set(staff, next)
+    }
+  }
+  if (!nextMeasures.size) return { kind: 'unchanged' }
+  return {
+    kind: 'change',
+    command: { type: 'score-parts.replace', parts: score.parts.map(part => ({
+      ...part,
+      staves: part.staves.map(staff => {
+        const next = nextMeasures.get(staff)
+        return next ? { ...staff, measures: staff.measures.map((bar, index) => index === measureIndex ? next : bar) } : staff
+      })
+    })) }
+  }
+}
+
+function barStart(staff: Staff, measureIndex: number): number {
+  return staff.measures.slice(0, measureIndex).reduce((tick, bar) => tick + measureDurationTicks(bar), 0)
+}
+
+function findMeasureTarget(score: Score, selection: EditorSelection) {
   const location =
     selection.type === 'measure'
       ? locateMeasure(score, selection.measureId, selection.address)
@@ -45,19 +123,23 @@ export function buildTimeSignatureCommand(
     (measure) => measure.id === location.address.measureId
   )
 
-  if (!staff || measureIndex === undefined || measureIndex < 0) {
-    return undefined
-  }
+  if (!staff || measureIndex === undefined || measureIndex < 0) return undefined
+  return { staff, measureIndex, partId: location.address.partId }
+}
 
-  const currentMeasure = staff.measures[measureIndex]
-  const nextMeasure = applyTimeSignatureToMeasure(
-    currentMeasure,
-    timeSignature
-  )
+export function timeEndBeyondNewMeter(score: Score, measure: Measure, timeSignature: TimeSignature) {
+  const duration = measureDurationTicks({ ...measure, timeSignature })
+  return score.hairpins?.find(span => span.endTime?.measureId === measure.id && span.endTime.tick > duration)?.endTime
+}
 
-  if (!nextMeasure) {
-    return undefined
-  }
+function fitMeasureTimeSignature(
+  score: Score, resolveGlobal: ReturnType<typeof createGlobalMeasureResolver>,
+  currentMeasure: Measure, timeSignature: TimeSignature
+): Measure | undefined {
+  if (timeEndBeyondNewMeter(score, currentMeasure, timeSignature)) return undefined
+  const releaseEnds = new Set(score.hairpins?.flatMap(span => span.endAnchor === 'release' && span.endEventId !== undefined ? [span.endEventId] : []))
+  const nextMeasure = applyTimeSignatureToMeasure(currentMeasure, timeSignature, releaseEnds)
+  if (!nextMeasure) return undefined
   // A shorter bar may discard plain rests, but not their authored notation
   // or the endpoints of a surviving span. Use the same preservation policy
   // as tuplet regrouping; never leave a score which cannot be saved natively.
@@ -65,7 +147,7 @@ export function buildTimeSignatureCommand(
   const before = currentMeasure.voices.flatMap(voice => voice.events)
   const removedIds = new Set(before.filter(event => !after.has(event.id)).map(event => event.id))
   if ([...(score.hairpins ?? []), ...(score.slurs ?? []), ...(score.octaveShifts ?? [])]
-    .some(span => removedIds.has(span.startEventId) || removedIds.has(span.endEventId))) return undefined
+    .some(span => removedIds.has(span.startEventId) || (span.endEventId !== undefined && removedIds.has(span.endEventId)))) return undefined
   if (before.some(event => {
     if (event.type !== 'rest' || (!event.fermata && !event.breathMark)) return false
     const next = after.get(event.id)
@@ -83,27 +165,12 @@ export function buildTimeSignatureCommand(
     // Match the existing paste/pickup protection: do not leave authored
     // positions outside the shortened bar or spill them into its neighbor.
     // Tempo aliases belong to the primary staff; local text keeps its owner.
-    const resolveGlobal = createGlobalMeasureResolver(score)
     if (score.tempoEvents?.some(mark => resolveGlobal(mark.measureId) === currentMeasure.id && mark.tick > nextEndTick) ||
       [...(score.harmonies ?? []), ...(score.expressionTexts ?? [])].some(mark =>
         mark.measureId === currentMeasure.id && mark.tick > nextEndTick)) return undefined
   }
 
-  const measures = staff.measures.map((measure, index) =>
-    index === measureIndex ? nextMeasure : measure
-  )
-
-  return {
-    // This edit keeps the same bars. The structural staff replacement command
-    // renumbers them (including on undo), which loses valid imported numbers
-    // and can leave number-based global tempo references dangling.
-    type: 'score-parts.replace',
-    parts: score.parts.map((candidate) => candidate.id !== location.address.partId ? candidate : {
-      ...candidate,
-      staves: candidate.staves.map((candidateStaff) =>
-        candidateStaff.id === staff.id ? { ...candidateStaff, measures } : candidateStaff)
-    })
-  }
+  return nextMeasure
 }
 
 function locateFocusedEvent(score: Score, selection: EditorSelection) {
@@ -120,7 +187,8 @@ function locateFocusedEvent(score: Score, selection: EditorSelection) {
 
 function applyTimeSignatureToMeasure(
   measure: Measure,
-  timeSignature: TimeSignature
+  timeSignature: TimeSignature,
+  releaseEnds: ReadonlySet<string>
 ): Measure | undefined {
   if (
     measure.timeSignature.beats === timeSignature.beats &&
@@ -134,7 +202,7 @@ function applyTimeSignatureToMeasure(
     timeSignature: { ...timeSignature }
   }
   const voices = measure.voices.map((voice) =>
-    fitVoiceToTimeSignature(measure, nextMeasure, voice)
+    fitVoiceToTimeSignature(measure, nextMeasure, voice, releaseEnds)
   )
 
   if (voices.some((voice) => !voice)) {
@@ -161,7 +229,8 @@ function applyTimeSignatureToMeasure(
 function fitVoiceToTimeSignature(
   previousMeasure: Measure,
   nextMeasure: Measure,
-  voice: Voice
+  voice: Voice,
+  releaseEnds: ReadonlySet<string>
 ): Voice | undefined {
   const targetEndTick = measureDurationTicks(nextMeasure)
   const events = sortVoiceEvents(voice.events)
@@ -200,14 +269,16 @@ function fitVoiceToTimeSignature(
         return undefined
       }
 
-      clippedEvents.push(
-        ...createRestsForSpan({
-          measure: nextMeasure,
-          startTick: eventStartTick,
-          endTick: targetEndTick,
-          firstId: event.id
-        })
-      )
+      const replacement = createRestsForSpan({
+        measure: nextMeasure,
+        startTick: eventStartTick,
+        endTick: targetEndTick,
+        firstId: event.id
+      })
+      // The original ID stays on the first rest. A release must reach the end
+      // of the shortened span, so a split would end it early.
+      if (releaseEnds.has(event.id) && replacement.length !== 1) return undefined
+      clippedEvents.push(...replacement)
       continue
     }
 

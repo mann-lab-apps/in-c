@@ -1,5 +1,6 @@
 import { collectSpanEndpointIds, inspectSpanEndpointChanges, isOctaveEndpoint, isRestBoundary } from './span-references'
 import { createFullMeasureRest, createNote, createRest } from './factories'
+import { preserveFollowingPitchSounds } from './following-pitch-sounds'
 import { resolveNotePitch } from './pitch'
 import {
   durationToTicks,
@@ -90,8 +91,8 @@ export function buildRhythmEditCommand(
     currentEvent.id,
     startTick
   )
-  if (currentEvent.type === 'note' && replacement.type === 'rest' &&
-    isOctaveEndpoint(score, currentEvent.id)) {
+  const convertsNoteToRest = currentEvent.type === 'note' && replacement.type === 'rest'
+  if (convertsNoteToRest && isOctaveEndpoint(score, currentEvent.id)) {
     return undefined
   }
   const replacementEndTick =
@@ -143,12 +144,15 @@ export function buildRhythmEditCommand(
     nextAfter = consumed.events
   }
 
-  const nextEvents = sortVoiceEvents([
+  const replacedEvents = sortVoiceEvents([
     ...before,
     replacement,
     ...fillEvents,
     ...nextAfter
   ])
+  const nextEvents = convertsNoteToRest
+    ? preserveFollowingPitchSounds(location.measure, location.voice, replacedEvents, startTick)
+    : replacedEvents
   const nextMeasure = {
     ...location.measure,
     voices: location.measure.voices.map((voice) =>
@@ -178,7 +182,7 @@ export function buildRhythmEditCommand(
   }
   // Slurs require note endpoints. The rest and its invalidated slurs form one
   // transaction so native save stays valid and undo restores manual geometry.
-  if (currentEvent.type === 'note' && replacement.type === 'rest' &&
+  if (convertsNoteToRest &&
     score.slurs?.some(span => span.startEventId === replacement.id || span.endEventId === replacement.id)) {
     return { type: 'score.batch', commands: [command, {
       type: 'score-slurs.update',
@@ -268,7 +272,7 @@ export function buildRhythmDeleteCommand(
     return undefined
   }
 
-  const nextEvents = replaceDeletedEventWithFollowingRestSpan({
+  const replacedEvents = replaceDeletedEventWithFollowingRestSpan({
     events,
     eventIndex,
     event,
@@ -276,10 +280,13 @@ export function buildRhythmDeleteCommand(
     spanEndpointIds: collectSpanEndpointIds(score)
   })
 
-  if (!nextEvents) {
+  if (!replacedEvents) {
     return undefined
   }
 
+  const nextEvents = event.type === 'note'
+    ? preserveFollowingPitchSounds(location.measure, location.voice, replacedEvents, event.position.tick)
+    : replacedEvents
   const nextMeasure = {
     ...location.measure,
     voices: location.measure.voices.map((voice) =>

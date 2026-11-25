@@ -66,3 +66,41 @@ it('blocks a valid repeated slur while retaining the ordinary XML fallback sourc
  const qa=process.env.DDIRORI_REPEAT_FLATTEN_FIXTURE_OUT
  if(qa){const dir=join(qa,'unsupported-slur');mkdirSync(dir,{recursive:true});writeFileSync(join(dir,'source.chromatics'),encodeNativeProject(createNativeProject(score)));writeFileSync(join(dir,'source.musicxml'),serializeMusicXml(score));writeFileSync(join(dir,'expected.mid'),serializeMidi(score))}
 })
+
+it.each([false, true])('shares the closed nested repeat order across playback and copies with independent endings=%s', withEndings => {
+  const separateEndings = withEndings ? `<measure number="5">
+      <barline location="left"><repeat direction="forward"/></barline>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+    </measure><measure number="6">
+      <barline location="left"><ending number="1" type="start"/></barline>
+      <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <barline location="right"><ending number="1" type="stop"/><repeat direction="backward" times="2"/></barline>
+    </measure><measure number="7">
+      <barline location="left"><ending number="2" type="start"/></barline>
+      <note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      <barline location="right"><ending number="2" type="stop"/></barline>
+    </measure>` : ''
+
+  const input = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Flute</part-name></score-part></part-list>
+    <part id="P1">${['C', 'D', 'E', 'F'].map((step, index) => `<measure number="${index+1}">
+      ${index === 0 ? '<attributes><divisions>1</divisions><time><beats>1</beats><beat-type>4</beat-type></time></attributes>' : ''}
+      ${index < 2 ? '<barline location="left"><repeat direction="forward"/></barline>' : ''}
+      <note><pitch><step>${step}</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+      ${index >= 2 ? '<barline location="right"><repeat direction="backward" times="2"/></barline>' : ''}
+    </measure>`).join('')}${separateEndings}</part>
+  </score-partwise>`
+  const score = parseMusicXml(input)
+  const expanded = equivalent(score, withEndings ? 'closed-nested-independent-endings' : 'closed-nested')
+  const expected = ['C','D','E','D','E','F','C','D','E','D','E','F']
+  if (withEndings) expected.push('G','A','G','B')
+  const steps = expanded.parts[0].staves[0].measures.map(measure => {
+    const event = measure.voices[0].events[0]
+    return event.type === 'note' ? event.pitch.step : undefined
+  })
+  const timeline = createPlaybackTimeline(score)
+  expect(steps).toEqual(expected)
+  expect(timeline.events.map(event => event.startBeat)).toEqual(expected.map((_, index) => index))
+  expect(timeline.events.every(event => event.durationBeats === 1)).toBe(true)
+  expect(timeline.totalBeats).toBe(expected.length)
+})

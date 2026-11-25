@@ -36,9 +36,40 @@ it('preserves both octaves and same-voice accidental memory without leaking into
  const other=structuredClone(measure.voices[0]);other.id='voice-2';other.events.forEach(e=>{e.id='other-'+e.id;if(e.type==='note'){e.pitch={step:'F',octave:4,alter:0};delete e.pitches}});measure.voices.push(other)
  changed(source,0)
 })
-it('retains preceding explicit-accidental inheritance and attached grace spelling as a control',()=>{
- const source=implicitChordFixture('preceding').source,event=source.parts[0].staves[0].measures[0].voices[0].events[1]as Note
- event.graceNotes=[{pitch:{step:'F',octave:4}},{pitch:{step:'B',octave:4,alter:-1},slash:true}]
- const grace=structuredClone(event.graceNotes),next=changed(source,1).parts[0].staves[0].measures[0].voices[0].events[1]as Note
- expect(next.graceNotes).toEqual(grace)
+it('preserves an inherited grace accidental and spells out a natural required by the new key', () => {
+  const source = implicitChordFixture('preceding').source
+  const event = source.parts[0].staves[0].measures[0].voices[0].events[1] as Note
+  event.graceNotes = [
+    { pitch: { step: 'E', octave: 4 } },
+    { pitch: { step: 'F', octave: 4 } },
+    { pitch: { step: 'B', octave: 4, alter: -1 }, slash: true }
+  ]
+
+  const next = changed(source, 1).parts[0].staves[0].measures[0].voices[0].events[1] as Note
+  expect(next.graceNotes).toEqual([
+    event.graceNotes[0],
+    { pitch: { step: 'F', octave: 4, alter: 0 } },
+    event.graceNotes[2]
+  ])
+})
+
+it('preserves a grace note inherited from the old key when changing the key signature', () => {
+  const source = implicitChordFixture('key').source
+  const event = source.parts[0].staves[0].measures[0].voices[0].events[0] as Note
+  event.graceNotes = [
+    { pitch: { step: 'F', octave: 4 }, slash: true },
+    { pitch: { step: 'B', octave: 4, alter: -1 }, slash: false }
+  ]
+
+  const next = changed(source, 0)
+  const notes = (next.parts[0].staves[0].measures[0].voices[0].events[0] as Note).graceNotes
+  expect(notes).toEqual([
+    { pitch: { step: 'F', octave: 4, alter: 1 }, slash: true },
+    event.graceNotes[1]
+  ])
+
+  const copy = parseMusicXml(serializeMusicXml(next))
+  const imported = (copy.parts[0].staves[0].measures[0].voices[0].events[0] as Note).graceNotes!
+  expect(imported.map(grace => grace.pitch)).toEqual(notes!.map(grace => grace.pitch))
+  expect(imported.map(grace => Boolean(grace.slash))).toEqual([true, false])
 })

@@ -13,6 +13,8 @@ import {
   createStaff,
   createTimePosition,
   createVoice,
+  pitchToMidi,
+  resolveNotePitch,
   validateMeasureRhythm,
   type PitchStep,
   type Score,
@@ -42,6 +44,43 @@ import {
 } from './editor-state'
 
 describe('editor state', () => {
+  it.each([
+    { operation: 'single delete', range: false, convert: false, fifths: 0, alter: 1, midi: 66 },
+    { operation: 'single rest conversion', range: false, convert: true, fifths: 1, alter: 0, midi: 65 },
+    { operation: 'range delete', range: true, convert: false, fifths: 0, alter: 1, midi: 66 },
+    { operation: 'range rest conversion', range: true, convert: true, fifths: 1, alter: 0, midi: 65 }
+  ] as const)('preserves unselected notes and graces after $operation', ({ range, convert, fifths, alter, midi }) => {
+    const quarter = createDuration('quarter')
+    const f = { step: 'F', octave: 4 } as const
+    const events = [
+      createNote({ id: 'source', pitch: { ...f, alter }, duration: quarter }),
+      createNote({ id: 'middle', position: createTimePosition(TICKS_PER_QUARTER), pitch: { step: 'G', octave: 4 }, duration: quarter }),
+      createNote({ id: 'tail', position: createTimePosition(2 * TICKS_PER_QUARTER),
+        pitch: { step: 'A', octave: 4 }, pitches: [{ step: 'A', octave: 4 }, f],
+        graceNotes: [{ pitch: f, slash: true }], duration: createDuration('half') })
+    ]
+    const measure = createMeasure({ keySignature: { fifths }, voices: [createVoice({ events })] })
+    const score = createScore({ parts: [createPart({ staves: [createStaff({ measures: [measure] })] })] })
+    const selection = range ? createRangeSelection(score, 'source', 'middle')! : createEventSelection(score, 'source')!
+    const command = !convert ? buildDeleteCommand(score, selection) : range
+      ? buildRangeRestCommand(score, selection) : buildRestEntryCommand(score, selection, quarter, () => 'rest')
+    const { score: edited, undo } = applyScoreCommand(score, command!)
+    const bar = edited.parts[0].staves[0].measures[0]
+    const voice = bar.voices[0]
+    const tail = voice.events.find(event => event.id === 'tail')
+    expect(tail?.type).toBe('note')
+    if (tail?.type !== 'note') throw new Error('Missing unselected chord')
+    const resolved = (pitch: NonNullable<typeof tail.pitches>[number]) => pitchToMidi(resolveNotePitch(bar, voice, { ...tail, pitch }))
+    expect(tail.position).toEqual(events[2].position)
+    expect(tail.pitches?.map(resolved)).toEqual([69, midi])
+    expect(tail.graceNotes?.map(grace => resolved(grace.pitch))).toEqual([midi])
+    expect(tail.pitch.alter).toBeUndefined()
+    expect(validateMeasureRhythm(bar).isExact).toBe(true)
+    const restored = applyScoreCommand(edited, undo)
+    expect(restored.score).toEqual(score)
+    expect(applyScoreCommand(restored.score, restored.undo).score).toEqual(edited)
+  })
+
   it('locates selected events and measures', () => {
     expect(locateEvent(demoScore, 'note-g4')).toMatchObject({
       eventIndex: 0,

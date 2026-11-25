@@ -18,17 +18,18 @@ function painted(node: SVGElement): boolean {
     (isVisibleSvgPaint(style.stroke) && style.strokeOpacity !== '0')
 }
 
-/** Move only automatic staff text. Onsets/top lines come from the existing
+/** Place automatic text, navigation glyphs and rehearsal marks against their formatted staff. Onsets/top lines come from the existing
  * formatted stave, never its constructor origin or a note's font/em box.
  * Measured neighboring-staff clearance remains the staff/system layout's job.
  */
-export function applyStaffTextAnchors(
+export function applyStaffAnnotationAnchors(
   svg: SVGSVGElement,
   owners: ReadonlyMap<string, MeasureInkOwner | undefined>,
   spanInk: readonly StaffInk[] = []
 ): StaffInk[] {
-  const texts = [...svg.querySelectorAll<SVGTextElement>('.notation-staff-text[data-staff-anchor-x]')]
-  if (!texts.length || document.fonts?.status !== 'loaded' || typeof svg.getCTM !== 'function') return []
+  const texts = [...svg.querySelectorAll<SVGTextElement>(':is(.notation-staff-text,.notation-navigation-symbol)[data-staff-anchor-x]')]
+  const rehearsalMarks = [...svg.querySelectorAll<SVGGElement>('.notation-rehearsal-mark[data-rehearsal-anchor-top]')]
+  if ((!texts.length && !rehearsalMarks.length) || document.fonts?.status !== 'loaded' || typeof svg.getCTM !== 'function') return []
   if ([...svg.querySelectorAll<SVGElement>('use,image,foreignObject')].some(painted)) return []
   const context = document.createElement('canvas').getContext('2d')
   if (!context) return []
@@ -91,6 +92,37 @@ export function applyStaffTextAnchors(
     const hit = text.parentElement?.querySelector<SVGRectElement>(':scope > .notation-staff-text-hit')
     if (hit) for (const [key, value] of Object.entries(candidate)) hit.setAttribute(key, String(value))
     relocated.push({ ...candidate, ...owner })
+  }
+  // Moving the frame down keeps later-system marks from reading as part of
+  // the preceding system. Sweep the frame and its text together against ink.
+  const orderedMarks = rehearsalMarks
+    .map(mark => ({ mark, frame: mark.querySelector('rect'), label: mark.querySelector('text') }))
+    .sort((a, b) => Number(b.frame?.getAttribute('y')) - Number(a.frame?.getAttribute('y')))
+  for (const { mark, frame, label } of orderedMarks) {
+    if (!frame || !label) continue
+    const frameRecord = measured.get(frame), labelRecord = measured.get(label), owner = ownerOf(mark)
+    const staffTop = Number(mark.dataset.rehearsalAnchorTop), space = Number(mark.dataset.rehearsalAnchorSpace)
+    if (!frameRecord || !labelRecord || !owner || owner.systemIndex === 0 || !Number.isFinite(staffTop) || !(space > 0)) continue
+    const pair = [frameRecord.ink, labelRecord.ink]
+    const left = Math.min(...pair.map(ink => ink.x)), top = Math.min(...pair.map(ink => ink.y))
+    const right = Math.max(...pair.map(ink => ink.x + ink.width)), bottom = Math.max(...pair.map(ink => ink.y + ink.height))
+    const gap = space / 2
+    let shift = staffTop - gap - bottom
+    const keepClear = (ink: Ink) => {
+      if (ink.x >= right + gap || ink.x + ink.width <= left - gap || ink.y + ink.height <= top - gap) return
+      shift = Math.min(shift, ink.y - gap - bottom)
+    }
+    for (const [node, item] of measured) {
+      if (node !== frame && node !== label && (!item.owner || item.owner.systemIndex === owner.systemIndex)) keepClear(item.ink)
+    }
+    for (const ink of spanInk) {
+      if (ink.systemIndex === owner.systemIndex && valid(ink)) keepClear(ink)
+    }
+    if (shift <= 0) continue
+    frame.setAttribute('y', String(Number(frame.getAttribute('y')) + shift))
+    label.setAttribute('y', String(Number(label.getAttribute('y')) + shift))
+    frameRecord.ink = { ...frameRecord.ink, y: frameRecord.ink.y + shift }
+    labelRecord.ink = { ...labelRecord.ink, y: labelRecord.ink.y + shift }
   }
   return relocated
 }

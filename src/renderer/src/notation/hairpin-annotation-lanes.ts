@@ -8,7 +8,7 @@ import type { MeasureTextInk } from './staff-annotation-spacing'
 export function hairpinCoveredMeasureIds(score: Score, hairpin: Hairpin): string[] {
   for (const part of score.parts) for (const staff of part.staves) {
     const start = staff.measures.findIndex(m => m.voices.some(v => v.events.some(e => e.id === hairpin.startEventId)))
-    const end = staff.measures.findIndex(m => m.voices.some(v => v.events.some(e => e.id === hairpin.endEventId)))
+    const end = staff.measures.findIndex(m => hairpin.endTime ? m.id === hairpin.endTime.measureId : m.voices.some(v => v.events.some(e => e.id === hairpin.endEventId)))
     if (start >= 0 && end >= start) return staff.measures.slice(start, end + 1).map(m => m.id)
   }
   return []

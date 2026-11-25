@@ -11,7 +11,7 @@ import { buildGraceConversion } from './editor/grace-conversion'
 import { buildEmptyVoiceMove } from './editor/empty-voice-move'
 import { StudioVoiceMoveProperties } from './StudioVoiceMoveProperties'
 import { studioWindowTitle } from '../../desktop-identity'
-import { readMusicXmlVoiceNumber, sortScoreVoices } from '../../musicxml/voice-order'
+import { readScoreVoiceNumber, sortScoreVoices } from '../../score-core/voice-order'
 import { resolveSameStaffVoicePresentation } from './notation/visual-state'
 import { expandScoreRepeatsForMusicXml } from '../../musicxml/expand-repeats'
 import { buildMusicXmlPageDefaults } from '../../musicxml/page-layout'
@@ -23,7 +23,7 @@ import { describeEmptyMusicXmlMeasure } from './editor/musicxml-empty-measure'
 import { createMusicXmlMetadataConflictError,MusicXmlMetadataConflictError } from './editor/musicxml-metadata-conflicts'
 import { createMusicXmlSignatureConflictError,MusicXmlSignatureConflictError } from './editor/musicxml-signature-conflicts'
 import { MusicXmlTextOutputError } from '../../musicxml/xml-output-characters'
-import { resolveRepeatEditScope } from './editor/repeat-scope'
+import { resolveRepeatEditScope, toggleMeasureVolta, updateVoltaPassEdit } from './editor/repeat-scope'
 import { hasAmbiguousLyricVerses, ambiguousLyricMessage } from './editor/lyric-editing'
 import { parseHarmonyText, inferHarmonyStructure } from '../../musicxml/harmony-text'
 import { createGlobalMeasureResolver, resolveGlobalAnnotationMeasures } from './editor/global-measure-reference'
@@ -58,6 +58,8 @@ import { StudioWarningReport, StudioWarningTechnicalDetails as WarningTechnicalD
 import { StudioLyricTools } from './StudioLyricTools'
 import { StudioMeasureNotation } from './StudioMeasureNotation'
 import { StudioRepeatTools } from './StudioRepeatTools'
+import { resolveNavigationEditScope } from './editor/navigation-edit-scope'
+import { remapRemovedStaffNavigation } from './editor/navigation-staff-removal'
 import { StudioRangeTools } from './StudioRangeTools'
 import { StudioPartSetup } from './StudioPartSetup'
 import { StudioTempoTools } from './StudioTempoTools'
@@ -86,6 +88,7 @@ import { StudioExportTools } from './StudioExportTools'
 import { StudioPageSetup } from './StudioPageSetup'
 import { StudioMeasureContextMenu } from './StudioMeasureContextMenu'
 import { StudioApplicationMenu, type StudioMenuDefinition } from './StudioApplicationMenu'
+import { createConcertPitchView } from './editor/concert-pitch'
 import { StudioCommandSearch } from './StudioCommandSearch'
 import { StudioNotationPalette, StudioPaletteSettings, useStudioPaletteWorkspace } from './StudioNotationPalette'
 import { StudioPlayback, StudioPartMixer } from './StudioPlayback'
@@ -103,13 +106,14 @@ import { StudioChordProperties } from './StudioChordProperties'
 import { PerformanceLab } from './playback/PerformanceLab'
 import type { AnyExpressionProfile as ExpressionProfile } from './playback/voicing-profile'
 import { Bach, Banner, Button, Checkbox, SegmentedControl, Dialog, IconButton, Input, Item, ProductSignature, Select, Text, Tooltip, ddiroriTokens } from '@ddirori/ui'
-import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
+import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, describeHairpinTimeEnd, findSpan, type SpanReference } from './editor/span-editing'
+import { hairpinEndTick } from '../../score-core/span-references'
 import { nudgeManualSpanOffset } from './editor/manual-span-nudge'
 import { equalSpanEngraving, isManualSpanTranslation, type BeginManualSpanDrag } from './editor/manual-span-drag'
 import { hasManualSpanEngraving } from '../../project/span-engraving'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors, unresolvedRemovedStaffLayoutAnchors } from '../../project/part-layout'
 import {createLayoutMeasureIndexResolver} from '../../project/layout-measure-reference'
-import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
+import { createNativeProject, decodeNativeProject, encodeNativeProject, nativeProjectVersion, validateNativeProject, type NativeProject } from '../../project/schema'
 import {
   ChevronsDown,
   ChevronsUp,
@@ -136,6 +140,8 @@ import {
 import {
   applyScoreCommand,
   buildTieCommand,
+  collectMeasureNavigation,
+  collectNavigationRepeatSettings,
   collectUnsupportedChordTieWarnings,
   createFullMeasureRest,
   createMeasure,
@@ -178,6 +184,8 @@ import {
   TICKS_PER_QUARTER
 } from '../../score-core'
 import {
+  inexactPositionedTranspositionPrefix,
+  MusicXmlHairpinEndAnchorError,
   parseMusicXml,
   parseMusicXmlWithReport,
   serializeMusicXml,
@@ -203,6 +211,7 @@ import './studio-pdf.css'
 import './studio-workspace-tools.css'
 import './studio-metadata-editor.css'
 import { PdfSnapshot, pdfLayoutExceedsTarget, samePdfSource, type PdfRenderSnapshot } from './PdfSnapshot'
+import { planPartMultimeasureRests } from './notation/part-multimeasure-rests'
 import { assertPrintPageInk, PrintPageInkError } from './notation/print-page-ink'
 import { rasterizePngPages } from './image-export/raster'
 import { PngPageRangeError, type PngDpi } from './image-export/pages'
@@ -235,9 +244,11 @@ import {
   type SelectionEventTypeFilter
 } from './editor/editor-state'
 import {
+  buildClearMeasureContents,
   buildInsertMeasureAfter,
   buildInsertMeasureBefore,
   buildRemoveMeasure,
+  timeEndInRemovedMeasure,
   resolveActiveMeasureId
 } from './editor/measure-management'
 import {
@@ -263,7 +274,7 @@ import {
   timeSignaturePresets
 } from './editor/new-score'
 import { buildStaffContentCommand } from './editor/staff-content-command'
-import { buildTimeSignatureCommand } from './editor/time-signature'
+import { buildScoreMeasureTimeSignatureCommand, buildTimeSignatureCommand, timeEndBeyondNewMeter } from './editor/time-signature'
 import { customMeterDenominators, parseCustomTimeSignature } from './editor/custom-time-signature'
 import {
   buildPartTranspositionCommand,
@@ -463,6 +474,19 @@ function describeUnsupportedTabMusicXml(error: unknown, operation: 'import' | 'e
 
 function describeMusicXmlImportFailure(error: unknown) {
   const message = getErrorMessage(error)
+  if (message.startsWith(inexactPositionedTranspositionPrefix)) {
+    return {
+      tone: 'error' as const,
+      message: `${message}. 현재 악보는 유지됩니다. 원본을 보관하고 이조가 바뀌는 지점에서 마디를 나눈 사본을 열어 주세요.`
+    }
+  }
+  if (error instanceof MusicXmlHairpinEndAnchorError) {
+    return {
+      tone: 'error' as const,
+      message: '이 MusicXML의 헤어핀 끝 위치에 연결할 음표나 쉼표가 없습니다. 현재 악보는 유지됩니다. 기술 정보에서 위치를 확인하고, 원본을 보관한 뒤 사본의 끝점을 해당 성부의 음표나 쉼표에 연결해 주세요.',
+      details: { operation: 'MusicXML 가져오기' as const, message }
+    }
+  }
   const unsupportedTab = describeUnsupportedTabMusicXml(error, 'import')
   const unsupportedKey = message.startsWith('지원하지 않는 key mode입니다:') ||
     message.startsWith('현재 가져오기에서 지원하지 않는 비전통 조표입니다:')
@@ -470,6 +494,14 @@ function describeMusicXmlImportFailure(error: unknown) {
     tone: 'error' as const,
     message: unsupportedTab ? unsupportedTab.message : unsupportedKey
       ? '이 MusicXML의 조표 방식은 현재 가져오기에서 지원하지 않습니다. 장조·단조 이외의 선법이나 비전통 조표가 포함되어 있습니다. 현재 악보는 유지됩니다. 원본 파일을 보관하고 지원되는 조표를 사용한 사본을 확인해 주세요.'
+      : message.startsWith('현재 가져오기에서 지원하지 않는 조표 범위입니다:')
+      ? '이 MusicXML의 조표는 Studio가 지원하는 범위(플랫 7개부터 샤프 7개까지)를 벗어납니다. 현재 악보는 유지됩니다. 원본 파일을 보관하고 기술 정보에서 원래 값을 확인해 주세요.'
+      : message.startsWith('현재 가져오기에서 지원하지 않는 미분음입니다:')
+      ? '이 MusicXML에는 현재 가져오기에서 지원하지 않는 미분음 음높이 또는 이조가 있습니다. 현재 악보는 유지됩니다. 원본 파일을 보관하고 기술 정보에서 값을 확인해 주세요.'
+      : message.startsWith('현재 가져오기에서 지원하지 않는 묶음 박자표입니다:')
+      ? '이 MusicXML의 묶음 박자표는 현재 가져오기에서 지원하지 않습니다. 현재 악보는 유지됩니다. 원본 파일을 보관하고 사용설명서의 박자표 가져오기 범위를 확인해 주세요.'
+      : message.startsWith('MusicXML forward가 있는 마디의 성부 길이를 맞출 수 없습니다:')
+      ? '이 MusicXML은 시간 이동(forward)이 있는 마디의 성부 길이를 맞출 수 없어 열지 못했습니다. 현재 악보는 유지됩니다. 원본을 보관하고 기술 정보에 나온 마디의 쉼표를 명시한 사본을 확인해 주세요.'
       : message === '현재 가져오기에서 지원하지 않는 MusicXML 형식입니다: score-timewise'
       ? '이 MusicXML의 마디 우선(score-timewise) 구조는 현재 가져오기에서 지원하지 않습니다. 현재 악보는 유지됩니다. 원본 MusicXML을 보관하고 파트 우선(score-partwise) 구조로 저장한 사본을 확인해 주세요.'
       : message.startsWith('현재 가져오기에서 지원하지 않는 무음정 음표입니다:')
@@ -496,6 +528,7 @@ function describeMusicXmlRecentUpdateFailure(error: unknown) {
 }
 
 type ScoreViewMode = 'score' | 'part'
+const concertPitchDraftMessage = '편집 중인 입력을 완료하거나 취소한 뒤 실음 보기를 켜 주세요.'
 const paletteClefMime = 'application/x-ddirori-studio-clef'
 const paletteKeyMime = 'application/x-ddirori-studio-key'
 const paletteMeasureMimes = { clef: paletteClefMime, key: paletteKeyMime, time: 'application/x-ddirori-studio-time', dynamic: 'application/x-ddirori-studio-dynamic', articulation: 'application/x-ddirori-studio-articulation', ornament: 'application/x-ddirori-studio-ornament', pause: 'application/x-ddirori-studio-pause' } as const
@@ -547,6 +580,7 @@ interface RecentMusicXmlFile {
 }
 
 type MeasureContextAction =
+  | 'clear-contents'
   | 'insert-before'
   | 'insert-after'
   | 'remove'
@@ -933,6 +967,15 @@ export const App = () => {
     try { localStorage.setItem(dockWidthsStorageKey, JSON.stringify(dockWidths)) } catch { /* Session state remains usable. */ }
   }, [dockWidths])
   const [score, setScore] = useState(createInitialScore)
+  const [concertPreview, setConcertPreview] = useState<{ written: Score; display: Score }>()
+  const concertSource = useRef<Score | undefined>(undefined)
+  const concertPitchScore = concertPreview?.written === score ? concertPreview.display : undefined
+  const concertReadOnly = Boolean(concertPitchScore)
+  useLayoutEffect(() => {
+    if (!concertPreview || concertPitchScore) return
+    concertSource.current = undefined
+    setConcertPreview(undefined)
+  }, [concertPreview, concertPitchScore])
   const unsupportedChordTies = useMemo(() => collectUnsupportedChordTieWarnings(score), [score])
   const [selection, setSelection] = useState<EditorSelection>(() =>
     createInitialSelection(score)
@@ -1432,6 +1475,7 @@ export const App = () => {
     ?measureTextSelection:undefined
   const currentScoreRef = useRef(score)
   currentScoreRef.current = score
+  const isConcertReadOnly = useCallback(() => concertSource.current === currentScoreRef.current, [])
   const spanDragContext = useMemo(() => ({ score, selection, reference: activeSpanReference, viewKey: spanViewKey, generation: documentGeneration.current }),
     [score, selection, activeSpanReference, spanViewKey, documentGeneration.current])
   const liveSpanDragContext = useRef(spanDragContext)
@@ -1659,6 +1703,8 @@ export const App = () => {
     [noteInputState, score, selection]
   )
   const activeRepeatScope = useMemo(() => activeMeasureId ? resolveRepeatEditScope(score, activeMeasureId) : undefined, [score, activeMeasureId])
+  const activeNavigationScope = useMemo(() => activeMeasureId && selection.type !== 'range' && !activeSpanReference
+    ? resolveNavigationEditScope(score, activeMeasureId) : undefined, [score, activeMeasureId, selection.type, activeSpanReference])
   const resolveGlobalMeasure = useMemo(() => createGlobalMeasureResolver(score), [score.parts])
   const globalAnnotationScore = useMemo(() => resolveGlobalAnnotationMeasures(score, resolveGlobalMeasure), [score, resolveGlobalMeasure])
   // Match the same global marks that are actually projected into the current part.
@@ -1929,7 +1975,7 @@ export const App = () => {
 
   const executeCommand = useCallback(
     (command: EditorCommand | undefined) => {
-      if (!command) {
+      if (!command || isConcertReadOnly()) {
         return false
       }
 
@@ -1948,7 +1994,7 @@ export const App = () => {
       setPendingSlurAnchorEventId(undefined)
       return true
     },
-    [applyEditorCommand, noteInputState, selection,activeMeasureTextRequest]
+    [applyEditorCommand, noteInputState, selection,activeMeasureTextRequest,isConcertReadOnly]
   )
 
   const deleteSelectedMeasureText=useCallback(()=>{
@@ -2400,11 +2446,16 @@ export const App = () => {
     const nextParts = score.parts.filter(
       (part) => part.id !== activeStructurePart.id
     )
+    const retained = remapRemovedStaffNavigation(score, nextParts)
+    if (!retained) {
+      setFileStatus({ tone: 'error', message: '총보의 이동 표지를 남은 보표에 옮길 수 없습니다. 이동 표지를 정리한 뒤 파트를 삭제해 주세요.' })
+      return
+    }
     const nextScore = {
       ...score,
       parts: nextParts
     }
-    const command = buildScorePartsReplaceCommand(score, nextParts)
+    const command = buildScorePartsReplaceCommand(score, retained)
 
     if (!executeCommand(command)) {
       return
@@ -2492,6 +2543,11 @@ export const App = () => {
           }
         : part
     )
+    const retained = remapRemovedStaffNavigation(score, nextParts)
+    if (!retained) {
+      setFileStatus({ tone: 'error', message: '총보의 이동 표지를 남은 보표에 옮길 수 없습니다. 이동 표지를 정리한 뒤 보표를 삭제해 주세요.' })
+      return
+    }
     const partLayouts = nativeEnvelope.current?.partLayouts
     const unresolved = unresolvedRemovedStaffLayoutAnchors(score.layout, score.parts, nextParts)
     const unresolvedPart = partLayouts?.some(layout => {
@@ -2504,7 +2560,7 @@ export const App = () => {
       return
     }
     const command: EditorCommand = {
-      ...buildScorePartsReplaceCommand(score, nextParts),
+      ...buildScorePartsReplaceCommand(score, retained),
       ...(partLayouts ? { partLayoutState: partLayouts.map(layout => {
         const previousPart = score.parts.find(part => part.id === layout.partId)
         const nextPart = nextParts.find(part => part.id === layout.partId)
@@ -2733,6 +2789,7 @@ export const App = () => {
   }, [beginDocumentOpen, playback, recoverySnapshot])
 
   const undo = useCallback(() => {
+    if (isConcertReadOnly()) return
     const entry = undoStack.at(-1)
 
     if (!entry) {
@@ -2758,9 +2815,10 @@ export const App = () => {
     setMeasureTextSelection(restoredText)
     const partId = entry.inputState?.target.partId ?? entry.selection.address?.partId
     if (scoreViewMode === 'part' && partId) setSelectedScoreViewPartId(partId)
-  }, [applyEditorCommand, noteInputState, selection, undoStack, scoreViewMode,activeMeasureTextRequest])
+  }, [applyEditorCommand, noteInputState, selection, undoStack, scoreViewMode,activeMeasureTextRequest,isConcertReadOnly])
 
   const redo = useCallback(() => {
+    if (isConcertReadOnly()) return
     const entry = redoStack.at(-1)
 
     if (!entry) {
@@ -2786,7 +2844,7 @@ export const App = () => {
     setMeasureTextSelection(restoredText)
     const partId = entry.inputState?.target.partId ?? entry.selection.address?.partId
     if (scoreViewMode === 'part' && partId) setSelectedScoreViewPartId(partId)
-  }, [applyEditorCommand, noteInputState, redoStack, selection, scoreViewMode,activeMeasureTextRequest])
+  }, [applyEditorCommand, noteInputState, redoStack, selection, scoreViewMode,activeMeasureTextRequest,isConcertReadOnly])
 
   const resolveMetadataSaveGuidance = useCallback((draft: MetadataEdit | undefined, message: string) => {
     const owner = metadataSaveGuidance.current
@@ -3144,6 +3202,10 @@ export const App = () => {
       : '전역 스윙 재생을 껐습니다. 리듬 해석 표기는 유지됩니다.' })
   }, [executeCommand])
 
+  const changeScoreGracePlayback = useCallback((enabled: boolean) => {
+    executeCommand({ type: 'score-grace-playback.update', enabled: enabled || undefined })
+  }, [executeCommand])
+
   const changeDuration = useCallback(
     (value: DurationValue) => {
       if (noteInputState?.tupletInput) {
@@ -3343,15 +3405,31 @@ export const App = () => {
           message: unchanged ? '선택한 마디에는 이미 같은 박자표가 적용되어 있습니다.' : '선택한 마디의 박자표를 바꿨습니다.'
         })
       } else {
+        const timeEnd = targetMeasure && timeEndBeyondNewMeter(score, targetMeasure, timeSignature)
         setFileStatus({
           tone: 'error',
-          message: '선택한 마디의 리듬이 새 박자표에 맞지 않습니다.'
+          message: timeEnd ? `박자표를 적용할 수 없습니다. 헤어핀 끝점(${describeHairpinTimeEnd(score, timeEnd)})이 새 마디 길이를 벗어납니다.`
+            : '선택한 마디의 리듬이 새 박자표에 맞지 않습니다.'
         })
       }
       return applied
     },
     [activeTimeSignature, executeCommand, score, scoreTempo, selection]
   )
+
+  const applyScoreMeasureTimeSignature = useCallback((timeSignature: TimeSignature) => {
+    const result = buildScoreMeasureTimeSignatureCommand(score, selection, timeSignature)
+    if (result.kind === 'unaligned') return '모든 보표에서 이 마디의 시작과 실제 길이가 맞아야 합니다.'
+    if (result.kind === 'blocked') return result.timeEnd
+      ? `${result.partName} 보표 ${result.staffNumber}의 헤어핀 끝점(${describeHairpinTimeEnd(score, result.timeEnd)})이 새 마디 길이를 벗어납니다.`
+      : `${result.partName} 보표 ${result.staffNumber}의 음표·표기 또는 실제 마디 길이가 새 박자표에 맞지 않습니다.`
+    if (result.kind === 'change' && !executeCommand(result.command)) return '총보 박자표를 적용할 수 없습니다.'
+    setMode('select')
+    setNoteInputState(undefined)
+    setFileStatus({ tone: 'neutral', message: result.kind === 'unchanged'
+      ? '총보의 이 마디에 이미 같은 박자표가 적용되어 있습니다.'
+      : '총보의 모든 보표에서 이 마디의 박자표를 바꿨습니다.' })
+  }, [executeCommand, score, selection])
 
   const changeTimeSignature = useCallback((presetId: string, targetSelection: EditorSelection = selection) => {
     const preset = timeSignaturePresets.find(candidate => candidate.id === presetId)
@@ -3642,7 +3720,21 @@ export const App = () => {
     }
   }, [eventLocation, executeCommand, score, selection])
 
+  const clearMeasureContents = useCallback((measureId: string) => {
+    const result = buildClearMeasureContents(score, measureId, () => createInputId('event'))
+    if (result.kind === 'empty') {
+      setFileStatus({ tone: 'neutral', message: '이 보표의 마디가 이미 비어 있습니다.' })
+    } else if (result.kind === 'protected') {
+      setFileStatus({ tone: 'error', message: '연결된 타이·선 기호 또는 잇단음표가 있습니다. 해당 표기를 확인한 뒤 다시 시도하세요.' })
+    } else if (result.kind === 'change' && executeCommand(result.command)) {
+      setMode('select')
+      setNoteInputState(undefined)
+      setFileStatus({ tone: 'neutral', message: '이 보표의 마디 내용을 온마디 쉼표로 바꿨습니다.' })
+    }
+  }, [executeCommand, score])
+
   const clearSelection = useCallback(() => {
+    if (isConcertReadOnly()) return
     if(deleteSelectedMeasureText())return
     if (selectionObjectTypeFilter !== 'none' && selection.type !== 'measure') {
       setFileStatus({ tone: 'neutral', message: '표기 필터는 마디를 선택한 뒤 사용할 수 있습니다.' })
@@ -3670,6 +3762,11 @@ export const App = () => {
           message: `${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기를 지웠습니다.`
         })
       }
+      return
+    }
+
+    if (selection.type === 'measure') {
+      clearMeasureContents(selection.measureId)
       return
     }
 
@@ -3741,8 +3838,10 @@ export const App = () => {
     })
   }, [
     eventLocation,
+    clearMeasureContents,
     deleteSelectedMeasureText,
     executeCommand,
+    isConcertReadOnly,
     noteInputState,
     score,
     selection,
@@ -3803,7 +3902,7 @@ export const App = () => {
     if (!clipboard) {
       setFileStatus({
         tone: 'error',
-        message: '같은 마디의 단순 범위만 복사할 수 있습니다.'
+        message: '한 마디의 단순 범위 또는 한 보표·성부에서 연속한 마디 전체를 복사할 수 있습니다.'
       })
       return
     }
@@ -3820,6 +3919,7 @@ export const App = () => {
   }, [score, selection, selectionEventTypeFilter, selectionObjectTypeFilter,activeMeasureTextRequest,focusedMeasureTextObject])
 
   const cutSelection = useCallback(() => {
+    if (isConcertReadOnly()) return
     if (!cutClipboard) {
       setFileStatus({ tone: 'neutral', message: '복사와 삭제가 모두 가능한 같은 마디·성부의 연속된 음표·쉼표만 잘라낼 수 있습니다. 입력을 마치고 선택 범위와 필터를 확인해 주세요.' })
       return
@@ -3829,9 +3929,10 @@ export const App = () => {
     copySelection()
     clearSelection()
     setFileStatus({ tone: 'neutral', message: `${cutClipboard.eventCount}개 이벤트를 잘라냈습니다. 원래 자리는 리듬을 보존하는 쉼표로 남습니다. 같은 길이의 범위를 선택해 붙여넣으세요.` })
-  }, [cutClipboard, copySelection, clearSelection])
+  }, [cutClipboard, copySelection, clearSelection, isConcertReadOnly])
 
   const pasteSelection = useCallback(() => {
+    if (isConcertReadOnly()) return
     if (noteInputState?.tupletInput) {
       setFileStatus({
         tone: 'neutral',
@@ -3876,7 +3977,7 @@ export const App = () => {
     if (!rangeClipboard) {
       setFileStatus({
         tone: 'error',
-        message: '먼저 같은 마디의 범위를 복사해 주세요.'
+        message: '먼저 음표·쉼표 범위를 복사해 주세요.'
       })
       return
     }
@@ -3894,7 +3995,9 @@ export const App = () => {
         tone: 'error',
         message:
           blockedByOctaveEndpoint ? '옥타브 표시의 연결 위치를 보존하며 붙여넣을 수 없습니다. 원래 범위의 옥타브 표시를 먼저 확인해 주세요.' : blockedBySpanAnchor ? '구간 기호의 연결 위치를 보존하며 붙여넣을 수 없습니다. 연결된 기호와 선택 구간을 먼저 확인해 주세요.' :
-          '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이와 잇단음표는 아직 제외됩니다.'
+          rangeClipboard.measureDurations
+            ? '마디별 길이가 같은 연속 구간을 선택하거나 전체 필터에서 대상 첫 마디의 첫 음표·쉼표를 선택하세요. 타이와 잇단음표가 있는 마디는 보호합니다.'
+            : '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이와 잇단음표는 아직 제외됩니다.'
       })
       return
     }
@@ -3913,17 +4016,19 @@ export const App = () => {
     setRedoStack([])
     setNoteInputState(undefined)
 
-    if (command.type === 'voice-events.replace' && command.editedEventId) {
+    const firstEdit = rangeClipboard.measureDurations && command.type === 'score.batch'
+      ? command.commands[0] : command
+    if (firstEdit?.type === 'voice-events.replace' && firstEdit.editedEventId) {
       const pastedLocation = locateEvent(
         result.score,
-        command.editedEventId,
-        command.target
+        firstEdit.editedEventId,
+        firstEdit.target
       )
 
       setSelection({
         type: 'event',
-        eventId: command.editedEventId,
-        address: pastedLocation?.address ?? command.target
+        eventId: firstEdit.editedEventId,
+        address: pastedLocation?.address ?? firstEdit.target
       })
     }
 
@@ -3936,6 +4041,7 @@ export const App = () => {
     activeMeasureTextRequest,
     singleTextPasteMeasureId,
     singleTextPasteTick,
+    isConcertReadOnly,
     measureMarkingClipboard,
     noteInputState,
     rangeClipboard,
@@ -3993,6 +4099,11 @@ export const App = () => {
       return
     }
 
+    const timeEnd = timeEndInRemovedMeasure(score, measureId)
+    if (timeEnd) {
+      setFileStatus({ tone: 'error', message: `마디를 삭제할 수 없습니다. 헤어핀 끝점(${describeHairpinTimeEnd(score, timeEnd)})을 먼저 삭제해 주세요.` })
+      return false
+    }
     const edit = buildRemoveMeasure(score, measureId, noteInputState)
 
     if (edit && executeCommand(edit.command)) {
@@ -4061,55 +4172,19 @@ export const App = () => {
     (measureId: string, number: 1 | 2) => {
       const scope = resolveRepeatEditScope(score, measureId)
       if (!scope) return
-      const targetId = scope.location.measure.id
-      for (const part of score.parts) {
-        for (const staff of part.staves) {
-          const selectedIndex = staff.measures.findIndex(
-            (measure) => measure.id === targetId
-          )
+      const edit = toggleMeasureVolta(scope.measures, scope.index, number)
+      if (edit.kind !== 'change') {
+        setFileStatus({
+          tone: 'error',
+          message: edit.kind === 'saved-passes'
+            ? '회차 목록이 저장된 볼타입니다. 기존 볼타를 유지했습니다.'
+            : '다른 볼타 괄호와 범위가 겹칩니다. 기존 볼타의 마디를 선택해 주세요.'
+        })
+        return
+      }
 
-          if (selectedIndex < 0) {
-            continue
-          }
-
-          const endIndex = findNextRepeatEndMeasureIndex(
-            staff.measures,
-            selectedIndex
-          )
-
-          executeCommand(buildStaffContentCommand(score.parts, {
-              partId: part.id,
-              staffId: staff.id
-            }, staff.measures.map((measure, index) => {
-              if (measure.volta?.number === number) {
-                return {
-                  ...measure,
-                  volta: undefined
-                }
-              }
-
-              if (index !== selectedIndex && index !== endIndex) {
-                return measure
-              }
-
-              const isRangeEnd =
-                endIndex !== undefined && index === endIndex
-
-              return {
-                ...measure,
-                volta: {
-                  number,
-                  start: index === selectedIndex || undefined,
-                  end: isRangeEnd || undefined
-                }
-              }
-            })))
-          setFileStatus({
-            tone: 'neutral',
-            message: `${number}번 볼타 괄호를 갱신했습니다.`
-          })
-          return
-        }
+      if (executeCommand(buildStaffContentCommand(score.parts, scope.location.address, edit.measures))) {
+        setFileStatus({ tone: 'neutral', message: `${number}번 볼타 괄호를 갱신했습니다.` })
       }
     },
     [executeCommand, score]
@@ -4119,6 +4194,7 @@ export const App = () => {
     measureId: string,
     position: { x: number; y: number }
   ) => {
+    if (isConcertReadOnly()) return
     setMode('select')
     setNoteInputState(undefined)
     setPendingSlurAnchorEventId(undefined)
@@ -4128,7 +4204,7 @@ export const App = () => {
       x: position.x,
       y: position.y
     })
-  }, [score])
+  }, [isConcertReadOnly, score])
 
   const closeMeasureContextMenu = useCallback(() => {
     setMeasureContextMenu(undefined)
@@ -4148,6 +4224,8 @@ export const App = () => {
       insertMeasure(measureId, 'after')
     } else if (action === 'remove') {
       removeMeasureById(measureId)
+    } else if (action === 'clear-contents') {
+      clearMeasureContents(measureId)
     } else if (action === 'toggle-repeat-start') {
       const scope = resolveRepeatEditScope(score, measureId)
       if (!scope) return
@@ -4184,6 +4262,7 @@ export const App = () => {
     }
   }, [
     applyVoltaRange,
+    clearMeasureContents,
     insertMeasure,
     measureContextMenu,
     removeMeasureById,
@@ -5250,16 +5329,6 @@ export const App = () => {
     [executeCommand, score, selection]
   )
 
-  const deleteSelection = useCallback(() => {
-    if(deleteSelectedMeasureText())return
-    if (selection.type === 'measure') {
-      removeMeasure()
-      return
-    }
-
-    clearSelection()
-  }, [clearSelection, removeMeasure, selection.type,deleteSelectedMeasureText])
-
   const moveSelection = useCallback(
     (direction: -1 | 1, extendRange = false) => {
       if (noteInputState) {
@@ -5951,7 +6020,7 @@ export const App = () => {
       }
 
       const { contents, report } = serializeMusicXmlWithReport(score)
-      assertMusicXmlSaveSafe(score, contents)
+      assertMusicXmlSaveSafe(score, contents, report)
       const currentMusicXmlFile = currentMusicXmlFileRef.current
       musicXmlSaveRequested = true
       const result = await window.inC.musicXml.save({
@@ -5985,7 +6054,7 @@ export const App = () => {
       writeStoredPartPageSetups(result.filePath, currentNativeContext.current.partPageSetupPreferences)
 
       try {
-        if (sameSnapshot() && !nativeEnvelope.current) {
+        if (sameSnapshot() && !nativeEnvelope.current && !score.gracePlayback) {
           await window.inC.autosave.clear()
           if (sameSnapshot()) {
             setAutosaveRevision(0)
@@ -6095,7 +6164,7 @@ export const App = () => {
       const copyScore = mode === 'expanded' ? expandScoreRepeatsForMusicXml(exportScore) : exportScore
       exportScoreForDiagnostics = copyScore
       const { contents, report } = serializeMusicXmlWithReport(copyScore)
-      assertMusicXmlSaveSafe(copyScore, contents)
+      assertMusicXmlSaveSafe(copyScore, contents, report)
       const projectionWarnings = [
         ...(selectedPart ? collectPartRepeatProjectionWarnings(score, exportScore, selectedPart.id) : []),
         ...(partProjection?.warning ? [partProjection.warning] : [])
@@ -6148,7 +6217,7 @@ export const App = () => {
     }
   }, [score, scoreViewMode, livePartViewPartId, livePartLayout, noteInputState?.tupletInput, returnFileOperationFocus])
 
-  const savePdf = useCallback(async () => {
+  const savePdf = useCallback(async (groupPartRests = false) => {
     const startedWithTupletInput = noteInputState?.tupletInput ? tupletInputLabel(noteInputState.tupletInput) : undefined
     if (pdfInFlight.current) return
     let context = currentPdfContext.current
@@ -6165,6 +6234,17 @@ export const App = () => {
         message: 'PDF 장수는 1 이상이어야 합니다.'
       })
       return
+    }
+
+    const original = context
+    if (groupPartRests) {
+      if (original.viewMode !== 'part') return
+      const grouped = planPartMultimeasureRests(original.score)
+      if (!grouped) {
+        setFileStatus({ tone:'neutral', message:'이 파트보에서 묶을 수 있는 연속 온마디 쉼표가 없습니다.' })
+        return
+      }
+      context = refreshPrintSnapshotWidths({ ...original, score:grouped.score, multimeasureRestCounts:grouped.counts })
     }
 
     const focusRequest = ++workspaceFocusRequest.current
@@ -6201,12 +6281,12 @@ export const App = () => {
         return
       }
 
-      setPdfResult({generation,fileName:result.fileName,source:context,lyricOverlap,lyricClipped,harmonyClipped,pageTargetExceeded})
+      setPdfResult({generation,fileName:result.fileName,source:groupPartRests ? original : context,lyricOverlap,lyricClipped,harmonyClipped,pageTargetExceeded})
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName}로 PDF를 만들었습니다.` +
+        message: `${result.fileName}로 ${groupPartRests ? '묶음 쉼표를 사용한 파트보 ' : ''}PDF를 만들었습니다.` +
           describePendingTupletCopy(startedWithTupletInput, currentNativeContext.current.noteInputState?.tupletInput ? tupletInputLabel(currentNativeContext.current.noteInputState.tupletInput) : undefined, '출력') +
-          (samePdfSource(context, currentPdfContext.current) ? '' : ' 출력 시작 이후의 수정 내용은 포함되지 않았습니다.')
+          (samePdfSource(groupPartRests ? original : context, currentPdfContext.current) ? '' : ' 출력 시작 이후의 수정 내용은 포함되지 않았습니다.')
       })
     } catch (error) {
       if (generation === documentGeneration.current) setFileStatus({
@@ -6361,12 +6441,16 @@ export const App = () => {
         return
       }
 
+      const removeMeasureKey = mode === 'select' && selection.type === 'measure' &&
+        !activeMeasureTextRequest && !activeSpanReference && usesCommandKey &&
+        !event.altKey && !event.shiftKey && (event.key === 'Delete' || event.key === 'Backspace')
+
       // Browser text selection in diagnostic/read-only surfaces keeps native
       // clipboard behavior and owns navigation/selection-delete/plain Space.
       // Save/history and explicit score focus retain their existing contracts.
       const clipboardKey = matchesEditKey('copy', event) || matchesEditKey('cut', event) || matchesEditKey('paste', event) ||
         (usesCommandKey && !event.altKey && ['KeyC', 'KeyX', 'KeyV'].includes(event.code))
-      if ((clipboardKey || matchesEditKey('delete', event) || isReportNavigationKey(event.key) || event.key === ' ') &&
+      if ((clipboardKey || removeMeasureKey || matchesEditKey('delete', event) || isReportNavigationKey(event.key) || event.key === ' ') &&
         ownsReportTextSelection(event.target)) return
 
       // A closed list-only Select has no text draft to undo. Keep document
@@ -6383,6 +6467,10 @@ export const App = () => {
         return
       }
 
+      const readingConcertPitch = isConcertReadOnly()
+      if (readingConcertPitch && event.key !== ' ' && event.key !== 'ArrowLeft' &&
+        event.key !== 'ArrowRight' && !matchesEditKey('copy', event)) return
+
       if(activeMeasureTextRequest&&event.key==='Escape'){
         event.preventDefault();setMeasureTextSelection(undefined);setSelection(activeMeasureTextRequest.returnSelection);return
       }
@@ -6390,7 +6478,7 @@ export const App = () => {
       if (activeSpanReference) {
         if (matchesEditKey('undo', event)) { event.preventDefault(); undo() }
         else if (matchesEditKey('redo', event)) { event.preventDefault(); redo() }
-        else if (!event.altKey && !event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) && event.target instanceof Element && nudgeManualSpan(event.target, event.key, usesCommandKey)) event.preventDefault()
+        else if (!readingConcertPitch && !event.altKey && !event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) && event.target instanceof Element && nudgeManualSpan(event.target, event.key, usesCommandKey)) event.preventDefault()
         else if (event.key === 'Escape') { event.preventDefault(); setSpanSelection(undefined) }
         else if (matchesEditKey('delete', event)) { event.preventDefault(); deleteSpan() }
         else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playFromSelection() }
@@ -6399,7 +6487,7 @@ export const App = () => {
       }
 
       if (
-        toolbarCategory === 'lyrics' &&
+        !readingConcertPitch && toolbarCategory === 'lyrics' &&
         !event.altKey &&
         !event.shiftKey &&
         !usesCommandKey &&
@@ -6410,13 +6498,13 @@ export const App = () => {
         return
       }
 
-      if (toolbarCategory === 'lyrics' && event.key === 'Enter') {
+      if (!readingConcertPitch && toolbarCategory === 'lyrics' && event.key === 'Enter') {
         event.preventDefault()
         moveToNextLyricNote()
         return
       }
 
-      if (toolbarCategory === 'lyrics' && eventLocation?.event.type === 'note' && !usesCommandKey && !event.altKey) {
+      if (!readingConcertPitch && toolbarCategory === 'lyrics' && eventLocation?.event.type === 'note' && !usesCommandKey && !event.altKey) {
         document
           .querySelector<HTMLInputElement>('.notation-lyric-editor input')
           ?.focus()
@@ -6453,9 +6541,15 @@ export const App = () => {
         return
       }
 
+      if (removeMeasureKey) {
+        event.preventDefault()
+        removeMeasure()
+        return
+      }
+
       if (matchesEditKey('delete', event)) {
         event.preventDefault()
-        deleteSelection()
+        clearSelection()
         return
       }
 
@@ -6645,7 +6739,8 @@ export const App = () => {
     convertSelectedGrace,
     copySelection,
     cutSelection,
-    deleteSelection,
+    removeMeasure,
+    selection.type,
     enterNote,
     enterRest,
     moveActiveLyricVerse,
@@ -6671,6 +6766,7 @@ export const App = () => {
     toggleTuplet,
     toolbarCategory,
     startScreenVisible,
+    isConcertReadOnly,
     toggleNoteInputMode,
     undo
   ])
@@ -6707,14 +6803,15 @@ export const App = () => {
   )
   const displayScore = useMemo(
     () => {
+      const notationScore = concertPitchScore ?? previewScore
       const baseScore =
         scoreViewMode === 'part' && livePartViewPartId
-          ? applyPortablePartLayout(createLivePartViewScore(previewScore, livePartViewPartId), livePartLayout)
-          : previewScore
+          ? applyPortablePartLayout(createLivePartViewScore(notationScore, livePartViewPartId), livePartLayout)
+          : notationScore
 
       return applyPageSetupToScore(baseScore, pageSetup)
     },
-    [livePartViewPartId, livePartLayout, pageSetup, previewScore, scoreViewMode]
+    [concertPitchScore, livePartViewPartId, livePartLayout, pageSetup, previewScore, scoreViewMode]
   )
   // A normal blur commit can change the score during the starting mousedown.
   // It is still the same document/view; actual document replacement and an
@@ -6723,8 +6820,9 @@ export const App = () => {
   const notationInputPreview = noteInputState?.tupletInput
   const notationInteractionOwner = useMemo(() => ({
     documentKey: notationDocumentKey, inputPreview: notationInputPreview, view: scoreViewMode,
+    concertPitch: concertReadOnly,
     partId: scoreViewMode === 'part' ? livePartViewPartId : undefined
-  }), [notationDocumentKey, notationInputPreview, scoreViewMode, scoreViewMode === 'part' ? livePartViewPartId : undefined])
+  }), [notationDocumentKey, notationInputPreview, scoreViewMode, scoreViewMode === 'part' ? livePartViewPartId : undefined, concertReadOnly])
   const printScore = useMemo(
     () => {
       const baseScore =
@@ -6738,6 +6836,12 @@ export const App = () => {
   )
   const pdfTargetPageCount = parsePdfTargetPages(pdfTargetPages)
   const harmonySpacingWidths = useMemo(()=>harmonySpacingByMeasure(printScore,measuredHarmonies.widths),[printScore,measuredHarmonies.widths])
+  const measuredConcertHarmonies = useHarmonyWidths(concertPitchScore, `concert:${scoreViewMode}`)
+  const concertHarmonySpacing = useMemo(() => concertPitchScore ?
+    harmonySpacingByMeasure(displayScore, measuredConcertHarmonies.widths) : undefined,
+  [concertPitchScore, displayScore, measuredConcertHarmonies.widths])
+  const concertMinimumWidths = useMinimumTextScoreWidths(concertReadOnly ? displayScore : undefined,
+    measuredLyrics.widths, concertHarmonySpacing)
   const lyricMinimumWidths = useMinimumTextScoreWidths(printScore,measuredLyrics.widths,harmonySpacingWidths)
   const pdfTargetPagesInvalid = !pdfTargetPageCount
   const pdfTargetPagesTooltip = pdfTargetPagesInvalid
@@ -6830,9 +6934,9 @@ export const App = () => {
     rangeStart?.event.type === 'note' && rangeEnd?.event.type === 'note'
   const canApplySlur = canApplyNoteSpan ||
     (selection.type === 'event' && eventLocation?.event.type === 'note')
-  const matchesSelectedRange = (span: { startEventId: string; endEventId: string }) =>
+  const matchesSelectedRange = (span: { startEventId: string; endEventId?: string }) =>
     canApplyRangeHairpin && span.startEventId === rangeStart?.event.id &&
-    span.endEventId === rangeEnd?.event.id
+    span.endEventId !== undefined && span.endEventId === rangeEnd?.event.id
   const selectedRangeHairpin = score.hairpins?.find(matchesSelectedRange)
   const selectedRangeSlur = score.slurs?.some(matchesSelectedRange) ?? false
   const selectedRangeOctave = score.octaveShifts?.find(matchesSelectedRange)
@@ -6847,6 +6951,8 @@ export const App = () => {
   const clearSelectionLabel =
     activeMeasureTextRequest?`선택 ${measureTextLabels[activeMeasureTextRequest.family]} 지우기`:selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
       ? `선택 마디 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 지우기`
+      : selection.type === 'measure'
+      ? '이 보표의 마디 내용 지우기'
       : selection.type === 'range'
       ? '선택 범위 지우기'
       : eventLocation?.event.type === 'rest'
@@ -6855,6 +6961,7 @@ export const App = () => {
   const rangeRestResult = selection.type === 'range' ? buildRangeRestResult(score, selection) : undefined
   const canClearSelection = activeMeasureTextRequest?Boolean(focusedMeasureTextObject):!activeSpanReference && (
     Boolean(measureObjectDeleteCommand) ||
+    (selection.type === 'measure' && selectionObjectTypeFilter === 'none') ||
     (selectionObjectTypeFilter === 'none' && (selection.type === 'event' || selection.type === 'range') &&
       Boolean(
         buildFilteredDeleteCommand(score, selection, {
@@ -7265,6 +7372,28 @@ export const App = () => {
       command.onSelect()
     })
   }
+  const toggleConcertPitch = () => {
+    if (concertReadOnly) {
+      concertSource.current = undefined
+      setConcertPreview(undefined)
+      return
+    }
+    if (noteInputState || metadataEdit || documentDrafts.findPending()) {
+      setFileStatus({ tone: 'neutral', message: concertPitchDraftMessage })
+      return
+    }
+    const projection = createConcertPitchView(score)
+    if (!projection.score) {
+      setFileStatus({ tone: 'neutral', message: projection.reason })
+      return
+    }
+    clearPaletteMeasureDrag()
+    setMeasureContextMenu(undefined)
+    setMetadataActionsOpen(false)
+    setFileStatus(current => current?.message === concertPitchDraftMessage ? undefined : current)
+    concertSource.current = score
+    setConcertPreview({ written: score, display: projection.score })
+  }
   const applicationMenus: readonly StudioMenuDefinition[] = [
         {id:'file',label:'파일',commands:[
           {id:'new',label:'새 악보 만들기',group:'project',onSelect:openNewScoreWizard},
@@ -7273,18 +7402,19 @@ export const App = () => {
           {id:'save-as',label:'프로젝트 다른 이름으로 저장',group:'project',disabled:savingNative || savingMusicXml || !window.inC?.project,onSelect:()=>void saveNativeProject(true)},
           {id:'import',label:'MusicXML 가져오기',group:'exchange',disabled:openingMusicXml,onSelect:()=>void importMusicXml()},
           {id:'xml-save',label:'MusicXML로 저장',group:'exchange',disabled:savingMusicXml || savingNative,onSelect:()=>void saveMusicXml()},
-          {id:'export',label:'내보내기 설정',group:'exchange',onSelect:()=>openToolbarWorkspace('export','.studio-page-setup [role="combobox"]:not(:disabled)')},
+          {id:'export',label:'내보내기 설정',group:'exchange',onSelect:()=>openToolbarWorkspace('export',concertReadOnly ?
+            '.studio-export-tools [aria-label="PDF 변환"]' : '.studio-page-setup [role="combobox"]:not(:disabled)')},
           {id:'png-tools',label:'PNG 출력 설정',group:'exchange',disabled:pngBusy,onSelect:()=>openToolbarWorkspace('export','.studio-export-tools [aria-label="PNG 출력 설정"] [role="combobox"]:not(:disabled)')},
           {id:'backups',label:'프로젝트 백업',group:'recovery',disabled:!window.inC?.project?.listBackups,onSelect:()=>setNativeBackupsOpen(true)},
           {id:'file-tools',label:'파일 작업 열기',group:'recovery',onSelect:()=>openToolbarWorkspace('file','[aria-label="파일 작업"] button')}
         ]},
         {id:'edit',label:'편집',commands:[
-          {id:'undo',keyShortcuts:shortcutAria('undo'),label:'실행 취소',group:'history',disabled:undoStack.length===0,onSelect:undo},
-          {id:'redo',keyShortcuts:shortcutAria('redo'),label:'다시 실행',group:'history',disabled:redoStack.length===0,onSelect:redo},
-          {id:'cut',keyShortcuts:shortcutAria('cut'),label:'선택 음표·쉼표 잘라내기',group:'selection',disabled:!cutClipboard,onSelect:cutSelection},
+          {id:'undo',keyShortcuts:shortcutAria('undo'),label:'실행 취소',group:'history',disabled:concertReadOnly||undoStack.length===0,onSelect:undo},
+          {id:'redo',keyShortcuts:shortcutAria('redo'),label:'다시 실행',group:'history',disabled:concertReadOnly||redoStack.length===0,onSelect:redo},
+          {id:'cut',keyShortcuts:shortcutAria('cut'),label:'선택 음표·쉼표 잘라내기',group:'selection',disabled:concertReadOnly||!cutClipboard,onSelect:cutSelection},
           {id:'copy',keyShortcuts:shortcutAria('copy'),label:copySelectionLabel,group:'selection',disabled:!canCopySelection,onSelect:copySelection},
-          {id:'paste',keyShortcuts:shortcutAria('paste'),label:pasteSelectionLabel,group:'selection',disabled:!canPasteSelection,onSelect:pasteSelection},
-          {id:'clear',label:clearSelectionLabel,group:'selection',disabled:!canClearSelection,onSelect:clearSelection},
+          {id:'paste',keyShortcuts:shortcutAria('paste'),label:pasteSelectionLabel,group:'selection',disabled:concertReadOnly||!canPasteSelection,onSelect:pasteSelection},
+          {id:'clear',label:clearSelectionLabel,group:'selection',disabled:concertReadOnly||!canClearSelection,onSelect:clearSelection},
           {id:'shortcut-settings',label:'단축키 설정…',group:'preferences',onSelect:()=>setShortcutSettingsOpen(true)}
         ]},
         {id:'view',label:'보기',commands:[
@@ -7297,35 +7427,36 @@ export const App = () => {
           }},
           {id:'mixer',label:'믹서',checked:mixerOpen,onSelect:toggleMixer},
           {id:'score-view',label:'총보·파트보 보기',onSelect:()=>openToolbarWorkspace('view','.studio-score-view [role="combobox"]:not(:disabled)')},
+          {id:'concert-pitch',label:'실음 보기',checked:concertReadOnly,onSelect:toggleConcertPitch},
           {id:'guides',label:'페이지 여백 가이드',checked:showPageMarginGuides,onSelect:()=>setShowPageMarginGuides(value=>!value)},
           {id:'score',label:'악보로 이동',onSelect:focusScore}
         ]},
         {id:'add',label:'추가',commands:[
-          {id:'notation',label:'표기 팔레트 열기',onSelect:()=>openToolbarWorkspace('palette','.studio-notation-palette input[type="search"]')},
-          {id:'signatures',label:'음자리표·조표·박자표 팔레트',group:'notation',onSelect:()=>openPaletteFamily('음자리표·조표·박자표')},
-          {id:'duplet-input',label:'2연음 입력(2:3)',group:'notation',disabled:Boolean(noteInputState?.tupletInput)||(!noteInputState&&(Boolean(activeSpanReference)||eventLocation?.event.type!=='rest')),onSelect:()=>{if(startFixedTupletInput(dupletPreset)){focusScore();return}setFileStatus({tone:'error',message:'2연음을 입력할 빈 위치 또는 쉼표를 선택하세요.'})}},
-          {id:'quintuplet-input',label:'다섯잇단음표 입력(5:4)',group:'notation',disabled:Boolean(noteInputState?.tupletInput)||(!noteInputState&&(Boolean(activeSpanReference)||eventLocation?.event.type!=='rest')),onSelect:()=>{if(startFixedTupletInput(quintupletPreset)){focusScore();return}setFileStatus({tone:'error',message:'다섯잇단음표를 입력할 빈 위치 또는 쉼표를 선택하세요.'})}},
-          {id:'septuplet-input',label:'7연음 입력(7:4)',group:'notation',disabled:Boolean(noteInputState?.tupletInput)||(!noteInputState&&(Boolean(activeSpanReference)||eventLocation?.event.type!=='rest')),onSelect:()=>{if(startFixedTupletInput(septupletPreset)){focusScore();return}setFileStatus({tone:'error',message:'7연음을 입력할 빈 위치 또는 쉼표를 선택하세요.'})}},
-          {id:'dynamics',label:'셈여림 팔레트',group:'notation',onSelect:()=>openPaletteFamily('셈여림')},
-          {id:'ranges',label:'범위 기호 팔레트',group:'notation',onSelect:()=>openPaletteFamily('범위 기호')},
-          {id:'text',label:'텍스트 표기 팔레트',group:'notation',onSelect:()=>openPaletteFamily('텍스트')},
-          {id:'repeats',label:'반복·볼타 팔레트',group:'notation',onSelect:()=>openPaletteFamily('반복·볼타')},
-          {id:'lyrics',label:'가사 및 코드',onSelect:openLyricWorkspace}
+          {id:'notation',label:'표기 팔레트 열기',disabled:concertReadOnly,onSelect:()=>openToolbarWorkspace('palette','.studio-notation-palette input[type="search"]')},
+          {id:'signatures',label:'음자리표·조표·박자표 팔레트',group:'notation',disabled:concertReadOnly,onSelect:()=>openPaletteFamily('음자리표·조표·박자표')},
+          {id:'duplet-input',label:'2연음 입력(2:3)',group:'notation',disabled:concertReadOnly||Boolean(noteInputState?.tupletInput)||(!noteInputState&&(Boolean(activeSpanReference)||eventLocation?.event.type!=='rest')),onSelect:()=>{if(startFixedTupletInput(dupletPreset)){focusScore();return}setFileStatus({tone:'error',message:'2연음을 입력할 빈 위치 또는 쉼표를 선택하세요.'})}},
+          {id:'quintuplet-input',label:'다섯잇단음표 입력(5:4)',group:'notation',disabled:concertReadOnly||Boolean(noteInputState?.tupletInput)||(!noteInputState&&(Boolean(activeSpanReference)||eventLocation?.event.type!=='rest')),onSelect:()=>{if(startFixedTupletInput(quintupletPreset)){focusScore();return}setFileStatus({tone:'error',message:'다섯잇단음표를 입력할 빈 위치 또는 쉼표를 선택하세요.'})}},
+          {id:'septuplet-input',label:'7연음 입력(7:4)',group:'notation',disabled:concertReadOnly||Boolean(noteInputState?.tupletInput)||(!noteInputState&&(Boolean(activeSpanReference)||eventLocation?.event.type!=='rest')),onSelect:()=>{if(startFixedTupletInput(septupletPreset)){focusScore();return}setFileStatus({tone:'error',message:'7연음을 입력할 빈 위치 또는 쉼표를 선택하세요.'})}},
+          {id:'dynamics',label:'셈여림 팔레트',group:'notation',disabled:concertReadOnly,onSelect:()=>openPaletteFamily('셈여림')},
+          {id:'ranges',label:'범위 기호 팔레트',group:'notation',disabled:concertReadOnly,onSelect:()=>openPaletteFamily('범위 기호')},
+          {id:'text',label:'텍스트 표기 팔레트',group:'notation',disabled:concertReadOnly,onSelect:()=>openPaletteFamily('텍스트')},
+          {id:'repeats',label:'반복·볼타 팔레트',group:'notation',disabled:concertReadOnly,onSelect:()=>openPaletteFamily('반복·볼타')},
+          {id:'lyrics',label:'가사 및 코드',disabled:concertReadOnly,onSelect:openLyricWorkspace}
         ]},
         {id:'format',label:'형식',commands:[
-          {id:'metadata',label:'악보 정보 편집',onSelect:()=>setMetadataActionsOpen(true)},
-          {id:'score-settings',label:'악보 설정',onSelect:()=>openToolbarWorkspace('measure','[aria-label="악보 편집"] input:not(:disabled)')},
-          {id:'first-measure',label:'첫 마디 길이…',disabled:isTupletInput,onSelect:()=>{
+          {id:'metadata',label:'악보 정보 편집',disabled:concertReadOnly,onSelect:()=>setMetadataActionsOpen(true)},
+          {id:'score-settings',label:'악보 설정',disabled:concertReadOnly,onSelect:()=>openToolbarWorkspace('measure','[aria-label="악보 편집"] input:not(:disabled)')},
+          {id:'first-measure',label:'첫 마디 길이…',disabled:concertReadOnly||isTupletInput,onSelect:()=>{
             if(playback.status==='playing')playback.pause()
             setPickupDialogOwner({generation:documentGeneration.current,score})
           }},
-          {id:'page-settings',label:'PDF 페이지 설정',onSelect:()=>openToolbarWorkspace('export','.studio-page-setup [role="combobox"]:not(:disabled)')}
+          {id:'page-settings',label:'PDF 페이지 설정',disabled:concertReadOnly,onSelect:()=>openToolbarWorkspace('export','.studio-page-setup [role="combobox"]:not(:disabled)')}
         ]},
         {id:'tools',label:'도구',commands:[
           {id:'command-search',label:'명령 검색',onSelect:openCommandSearch},
-          {id:'note-settings',label:'선택 속성 열기',onSelect:()=>openToolbarWorkspace('note','.studio-selected-properties button:not(:disabled),.studio-span-properties button:not(:disabled)')},
-          {id:'move-note-voice',label:'선택 음표 성부 이동',disabled:!selectedNote || Boolean(noteInputState) || selection.type!=='event' || Boolean(activeSpanReference) || Boolean(activeMeasureTextRequest),onSelect:()=>openToolbarWorkspace('note','.studio-voice-move [role="combobox"]')},
-          {id:'span-finder',label:'범위 표기 찾기',onSelect:()=>openToolbarWorkspace('span-properties','.studio-span-properties [role="combobox"]')},
+          {id:'note-settings',label:'선택 속성 열기',disabled:concertReadOnly,onSelect:()=>openToolbarWorkspace('note','.studio-selected-properties button:not(:disabled),.studio-span-properties button:not(:disabled)')},
+          {id:'move-note-voice',label:'선택 음표 성부 이동',disabled:concertReadOnly || !selectedNote || Boolean(noteInputState) || selection.type!=='event' || Boolean(activeSpanReference) || Boolean(activeMeasureTextRequest),onSelect:()=>openToolbarWorkspace('note','.studio-voice-move [role="combobox"]')},
+          {id:'span-finder',label:'범위 표기 찾기',disabled:concertReadOnly,onSelect:()=>openToolbarWorkspace('span-properties','.studio-span-properties [role="combobox"]')},
           {id:'playback',label:'재생 도구',onSelect:openMixer}
         ]},
         {id:'help',label:'도움말',commands:[
@@ -7444,8 +7575,8 @@ export const App = () => {
           aria-label="작업 영역 도구"
           onKeyDown={event=>{if(event.key==='Enter'||event.key===' ')event.stopPropagation()}}
         >
-          <StudioMetadataActions theme={studioTheme} open={metadataActionsOpen} onOpenChange={setMetadataActionsOpen}
-            partView={scoreViewMode === 'part' && Boolean(livePartViewPart)} onEdit={beginMetadataEdit} onNavigateToScore={focusScore} />
+          {!concertReadOnly ? <StudioMetadataActions theme={studioTheme} open={metadataActionsOpen} onOpenChange={setMetadataActionsOpen}
+            partView={scoreViewMode === 'part' && Boolean(livePartViewPart)} onEdit={beginMetadataEdit} onNavigateToScore={focusScore} /> : null}
           <Button kind="quiet" className="studio-score-navigation" aria-label="악보로 이동" aria-keyshortcuts="F6"
             title="악보로 이동 · F6으로 악보와 도구 사이 이동" onClick={focusScore}
             onKeyDown={event => {
@@ -7470,7 +7601,13 @@ export const App = () => {
         }} />
 
       <div className="studio-command-bars ddirori" data-theme={studioTheme}>
-      <StudioNoteToolbar theme={studioTheme} inputActive={Boolean(noteInputState)}
+      {concertReadOnly ? <section className="studio-note-toolbar ddirori" data-theme={studioTheme} data-density="compact"
+        aria-label="실음 보기" onKeyDown={event=>{if(event.key==='Enter'||event.key===' ')event.stopPropagation()}}>
+        <div className="studio-note-toolbar__commands">
+          <Text role="status" variant="label">실음 보기 · 읽기 전용</Text>
+          <Button kind="quiet" onClick={() => { toggleConcertPitch(); focusScore() }}>기보음 보기로 돌아가기</Button>
+        </div>
+      </section> : <StudioNoteToolbar theme={studioTheme} inputActive={Boolean(noteInputState)}
         onNavigationKeyDown={event => {
           if (!event.defaultPrevented && isWorkspaceNavigation(event, true)) {
             event.preventDefault(); event.stopPropagation(); focusScore()
@@ -7508,7 +7645,7 @@ export const App = () => {
           {noteInputState ? 'A–G로 음을 넣거나 쉼표 넣기를 선택하세요.' : 'N으로 음표 입력을 켜고 첫 음을 넣어 보세요.'}
         </Text> : null}
       </section>
-      </StudioNoteToolbar>
+      </StudioNoteToolbar>}
       <StudioPlayback metronomeEnabled={metronomeEnabled} metronomeReason={metronomeReason} onMetronome={()=>setMetronomeEnabled(value=>!value)} theme={studioTheme} status={playback.status} position={playback.positionBeat} total={playback.totalBeats}
         practiceLoopLabel={practiceLoopRange?.label} practiceLoopReason={practiceLoopReason}
         onPracticeLoop={()=>{if(practiceLoopRange)setPracticeLoopSession(undefined);else if(!practiceLoopReason&&practiceLoopPlan.range)setPracticeLoopSession({score,range:practiceLoopPlan.range})}}
@@ -7560,7 +7697,7 @@ export const App = () => {
         className="studio-notation-tools ddirori"
         data-theme={studioTheme} data-density="compact"
         aria-label="표기 객체"
-        hidden={toolbarCategory !== 'notation'}
+        hidden={concertReadOnly || toolbarCategory !== 'notation'}
       >
         <StudioRangeTools
           hairpin={selectedRangeHairpin?.type}
@@ -7584,10 +7721,37 @@ export const App = () => {
             start={Boolean(activeRepeatScope?.location.measure.repeat?.start)}
             end={Boolean(activeRepeatScope?.location.measure.repeat?.end)}
             times={activeRepeatScope?.location.measure.repeat?.times ?? 2}
-            volta={activeRepeatScope?.location.measure.volta?.number}
+            volta={activeRepeatScope?.volta?.number}
+            voltaPasses={activeRepeatScope?.volta?.passes}
             enabled={Boolean(measureLocation && activeRepeatScope)}
             onStart={toggleRepeatStart} onEnd={toggleRepeatEnd} onTimes={changeRepeatTimes}
             onVolta={number => applyVoltaRange(activeMeasureId, number)}
+            voltaPassEditor={activeRepeatScope?.voltaPassEdit ? {
+              scope: activeRepeatScope.voltaPassEdit,
+              onChange: mark => {
+                const scope = activeRepeatScope.voltaPassEdit!
+                const measures = updateVoltaPassEdit(activeRepeatScope.measures, scope, mark)
+                if (measures === activeRepeatScope.measures) return true
+                if (!executeCommand(buildStaffContentCommand(score.parts, activeRepeatScope.location.address, measures))) return false
+                setFileStatus({ tone: 'neutral', message: '볼타 재생 회차를 적용했습니다.' })
+                return true
+              }
+            } : undefined}
+            navigation={activeNavigationScope ? {
+              scope: activeNavigationScope,
+              onChange: (entry, mark) => {
+                const measureId = entry?.measureId ?? activeNavigationScope.add?.measureId
+                if (!measureId || (!mark && !entry)) return false
+                const current = locateMeasure(score, measureId)?.measure
+                if (!current || (entry && current.navigation?.[entry.index] !== entry.mark)) return false
+                return updateMeasureById(measureId, measure => {
+                  const marks = [...(measure.navigation ?? [])]
+                  if (entry) marks.splice(entry.index, 1, ...(mark ? [mark] : []))
+                  else if (mark) marks.push(mark)
+                  return { ...measure, navigation: marks.length ? marks : undefined }
+                }, mark ? '반복 이동 표지를 적용했습니다.' : '반복 이동 표지를 삭제했습니다.')
+              }
+            } : undefined}
           />
         ) : null}
       </section>
@@ -7596,7 +7760,7 @@ export const App = () => {
         className="studio-lyrics-tools ddirori"
         data-theme={studioTheme} data-density="compact"
         aria-label="가사 편집"
-        hidden={toolbarCategory !== 'lyrics'}
+        hidden={concertReadOnly || toolbarCategory !== 'lyrics'}
       >
         <StudioLyricTools key={`lyric-tools:${documentGeneration.current}`} enabled={Boolean(selectedNote)} blockedReason={lyricEditingBlocked ? ambiguousLyricMessage : undefined} verse={activeLyricVerse} verses={lyricVerseOptions}
           syllabic={selectedLyric?.syllabic ?? 'single'} extend={Boolean(selectedLyric?.extend)}
@@ -7636,7 +7800,7 @@ export const App = () => {
         className="studio-score-settings ddirori"
         data-theme={studioTheme} data-density="compact"
         aria-label="악보 편집"
-        hidden={toolbarCategory !== 'measure'}
+        hidden={concertReadOnly || toolbarCategory !== 'measure'}
       >
         <StudioTempoTools key={`tempo-tools:${documentGeneration.current}`} bpm={scoreTempo}
           beat={tempoBeatSelectorValue(score.tempo?.beatUnit ?? 'quarter',normalizeTempoBeatDots(score.tempo?.dots ?? 0))}
@@ -7645,6 +7809,7 @@ export const App = () => {
           swingPlayback={score.swingPlayback ? `${score.swingPlayback.unit}:${score.swingPlayback.ratio}` : 'off'}
           swingHint={getSwingNotationHint(score.rhythmFeel, score.swingPlayback, Boolean(currentSwingUnavailableReason))}
           swingUnavailableReason={currentSwingUnavailableReason} onSwingPlayback={changeScoreSwingPlayback}
+          gracePlayback={Boolean(score.gracePlayback)} onGracePlayback={changeScoreGracePlayback}
           onBpm={changeScoreTempo} onBeat={changeScoreTempoBeat} onVisible={visible=>changeScoreTempoTransparency(!visible)} onRhythm={changeScoreRhythmFeel}/>
         {tempoTargetMeasureId ? <StudioTempoEventInput
           key={`${documentGeneration.current}:${tempoTargetMeasureId}:${tempoTargetTick}:${activeTempoEvent?.id??''}:${activeTempoEvent?.bpm??''}`}
@@ -7692,7 +7857,7 @@ export const App = () => {
 
       </section>
 
-      {toolbarCategory === 'export' ? <StudioPageSetup key={`${documentGeneration.current}:${scoreViewMode==='part'?`part:${livePartViewPartId}`:'score'}`} theme={studioTheme}
+      {toolbarCategory === 'export' && !concertReadOnly ? <StudioPageSetup key={`${documentGeneration.current}:${scoreViewMode==='part'?`part:${livePartViewPartId}`:'score'}`} theme={studioTheme}
         value={pageSetup} preset={resolvePageSetupPresetId(pageSetup)}
         presets={[{value:'custom',label:'사용자 설정'},...pageSetupPresets.map(preset=>({value:preset.id,label:preset.label}))]}
         sizes={pageSizeOptions} orientations={pageOrientationOptions}
@@ -7738,12 +7903,12 @@ export const App = () => {
             {id:'help',label:'단축키 도움말',text:'단축키',icon:<Keyboard aria-hidden="true" size={18} strokeWidth={1.75}/>,action:()=>setShortcutHelpOpen(true)}
           ]}
           editActions={[
-            {id:'undo',hint:`실행 취소 · ${shortcutLabel('undo')}`,keyShortcuts:shortcutAria('undo'),label:'실행 취소',icon:<RotateCcw aria-hidden="true" size={18} strokeWidth={1.75}/>,action:undo,disabled:undoStack.length===0},
-            {id:'redo',hint:`다시 실행 · ${shortcutLabel('redo')}`,keyShortcuts:shortcutAria('redo'),label:'다시 실행',icon:<RotateCw aria-hidden="true" size={18} strokeWidth={1.75}/>,action:redo,disabled:redoStack.length===0},
-            {id:'cut',keyShortcuts:shortcutAria('cut'),label:'선택 음표·쉼표 잘라내기',hint:`잘라내기 · ${shortcutLabel('cut')} · 복사와 삭제가 모두 가능한 같은 마디·성부의 단순 범위`,icon:<Scissors aria-hidden="true" size={18} strokeWidth={1.75}/>,action:cutSelection,disabled:!cutClipboard},
+            {id:'undo',hint:`실행 취소 · ${shortcutLabel('undo')}`,keyShortcuts:shortcutAria('undo'),label:'실행 취소',icon:<RotateCcw aria-hidden="true" size={18} strokeWidth={1.75}/>,action:undo,disabled:concertReadOnly||undoStack.length===0},
+            {id:'redo',hint:`다시 실행 · ${shortcutLabel('redo')}`,keyShortcuts:shortcutAria('redo'),label:'다시 실행',icon:<RotateCw aria-hidden="true" size={18} strokeWidth={1.75}/>,action:redo,disabled:concertReadOnly||redoStack.length===0},
+            {id:'cut',keyShortcuts:shortcutAria('cut'),label:'선택 음표·쉼표 잘라내기',hint:`잘라내기 · ${shortcutLabel('cut')} · 복사와 삭제가 모두 가능한 같은 마디·성부의 단순 범위`,icon:<Scissors aria-hidden="true" size={18} strokeWidth={1.75}/>,action:cutSelection,disabled:concertReadOnly||!cutClipboard},
             {id:'copy',hint:`${copySelectionLabel} · ${shortcutLabel('copy')}`,keyShortcuts:shortcutAria('copy'),label:copySelectionLabel,icon:<Copy aria-hidden="true" size={18} strokeWidth={1.75}/>,action:copySelection,disabled:!canCopySelection},
-            {id:'paste',hint:`${pasteSelectionLabel} · ${shortcutLabel('paste')}`,keyShortcuts:shortcutAria('paste'),label:pasteSelectionLabel,icon:<ClipboardPaste aria-hidden="true" size={18} strokeWidth={1.75}/>,action:pasteSelection,disabled:!canPasteSelection},
-            {id:'clear',label:clearSelectionLabel,icon:<Eraser aria-hidden="true" size={18} strokeWidth={1.75}/>,action:clearSelection,disabled:!canClearSelection}
+            {id:'paste',hint:`${pasteSelectionLabel} · ${shortcutLabel('paste')}`,keyShortcuts:shortcutAria('paste'),label:pasteSelectionLabel,icon:<ClipboardPaste aria-hidden="true" size={18} strokeWidth={1.75}/>,action:pasteSelection,disabled:concertReadOnly||!canPasteSelection},
+            {id:'clear',label:clearSelectionLabel,icon:<Eraser aria-hidden="true" size={18} strokeWidth={1.75}/>,action:clearSelection,disabled:concertReadOnly||!canClearSelection}
           ]}
           filters={[
             {label:'선택 필터',value:selectionEventTypeFilter,options:selectionFilterOptions.map(([value,label])=>({value,label})),onChange:value=>setSelectionEventTypeFilter(value as SelectionEventTypeFilter)},
@@ -7754,13 +7919,25 @@ export const App = () => {
           pageCount={pdfTargetPages} pageCountInvalid={pdfTargetPagesInvalid}
           onPageCountChange={setPdfTargetPages}
           pdfBusy={pdfExporting} pdfDisabled={pdfTargetPagesInvalid || !measuredLyrics.ready || !measuredHarmonies.ready} pdfHint={pdfTargetPagesTooltip}
-          onPdf={savePdf} onMidi={saveMidi} onXml={()=>void exportMusicXml()} onExpandedXml={()=>void exportMusicXml('expanded')} xmlBusy={exportingMusicXml}
+          onPdf={savePdf}
+          onPdfWithGroupedRests={scoreViewMode === 'part' && livePartViewPart ? () => void savePdf(true) : undefined}
+          onMidi={saveMidi} onXml={()=>void exportMusicXml()} onExpandedXml={()=>void exportMusicXml('expanded')} xmlBusy={exportingMusicXml}
           png={{busy:pngBusy,disabled:!window.inC?.png?.save || !measuredLyrics.ready || !measuredHarmonies.ready || Boolean(noteInputState?.tupletInput),scope:pngScope,page:pngPage,dpi:pngDpi,
             message:pngBusy?`PNG ${pngJob?.done ?? 0}/${pngJob?.total || '…'} 페이지 준비 중`:currentPngNotice?.message,details:pngDetailsInTools ? renderOperationDetails(pngDetailsInTools) : undefined,
             hint:(scoreViewMode==='part'?'현재 파트보의 페이지를 PNG로 저장':'현재 총보의 페이지를 PNG로 저장')+(isTupletInput?` ${tupletInputLabel(noteInputState?.tupletInput)} 입력을 완료하거나 취소한 뒤 PNG를 출력해 주세요.`:''),onScope:setPngScope,onPage:setPngPage,onDpi:setPngDpi,onSave:()=>void savePng()}}
           xmlHint={scoreViewMode === 'part' ? '선택 파트보 MusicXML 내보내기' : '총보 MusicXML 사본 내보내기'}/>:null}
-        {toolbarCategory === 'measure' ? <StudioMeasureTools key={`measure-tools:${documentGeneration.current}`} theme={studioTheme} enabled={Boolean(activeMeasureId)}
-          customMeter={{value:activeTimeSignature??timeSignaturePresets[2].value,owner:JSON.stringify([documentGeneration.current,activeStructurePart?.id,activeStructureStaff?.id,activeMeasureId]),onApply:applyTimeSignature}}
+        {toolbarCategory === 'measure' && !concertReadOnly ? <StudioMeasureTools key={`measure-tools:${documentGeneration.current}`} theme={studioTheme} enabled={Boolean(activeMeasureId)}
+          customMeter={{
+            value: activeTimeSignature ?? timeSignaturePresets[2].value,
+            owner: JSON.stringify([documentGeneration.current, scoreViewMode, activeStructurePart?.id, activeStructureStaff?.id, activeMeasureId]),
+            onApply: meter => {
+              const measure = activeMeasureId && locateMeasure(score, activeMeasureId)?.measure
+              const timeEnd = measure && timeEndBeyondNewMeter(score, measure, meter)
+              return timeEnd ? `헤어핀 끝점(${describeHairpinTimeEnd(score, timeEnd)})이 새 마디 길이를 벗어납니다.`
+                : applyTimeSignature(meter)
+            },
+            onApplyToScore: scoreViewMode === 'score' ? applyScoreMeasureTimeSignature : undefined
+          }}
           meterScope={`${activeStructurePart?.name ?? '선택 파트'} · 보표 ${(activeStructurePart?.staves.findIndex(staff=>staff.id===activeStructureStaff?.id) ?? 0)+1} · ${activeMeasureIndex+1}마디 · 선택 보표의 이 마디만`}
           actions={[
             {label:'마디 추가',disabled:!activeMeasureId,onSelect:addMeasure,icon:<Plus size={18} strokeWidth={1.75} aria-hidden="true"/>},
@@ -7831,7 +8008,7 @@ export const App = () => {
               onClose={() => { setDockVisibility(previous => ({...previous, palette: false})); paletteToggle.current?.focus() }}>
               <StudioPaletteSettings workspace={paletteWorkspace}/>
             </StudioDockHeader>
-            <StudioNotationPalette workspace={paletteWorkspace} values={dynamicValues} active={selectedMeasureDynamic?.value??activeMeasureDynamic?.value} enabled={canEditMeasureNotation}
+            {concertReadOnly ? <Text variant="description">팔레트를 사용하려면 기보음 보기로 돌아가세요.</Text> : <StudioNotationPalette workspace={paletteWorkspace} values={dynamicValues} active={selectedMeasureDynamic?.value??activeMeasureDynamic?.value} enabled={canEditMeasureNotation}
               clefs={clefPresets} clef={activeClefId} clefEnabled={canChangeMeasureClef}
               keys={keySignaturePresets} keySignature={activeKeySignatureId} keyMode={activeKeySignature?.mode}
               keyEnabled={Boolean(paletteKeyMeasure)&&selection.type!=='range'&&!activeSpanReference&&!isTupletInput}
@@ -7868,13 +8045,14 @@ export const App = () => {
                 else if(entry==='lyrics') openLyricWorkspace()
                 else if(entry==='text') { selectSpan(undefined); openToolbarWorkspace('note','[aria-label="선택 요약 보표 글자"]') }
                 else openToolbarWorkspace('notation',entry==='clef'?'.studio-measure-notation [role="combobox"]':entry==='repeat'?(measureLocation?'input[aria-label="반복 횟수"]':'.studio-repeat-tools'):'[aria-label="슬러 추가 또는 해제, 단축키 S"]')
-              }} />
+              }} />}
           </aside>
 
           <aside id="studio-properties" className="docked-properties studio-properties-dock ddirori" tabIndex={-1} data-theme={studioTheme} data-density="compact" aria-label="속성 도크" hidden={!dockShown('properties')} onFocusCapture={event=>focusDock('properties',event)} >
             <StudioDockHeader name="속성" width={dockWidths.properties} onReturn={focusScore}
               onWidth={width => setDockWidths(previous => ({...previous, properties: width}))}
               onClose={() => { setDockVisibility(previous => ({...previous, properties: false})); propertiesToggle.current?.focus() }} />
+            {concertReadOnly ? <Text variant="description">선택한 표기를 수정하려면 기보음 보기로 돌아가세요.</Text> : <>
             {toolbarCategory === 'span-properties' || activeSpanReference ? <SpanProperties key={`span-properties:${documentGeneration.current}`} score={score}
               theme={studioTheme}
               scopeLabel="총보·해당 파트보 공통"
@@ -7915,6 +8093,7 @@ export const App = () => {
                 onTremolo={toggleTremoloMarks} onOrnament={toggleOrnament} onGrace={toggleGraceNote} /> : null}
             </> : null}
             </StudioSelectedProperties> : null}
+            </>}
           </aside>
 
           <div className="score-canvas" ref={scoreCanvas} tabIndex={-1} aria-label="악보 캔버스" data-notation-sizing={notationView.mode}
@@ -8045,7 +8224,9 @@ export const App = () => {
           }
         >
           <div className="score-title">
-            {metadataEdit?.field === 'title' ? (
+            {concertReadOnly ? (
+              <span className="metadata-display metadata-display--title">{score.title}</span>
+            ) : metadataEdit?.field === 'title' ? (
               <StudioMetadataInput saveGuard={metadataSaveGuard} theme={studioTheme} key={`${metadataEdit.documentKey}:${metadataEdit.session}:${metadataEdit.field}`} label="악보 제목"
                 aria-label="악보 제목"
                 autoFocus
@@ -8081,7 +8262,9 @@ export const App = () => {
                 aria-label="파트보 제목"
                 data-part-id={livePartViewPart.id}
               >
-                {metadataEdit?.field === 'partTitle' ? (
+                {concertReadOnly ? (
+                  <span className="metadata-display metadata-display--composer">{livePartViewTitle}</span>
+                ) : metadataEdit?.field === 'partTitle' ? (
                   <StudioMetadataInput saveGuard={metadataSaveGuard} theme={studioTheme} key={`${metadataEdit.documentKey}:${metadataEdit.session}:${metadataEdit.field}`} label="파트보 제목 입력"
                     aria-label="파트보 제목 입력"
                     autoFocus
@@ -8100,7 +8283,9 @@ export const App = () => {
               </div>
             ) : null}
 
-            {metadataEdit?.field === 'composer' ? (
+            {concertReadOnly ? (
+              <span className="metadata-display metadata-display--composer">{score.composer ?? '작곡가'}</span>
+            ) : metadataEdit?.field === 'composer' ? (
               <StudioMetadataInput saveGuard={metadataSaveGuard} theme={studioTheme} key={`${metadataEdit.documentKey}:${metadataEdit.session}:${metadataEdit.field}`} label="작곡가"
                 aria-label="작곡가"
                 autoFocus
@@ -8136,22 +8321,22 @@ export const App = () => {
             inlineEditorTheme={studioTheme}
             inputPosition={inputPosition}
             lyricWidths={automaticLyricSpacingSupported?measuredLyrics.widths:undefined}
-            harmonyWidths={harmonySpacingWidths}
-            minimumMeasureWidths={lyricMinimumWidths}
+            harmonyWidths={concertReadOnly ? concertHarmonySpacing : harmonySpacingWidths}
+            minimumMeasureWidths={concertReadOnly ? concertMinimumWidths : lyricMinimumWidths}
             selectedSpan={activeSpanReference}
             spanMovementDescriptionId={activeSpanReference ? 'studio-span-direct-guidance' : undefined}
             selectedRehearsalMarkId={activeMeasureTextRequest?.family==='rehearsalMarks'?activeMeasureTextRequest.id:undefined}
             selectedSystemTextId={activeMeasureTextRequest?.family==='systemTexts'?activeMeasureTextRequest.id:undefined}
             selectedDynamicId={activeMeasureTextRequest?.family==='dynamics'?activeMeasureTextRequest.id:undefined}
-            onSelectDynamic={selectDynamic}
+            onSelectDynamic={concertReadOnly ? undefined : selectDynamic}
             selectedHarmonyId={activeMeasureTextRequest?.family==='harmonies'?activeMeasureTextRequest.id:undefined}
-            onSelectHarmony={selectHarmony}
+            onSelectHarmony={concertReadOnly ? undefined : selectHarmony}
             selectedExpressionTextId={activeMeasureTextRequest?.family==='expressionTexts'?activeMeasureTextRequest.id:undefined}
             selectedStaffTextId={activeMeasureTextRequest?.family==='staffTexts'?activeMeasureTextRequest.id:undefined}
-            onSelectSpan={selectSpan}
-            onBeginSpanDrag={beginManualSpanDrag}
+            onSelectSpan={concertReadOnly ? undefined : selectSpan}
+            onBeginSpanDrag={concertReadOnly ? undefined : beginManualSpanDrag}
             inlineLyricEditor={
-              toolbarCategory === 'lyrics' && selectedNote && !lyricEditingBlocked
+              !concertReadOnly && toolbarCategory === 'lyrics' && selectedNote && !lyricEditingBlocked
                 ? {
                     documentKey:documentGeneration.current,
                     focusRequest:lyricFocusRequest,
@@ -8167,11 +8352,11 @@ export const App = () => {
             }
             onSelectEvent={selectEvent}
             onSelectEventRange={selectEventRange}
-            onSelectLyric={selectLyric}
-            onSelectRehearsalMark={selectRehearsalMark}
-            onSelectSystemText={selectSystemText}
-            onSelectExpressionText={selectExpressionText}
-            onSelectStaffText={selectStaffText}
+            onSelectLyric={concertReadOnly ? undefined : selectLyric}
+            onSelectRehearsalMark={concertReadOnly ? undefined : selectRehearsalMark}
+            onSelectSystemText={concertReadOnly ? undefined : selectSystemText}
+            onSelectExpressionText={concertReadOnly ? undefined : selectExpressionText}
+            onSelectStaffText={concertReadOnly ? undefined : selectStaffText}
             onSelectMeasure={selectMeasure}
             onOpenMeasureContextMenu={openMeasureContextMenu}
             score={displayScore}
@@ -8996,10 +9181,14 @@ function buildScorePartsReplaceCommand(
   const repeatPartId = repeatSource ? score.parts.find(part => part.staves.includes(repeatSource))?.id : undefined
   if (repeatSource && !parts.some(part => part.id === repeatPartId && part.staves.some(staff => staff.id === repeatSource.id))) {
     parts = parts.map(part => ({ ...part, staves: part.staves.map(staff => ({ ...staff,
-      measures: staff.measures.map((measure, index) => ({ ...measure,
-        repeat: repeatSource.measures[index]?.repeat,
-        volta: repeatSource.measures[index]?.volta
-      }))
+      measures: staff.measures.map((measure, index) => {
+        const repeat = repeatSource.measures[index]?.repeat
+        const afterJump = measure.repeat?.end ? measure.repeat.afterJump : undefined
+        return { ...measure,
+          repeat: repeat?.end && afterJump !== undefined ? { ...repeat, afterJump } : repeat,
+          volta: repeatSource.measures[index]?.volta
+        }
+      })
     })) }))
   }
   const commands: ScoreCommand[] = [
@@ -9069,7 +9258,7 @@ function buildScorePartsReplaceCommand(
     type: 'score-hairpins.update',
     hairpins
   }), (hairpin) =>
-    eventIds.has(hairpin.startEventId) && eventIds.has(hairpin.endEventId)
+    eventIds.has(hairpin.startEventId) && (hairpin.endTime ? measureIds.has(hairpin.endTime.measureId) : eventIds.has(hairpin.endEventId))
   )
   addFilteredCommand(commands, score.slurs, (slurs) => ({
     type: 'score-slurs.update',
@@ -9185,7 +9374,7 @@ function getOwnPartPageSetup(preferences: PartPageSetupPreferences, partId: stri
 }
 
 function createNativeSnapshot(score: Score, previous: NativeProject | undefined, preferences: PartPageSetupPreferences, mode: ScoreViewMode, partId: string | undefined): NativeProject {
-  const project = previous ? { ...previous, score } : createNativeProject(score)
+  const project = previous ? { ...previous, version: nativeProjectVersion(score), score } : createNativeProject(score)
   project.partLayouts = score.parts.flatMap(part => {
     const saved = project.partLayouts.find(layout => layout.partId === part.id)
     const preference = getOwnPartPageSetup(preferences, part.id)
@@ -9237,14 +9426,32 @@ function createLivePartViewScore(score: Score, partId: string): Score {
     return score
   }
 
-  // Linked part views/print/MIDI/XML share the score's performed repeat plan.
-  // This projection preserves IDs and native ownership;layout is applied later.
-  const repeatSource=scoreRepeatSource(score)
-  const projectedPart=repeatSource?{...part,staves:part.staves.map(staff=>({...staff,
-    measures:staff.measures.map((measure,index)=>({...measure,
-      repeat:repeatSource.measures[index]!.repeat,volta:repeatSource.measures[index]!.volta
+  // Linked part views, print, MIDI and MusicXML share the performed repeat plan.
+  // This projection preserves IDs and Native ownership.
+  const repeatSource = scoreRepeatSource(score)
+  const staves = score.parts.flatMap(candidate => candidate.staves)
+  const repeatSettings = repeatSource && collectNavigationRepeatSettings(staves, repeatSource.measures)
+  const navigation = repeatSettings && repeatSource?.measures.map((_, index) =>
+    collectMeasureNavigation(staves.map(staff => staff.measures[index]))
+  )
+  const hasNavigation = navigation && navigation.some(marks => marks.length)
+  const projectedPart = repeatSource ? {
+    ...part,
+    staves: part.staves.map((staff, staffIndex) => ({
+      ...staff,
+      measures: staff.measures.map((measure, index) => {
+        const source = repeatSource.measures[index]
+        const afterJump = hasNavigation && repeatSettings ? repeatSettings.get(index) : undefined
+        const marks = navigation ? navigation[index] : undefined
+        return {
+          ...measure,
+          repeat: afterJump === undefined ? source.repeat : { ...source.repeat, afterJump },
+          volta: source.volta,
+          navigation: staffIndex === 0 && marks?.length ? marks : undefined
+        }
+      })
     }))
-  }))}:part
+  } : part
 
   const measureIds = collectPartMeasureIds([part])
   const measureNumbers = collectPartMeasureNumbers([part])
@@ -9291,7 +9498,7 @@ function createLivePartViewScore(score: Score, partId: string): Score {
     ),
     hairpins: score.hairpins?.filter(
       (hairpin) =>
-        eventIds.has(hairpin.startEventId) && eventIds.has(hairpin.endEventId)
+        eventIds.has(hairpin.startEventId) && (hairpin.endTime ? measureIds.has(hairpin.endTime.measureId) : eventIds.has(hairpin.endEventId))
     ),
     slurs: score.slurs?.filter(
       (slur) =>
@@ -9594,10 +9801,12 @@ function resolveStandardClefPreset(clef: Clef | undefined) {
 }
 
 function describeInspectorClef(clef: Clef): string {
-  const label=clefPresets.find(preset=>preset.value.sign===clef.sign&&preset.value.line===clef.line)?.label
-    ?? (clef.sign==='percussion'?'타악기 보표':clef.sign==='tab'?'태브 보표':'기타 음자리표')
-  const octave=clef.octaveChange??0
-  return octave===0?label:`${label} · 옥타브 ${octave>0?'+':''}${octave}`
+  const standard = clefPresets.find(preset => preset.value.sign === clef.sign && preset.value.line === clef.line)
+  const family = clefPresets.find(preset => preset.value.sign === clef.sign)
+  const fallback = clef.sign === 'percussion' ? '타악기 보표' : clef.sign === 'tab' ? '태브 보표' : '기타 음자리표'
+  const label = standard?.label ?? (family ? `${family.label} · 아래에서 ${clef.line}번째 줄` : fallback)
+  const octave = clef.octaveChange ?? 0
+  return octave === 0 ? label : `${label} · 옥타브 ${octave > 0 ? '+' : ''}${octave}`
 }
 
 function describeInspectorKey(key: Measure['keySignature']): string {
@@ -10009,16 +10218,19 @@ function shouldFollowTimeSignatureTempoBeat(
   )
 }
 
-function assertMusicXmlSaveSafe(score: Score, contents: string): void {
+function assertMusicXmlSaveSafe(score: Score, contents: string, report: MusicXmlExportReport): void {
   if (scoreContainsPreviewArtifacts(score)) {
     throw new Error(
       '미리보기 전용 이벤트가 악보 데이터에 섞여 있어 MusicXML 저장을 중단했습니다.'
     )
   }
+  const ambiguousGrace = report.warnings.find(warning => warning.code === 'ambiguous-trailing-grace')
+  if (ambiguousGrace) throw new Error(describeMusicXmlWarning(ambiguousGrace))
 
   const roundTripScore = parseMusicXml(contents)
-  const originalSignature = createSaveSignature(score)
-  const roundTripSignature = createSaveSignature(roundTripScore)
+  const explicitHairpinEnds = (score.hairpins ?? []).map(hairpin => hairpin.endAnchor !== undefined)
+  const originalSignature = createSaveSignature(score, explicitHairpinEnds)
+  const roundTripSignature = createSaveSignature(roundTripScore, explicitHairpinEnds)
 
   if (originalSignature !== roundTripSignature) {
     const original = JSON.parse(originalSignature) as Record<string, unknown>
@@ -10026,7 +10238,7 @@ function assertMusicXmlSaveSafe(score: Score, contents: string): void {
     const differences = Object.keys(original).filter(
       key => JSON.stringify(original[key]) !== JSON.stringify(reopened[key])
     )
-    const diagnostic = `MusicXML 저장 검증에 실패했습니다. 저장하면 악보 내용이 달라질 수 있어 파일을 쓰지 않았습니다. (${differences.map(key=>key==='tempoEvents'?'위치별 빠르기(tempoEvents)':key).join(', ')})`
+    const diagnostic = `MusicXML 저장 검증에 실패했습니다. 저장하면 악보 내용이 달라질 수 있어 파일을 쓰지 않았습니다. (${differences.map(key=>key==='tempoEvents'?'위치별 빠르기(tempoEvents)':key==='navigation'?'재생 이동 지시(navigation)':key).join(', ')})`
     if (differences.includes('parts')) {
       const conflict = createMusicXmlRepeatConflictError(score, diagnostic)
       if (conflict) throw conflict
@@ -10067,24 +10279,12 @@ function normalizeRepeatMark(repeat: Measure['repeat']): Measure['repeat'] {
   return {
     start: repeat.start,
     end: repeat.end,
-    times: repeat.end ? repeat.times : undefined
+    times: repeat.end ? repeat.times : undefined,
+    ...(repeat.end && repeat.afterJump !== undefined ? { afterJump: repeat.afterJump } : {})
   }
 }
 
-function findNextRepeatEndMeasureIndex(
-  measures: Measure[],
-  startIndex: number
-): number | undefined {
-  for (let index = startIndex; index < measures.length; index += 1) {
-    if (measures[index].repeat?.end) {
-      return index
-    }
-  }
-
-  return undefined
-}
-
-function createSaveSignature(score: Score): string {
+function createSaveSignature(score: Score, explicitHairpinEnds: readonly boolean[]): string {
   const eventReferences = createEventReferenceMap(score)
   const measureReferences = createMeasureReferenceMap(score)
 
@@ -10102,18 +10302,27 @@ function createSaveSignature(score: Score): string {
     }))),
     rhythmFeel: normalizeRhythmFeelForSaveSignature(score.rhythmFeel),
     swingPlayback: score.swingPlayback ?? null,
+    navigation: score.parts.flatMap((part, partIndex) =>
+      (part.staves[0]?.measures ?? []).flatMap((_, index) => {
+        const marks = collectMeasureNavigation(part.staves.map(staff => staff.measures[index]))
+        return marks.length ? [{ partIndex, index, marks }] : []
+      })
+    ),
     parts: score.parts.map(part=>{
       const barlines=comparableMusicXmlBarlines(score,part)
       return {
         name:part.name,abbreviation:part.abbreviation??'',
         staves:part.staves.map(staff=>({
-          measures:staff.measures.map((measure,index)=>({
-            number:measure.number,timing:measure.timing,timeSignature:measure.timeSignature,
-            keySignature:measure.keySignature,clef:measure.clef,
-            repeat:barlines?barlines[index].repeat:measure.repeat??null,
-            volta:barlines?barlines[index].volta:measure.volta??null,
-            voices:sortScoreVoices(measure.voices).map(voice=>createVoiceSaveSignature(measure,voice))
-          }))
+          measures: staff.measures.map((measure, index) => {
+            const volta = barlines ? barlines[index].volta : measure.volta
+            return {
+              number: measure.number, timing: measure.timing, timeSignature: measure.timeSignature,
+              keySignature: measure.keySignature, clef: measure.clef,
+              repeat: barlines ? barlines[index].repeat : measure.repeat ?? null,
+              volta: volta ? { number: volta.number, passes: volta.passes, start: volta.start, end: volta.end } : null,
+              voices: sortScoreVoices(measure.voices).map(voice => createVoiceSaveSignature(measure, voice))
+            }
+          })
         }))
       }
     }),
@@ -10146,11 +10355,27 @@ function createSaveSignature(score: Score): string {
       measure: measureReferences.get(dynamic.measureId),
       value: dynamic.value
     }))),
-    hairpins: (score.hairpins ?? []).map((hairpin) => ({
-      type: hairpin.type,
-      start: eventReferences.get(hairpin.startEventId),
-      end: eventReferences.get(hairpin.endEventId)
-    })),
+    hairpins: (score.hairpins ?? []).map((hairpin, index) => {
+      const start = locateEvent(score, hairpin.startEventId)
+      const end = hairpin.endEventId === undefined ? undefined : locateEvent(score, hairpin.endEventId)
+      if (hairpin.endTime) return {
+        type: hairpin.type,
+        start: eventReferences.get(hairpin.startEventId),
+        endTime: {
+          measure: measureReferences.get(hairpin.endTime.measureId),
+          voice: hairpin.endTime.voiceId,
+          tick: hairpin.endTime.tick
+        }
+      }
+      return {
+        type: hairpin.type,
+        start: eventReferences.get(hairpin.startEventId),
+        end: hairpin.endEventId === undefined ? undefined : eventReferences.get(hairpin.endEventId),
+        endAnchor: explicitHairpinEnds[index] ? hairpin.endAnchor : undefined,
+        endTick: start && end ? hairpinEndTick(hairpin.endAnchor,
+          { ...start, voiceId: start.address.voiceId }, { ...end, voiceId: end.address.voiceId }) : undefined
+      }
+    }),
     slurs: createSlurSaveSignature(score, eventReferences),
     octaveShifts: (score.octaveShifts ?? []).map((octaveShift) => ({
       type: octaveShift.type,
@@ -10164,24 +10389,16 @@ function createSlurSaveSignature(
   score: Score,
   eventReferences: Map<string, string>
 ) {
+  // MusicXML numbers pair markers in file order. The endpoints and their
+  // multiplicity define which slurs must survive the round trip.
   return (score.slurs ?? [])
-    .map((slur, index) => ({
-      number: slur.number ?? index + 1,
+    .map(slur => ({
       start: eventReferences.get(slur.startEventId),
       end: eventReferences.get(slur.endEventId)
     }))
-    .sort(compareRangeSignatures)
-}
-
-function compareRangeSignatures(
-  first: { number: number; start?: string; end?: string },
-  second: { number: number; start?: string; end?: string }
-): number {
-  return (
-    compareEventReference(first.start, second.start) ||
-    compareEventReference(first.end, second.end) ||
-    first.number - second.number
-  )
+    .sort((first, second) =>
+      compareEventReference(first.start, second.start) || compareEventReference(first.end, second.end)
+    )
 }
 
 function compareEventReference(
@@ -10290,7 +10507,7 @@ function createVoiceSaveSignature(
   )
 
   return {
-    voiceNumber: readMusicXmlVoiceNumber(voice.id),
+    voiceNumber: readScoreVoiceNumber(voice.id),
     presentation: resolveSameStaffVoicePresentation(voice.id, measure.voices.length),
     events: events.map((event) =>
       createEventSaveSignature(measure, voice, event)
@@ -10327,8 +10544,10 @@ function createEventSaveSignature(
               : null,
           articulations: event.articulations ?? [],
           graceNotes: (event.graceNotes ?? []).map((graceNote) => ({
-            pitch: normalizePitch(graceNote.pitch),
-            slash: Boolean(graceNote.slash)
+            pitch: normalizePitch(resolveNotePitch(measure, voice, { ...event, pitch: graceNote.pitch })),
+            slash: Boolean(graceNote.slash),
+            ...(graceNote.chord ? { chord: true } : {}),
+            ...(graceNote.after ? { after: true } : {})
           })),
           lyrics: event.lyrics ? sortLyricsByNumber(event.lyrics) : [],
           ornaments: event.ornaments ?? [],
@@ -10627,6 +10846,9 @@ function createMusicXmlReportPanelState(
 
 const memberSpecificChordTieImportMessage = '구성음별 타이는 지원하지 않아 원래 연결 범위를 보존하지 못했습니다. 원본 MusicXML을 함께 보관하고 가져온 화음의 타이와 재생을 확인해 주세요.'
 
+const restStaffPlacementWarning = 'Unrepresented rest staff placement '
+const restStaffPlacementMessage = '쉼표의 원래 세로 위치는 보존하지 못했습니다. Studio는 쉼표를 자동 배치합니다. 원본 MusicXML을 보관하고 화면과 출력의 쉼표 위치를 비교해 주세요.'
+
 function MusicXmlReportPanel({
   report,
   theme
@@ -10671,6 +10893,8 @@ function MusicXmlReportPanel({
     report.warnings.every(warning => warning.message.startsWith('Unrepresented note ledger visibility '))
   const repeatedNoteDotLoss = report.kind === 'import' && report.warnings.length > 1 &&
     report.warnings.every(warning => warning.message.startsWith('Unrepresented note dot visibility '))
+  const repeatedRestPlacementLoss = report.kind === 'import' && report.warnings.length > 1 &&
+    report.warnings.every(warning => warning.message.startsWith(restStaffPlacementWarning))
   const repeatedCueKindLoss = report.kind === 'import' && report.warnings.length > 1 &&
     report.warnings.every(warning => warning.message.startsWith('Unrepresented cue note kind '))
   const repeatedGraceAppearanceLoss = report.kind === 'import' && report.warnings.length > 1 &&
@@ -10688,7 +10912,7 @@ function MusicXmlReportPanel({
   const repeatedLyricFontLoss = report.kind === 'import' && report.warnings.length > 1 &&
     report.warnings.every(warning => warning.message.startsWith('Unrepresented lyric font-style ') ||
       warning.message.startsWith('Unrepresented lyric font-weight '))
-  const repeatedKnownLoss = repeatedNoteInstrumentLoss || repeatedCreatorMetadataLoss || repeatedCreditContentLoss || repeatedStaffVisibilityLoss || repeatedNoteVisibilityLoss || repeatedNotationVisibilityLoss || repeatedNotationEditorialLoss || repeatedBarlineEditorialLoss || repeatedFermataAppearanceLoss || repeatedBarlineFermataLoss || repeatedBarlineNavigationLoss || repeatedNoteLedgerLoss || repeatedNoteDotLoss || repeatedCueKindLoss || repeatedGraceAppearanceLoss || repeatedGraceTimingLoss || repeatedAccidentalAppearanceLoss || repeatedLyricVisibilityLoss || repeatedLyricFontLoss || (report.kind === 'import' && report.warnings.length > 1 &&
+  const repeatedKnownLoss = repeatedNoteInstrumentLoss || repeatedCreatorMetadataLoss || repeatedCreditContentLoss || repeatedStaffVisibilityLoss || repeatedNoteVisibilityLoss || repeatedNotationVisibilityLoss || repeatedNotationEditorialLoss || repeatedBarlineEditorialLoss || repeatedFermataAppearanceLoss || repeatedBarlineFermataLoss || repeatedBarlineNavigationLoss || repeatedNoteLedgerLoss || repeatedNoteDotLoss || repeatedRestPlacementLoss || repeatedCueKindLoss || repeatedGraceAppearanceLoss || repeatedGraceTimingLoss || repeatedAccidentalAppearanceLoss || repeatedLyricVisibilityLoss || repeatedLyricFontLoss || (report.kind === 'import' && report.warnings.length > 1 &&
     report.warnings.every(warning => warning.message.startsWith('Member-specific chord ties') ||
       warning.message === 'technical playing instructions are not imported yet.'))
   const lossSummary = repeatedNoteInstrumentLoss
@@ -10719,8 +10943,10 @@ function MusicXmlReportPanel({
     ? '음표의 덧줄 숨김 설정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 덧줄과 다시 내보낸 표기를 비교해 주세요.'
     : repeatedNoteDotLoss
     ? '음가 점의 숨김 설정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 점 표시와 다시 내보낸 표기를 비교해 주세요.'
+    : repeatedRestPlacementLoss
+    ? restStaffPlacementMessage
     : repeatedAccidentalAppearanceLoss
-    ? '임시표의 원래 괄호·크기·주의·편집 지정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 임시표 표시와 다시 내보낸 표기를 비교해 주세요.'
+    ? '임시표의 원래 기호나 괄호·크기·주의·편집 지정 일부를 보존하지 못했습니다. 원본 MusicXML을 보관하고 임시표 표시와 다시 내보낸 표기를 비교해 주세요.'
     : repeatedGraceTimingLoss
     ? '꾸밈음의 원래 연주 시간 지정은 보존하지 못했습니다. 앞뒤 음에서 차용하거나 추가하는 시간은 현재 재생·사본에 반영되지 않습니다. 원본 MusicXML을 보관하고 꾸밈음 재생과 다시 내보낸 파일을 비교해 주세요.'
     : repeatedGraceAppearanceLoss
@@ -10845,7 +11071,15 @@ function describeMidiWarning(warning: MidiExportWarning): string {
 }
 
 function describeMusicXmlWarning(warning: MusicXmlReportWarning): string {
+  if (warning.code === 'native-grace-playback') return 'MusicXML에는 꾸밈음 표기가 들어갑니다. 앞꾸밈음 발음 설정을 보관하려면 프로젝트 파일도 저장해 주세요.'
+  if (warning.code === 'converted-volta-passes') return '기존 2번 볼타의 재생을 보존하도록 회차 목록으로 내보냈습니다. 프로젝트의 괄호와 재생은 유지됩니다.'
   if (warning.code === 'unsupported-chord-tie') return describeUnsupportedChordTie(warning)
+  if (warning.code === 'ambiguous-trailing-grace') {
+    return `${warning.measureNumber}마디의 뒤꾸밈음 위치를 MusicXML에 보존할 수 없어 파일을 쓰지 않았습니다. 악보를 유지하려면 프로젝트 파일로 저장하세요.`
+  }
+  if (warning.code === 'trailing-grace-placement') {
+    return '마디 끝의 뒤꾸밈음은 MusicXML을 여는 앱에 따라 위치가 달라지거나 빠질 수 있습니다. 현재 위치를 보존하려면 프로젝트 파일도 저장하세요.'
+  }
   if (warning.code === 'studio-part-repeat-projection' || warning.code === 'studio-part-swing-projection') return warning.summary
   const textPositionScope = /^Unrepresented (staff|system) text position /.exec(warning.message)?.[1]
   const textPositionMessage = textPositionScope
@@ -10915,6 +11149,8 @@ function describeMusicXmlWarning(warning: MusicXmlReportWarning): string {
     ['Unrepresented figured-bass ','원본 숫자저음 데이터는 현재 악보에 보존하지 못했습니다. 원본 MusicXML을 보관하고 표기·재내보내기를 비교해 주세요.'],
     ['Unrepresented words components ','여러 조각으로 작성된 글자는 현재 악보에 보존하지 못했습니다. 원본 MusicXML을 보관하고 보표·빠르기 글자와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented dynamic marking ','복합 또는 미지원 셈여림 표기는 그대로 가져오지 못했습니다. 일부 값만 남거나 기호가 빠질 수 있습니다. 원본 MusicXML을 보관하고 셈여림 표기와 다시 내보낸 파일을 비교해 주세요.'],
+    ['Unrepresented hairpin stop position ', '헤어핀의 원래 종료 위치를 보존하지 못해 끝 음표·쉼표의 시작에 연결했습니다. 원본 MusicXML을 보관하고 기술 정보에서 종료 위치를 확인해 주세요.'],
+    ['Unrepresented hairpin continuation appearance ','줄바꿈 헤어핀의 이어지는 조각에 지정된 서식은 보존하지 못했습니다. 시작·끝은 가져왔으며 조각은 자동으로 배치합니다. 원본 MusicXML을 보관하고 출력과 비교해 주세요.'],
     ['Unrepresented note-attached dynamics ','음표·쉼표에 직접 붙은 셈여림 기호는 가져오지 못했습니다. 원본 MusicXML을 보관하고 해당 음표·쉼표의 셈여림과 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented dynamic scope ','셈여림의 마디 안 위치·성부 지정은 보존하지 못했습니다. 현재 악보는 마디 단위 값으로 저장하며 첫 번째 값을 표시·재생합니다. 원본 MusicXML을 보관하고 셈여림 적용 범위와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented rehearsal components ','여러 조각으로 작성된 연습표 글자는 현재 악보에 보존하지 못했습니다. 원본 MusicXML을 보관하고 연습표와 다시 내보낸 파일을 비교해 주세요.'],
@@ -10930,12 +11166,25 @@ function describeMusicXmlWarning(warning: MusicXmlReportWarning): string {
     ['Unrepresented staff visibility ','숨김으로 지정된 보표의 표시 설정은 보존하지 못했습니다. 화면과 출력에 나타날 수 있으므로 원본 MusicXML을 보관하고 보표와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented staff line count ','원본의 보표 줄 수는 보존하지 못했습니다. 현재는 5선 보표로 표시됩니다. 원본 MusicXML을 보관하고 보표와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented part-symbol ','다중 보표의 원본 묶음 모양·범위는 보존하지 못했습니다. 원본 MusicXML을 보관하고 괄호·마디선과 다시 내보낸 파일을 비교해 주세요. 이 안내로 원본 배치가 복원되는 것은 아닙니다.'],
+    ['Multiple repeat ends with unresolved ending passes.', '여러 끝 도돌이표에 연결된 볼타의 회차를 확정하지 못했습니다. 가져온 괄호와 도돌이표는 표시됩니다. 원본 MusicXML과 실제 재생 순서를 비교해 주세요.'],
+    ['Volta passes outside the repeat count:', '도돌이표의 반복 횟수를 넘는 볼타 회차는 재생되지 않습니다. 괄호는 악보에 남습니다. 반복 횟수와 볼타 회차를 확인해 주세요.'],
+    ['Volta with unspecified repeat passes:', '회차 번호가 없는 볼타 괄호는 표시합니다. 재생할 회차가 지정되어 있지 않아 이 볼타에서 회차 제한을 적용하지 않습니다. 원본 MusicXML과 재생을 비교해 주세요.'],
+    ['Unrepresented volta appearance ', '볼타의 원래 문구·숨김·열린 끝 설정 중 일부를 보존하지 못했습니다. 원본 MusicXML을 보관하고 화면의 볼타와 다시 내보낸 파일을 비교해 주세요.'],
+    ['Unrepresented key signature appearance ', '조표 숨김, 기호의 옥타브 또는 조표를 취소하는 제자리표의 표시나 위치를 보존하지 못했습니다. 원본 MusicXML을 보관하고 화면과 다시 내보낸 파일의 조표를 비교해 주세요.'],
+    ['Unrepresented time signature appearance ', '박자표의 표시 숨김이나 기호 모양을 보존하지 못했습니다. 원본 MusicXML을 보관하고 화면과 다시 내보낸 파일의 박자표를 비교해 주세요.'],
+    ['Unrepresented positioned time signature ', '마디 안이나 마지막 마디 끝에서 박자표가 바뀌는 위치는 보존하지 못했습니다. 원본 MusicXML을 보관하고 마디 길이와 다시 내보낸 파일을 비교해 주세요.'],
+    ['Unrepresented positioned key signature ', '마디 안이나 마지막 마디 끝에서 조표가 바뀌는 위치는 보존하지 못했습니다. 원본 MusicXML을 보관하고 조표와 다시 내보낸 파일을 비교해 주세요.'],
+    ['Moved transposition before first pitched content ', '쉼표 뒤 첫 음부터 적용되는 이조를 마디 시작에 배치했습니다. 재생 음높이는 유지됩니다. 기술 정보에서 원래 위치와 값을 확인해 주세요.'],
+    ['Unrepresented pickup forward duration ', '시간 이동(forward)으로 남긴 무음 구간을 보존하지 못해 못갖춘마디가 짧아졌습니다. 기술 정보에서 길이를 확인하고 재생 시점과 다시 내보낸 파일을 원본과 비교해 주세요.'],
+    ['Unrepresented chord member duration ', '화음 구성음의 개별 길이를 보존하지 못했습니다. 현재는 화음 전체에 같은 길이를 적용합니다. 기술 정보에서 원래 값과 적용된 길이를 확인해 주세요.'],
+    ['Unrepresented in-measure transposition ', '마디 안에서 이조가 바뀌는 위치는 보존하지 못했습니다. 원본 MusicXML을 보관하고 재생 음높이와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented part-group ','원본 파트 묶음 지정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 묶음·괄호와 다시 내보낸 파일을 비교해 주세요. 이 안내로 괄호가 복원되는 것은 아닙니다.'],
     ['Unrepresented harmony visibility ','숨김으로 지정된 코드 심벌의 표시 설정은 보존하지 못했습니다. 화면과 출력에 나타날 수 있으므로 원본 MusicXML을 보관하고 사본을 비교해 주세요.'],
     ['Unrepresented stacked harmony ','한 코드 심벌 안에 쌓은 여러 화음의 구조는 보존하지 못했습니다. 코드 글자도 빠질 수 있습니다. 원본 MusicXML을 보관하고 기술 정보와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented relative harmony ','로마 숫자·숫자 코드의 상대 화성 정보는 보존하지 못했습니다. 표시 글자와 원래 화성 구조는 별개입니다. 원본 MusicXML을 보관하고 기술 정보를 확인해 주세요.'],
     ['Unrepresented chord degree ','코드 심벌의 추가·변경·생략 구성음 정보는 보존하지 못했습니다. 코드 글자가 같아도 구성음 구조는 다를 수 있습니다. 원본 MusicXML을 보관하고 코드와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented fretboard diagram ','원본 코드 심벌의 프렛보드 그림은 현재 악보에 보존하지 못했습니다. 코드 글자와 그림은 별개입니다. 원본 MusicXML을 보관하고 그림과 다시 내보낸 파일을 비교해 주세요.'],
+    ['Unrepresented concert-score part settings ','실음 악보에 지정된 파트보의 음자리표·이조 설정을 보존하지 못했습니다. 원본 MusicXML을 보관하고 파트보의 표기와 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented multimeasure rest grouping ','원본의 쉼표 묶음 지시는 보존하지 못했습니다. 현재는 각 마디의 쉼표로 표시합니다. 원본 MusicXML을 보관하고 총보·파트보와 재출력을 비교해 주세요.'],
     ['Unrepresented measure repeat ','원본의 마디 반복 기호는 보존하지 못했습니다. 현재는 XML에 명시된 음표를 사용합니다. 원본 MusicXML을 보관하고 반복 기호·재생·재출력을 비교해 주세요.'],
     ['Unrepresented beat repeat ','원본의 박 반복 기호는 보존하지 못했습니다. 현재는 XML에 명시된 음표를 사용합니다. 원본 MusicXML을 보관하고 박 반복 기호·재생·재출력을 비교해 주세요.'],
@@ -10955,10 +11204,14 @@ function describeMusicXmlWarning(warning: MusicXmlReportWarning): string {
     ['Unrepresented barline editorial ','마디선의 편집자 주석·편집층 정보를 보존하지 못했습니다. 원본 MusicXML을 보관하고 표기·재생·다시 내보낸 결과를 비교해 주세요.'],
     ['Unrepresented fermata appearance ','원본 페르마타의 모양·방향·개수는 보존하지 못했습니다. 현재는 기본형 하나로 표시합니다. 원본 MusicXML을 보관하고 표기·재생·다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented barline fermata ','마디선의 페르마타를 가져오지 못했습니다. 원본 MusicXML을 보관하고 기호·재생·다시 내보낸 파일을 비교해 주세요.'],
+    ['Navigation appearance ', '반복 이동 표기를 자동 위치와 기본 서식으로 가져왔습니다. 원본의 위치와 꾸밈은 유지되지 않습니다.'],
     ['Unrepresented barline navigation marker ','마디선의 세뇨·코다 정보를 가져오지 못했습니다. 원본 MusicXML을 보관하고 기호·재생 이동·다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented note ledger visibility ','음표의 덧줄 숨김 설정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 덧줄과 다시 내보낸 표기를 비교해 주세요.'],
     ['Unrepresented note dot visibility ','음가 점의 숨김 설정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 점 표시와 다시 내보낸 표기를 비교해 주세요.'],
-    ['Unrepresented accidental appearance ','임시표의 원래 괄호·크기·주의·편집 지정은 보존하지 못했습니다. 원본 MusicXML을 보관하고 임시표 표시와 다시 내보낸 표기를 비교해 주세요.'],
+    [restStaffPlacementWarning, restStaffPlacementMessage],
+    ['Unrepresented accidental appearance ', warning.message.includes('"pitchAlter":')
+      ? '원본의 임시표 기호와 음높이 값이 다릅니다. 음높이 값에 따라 가져왔습니다. 기술 정보에서 원래 기호와 값을 확인해 주세요.'
+      : '임시표의 원래 기호나 괄호·크기·주의·편집 지정 일부를 보존하지 못했습니다. 원본 MusicXML을 보관하고 임시표 표시와 다시 내보낸 표기를 비교해 주세요.'],
     ['Unrepresented grace timing ','꾸밈음의 원래 연주 시간 지정은 보존하지 못했습니다. 앞뒤 음에서 차용하거나 추가하는 시간은 현재 재생·사본에 반영되지 않습니다. 원본 MusicXML을 보관하고 꾸밈음 재생과 다시 내보낸 파일을 비교해 주세요.'],
     ['Unrepresented grace appearance ','꾸밈음의 원래 기보 음가·점 표기는 보존하지 못했습니다. 현재는 기본 8분 모양으로 표시됩니다. 원본 MusicXML을 보관하고 꾸밈음 모양과 다시 내보낸 표기를 비교해 주세요.'],
     ['Unrepresented cue note kind ','원본의 큐 표기 구분은 보존하지 못했습니다. 재생에 포함되는 음과 표기 크기가 원본과 다를 수 있으므로 원본 MusicXML을 보관하고 재생·재출력을 비교해 주세요.'],
@@ -11244,6 +11497,10 @@ function describeMusicXmlImportResult(
 
   if (report.warnings.every(warning => warning.message.startsWith('Unrepresented note dot visibility '))) {
     return `${baseMessage} MusicXML 경고 ${report.warnings.length}개: 경고 상세에서 음가 점 숨김 설정 손실을 확인해 주세요.`
+  }
+
+  if (report.warnings.every(warning => warning.message.startsWith(restStaffPlacementWarning))) {
+    return `${baseMessage} MusicXML 경고 ${report.warnings.length}개: 경고 상세에서 쉼표 세로 위치 지정 손실을 확인해 주세요.`
   }
 
   if (report.warnings.every(warning => warning.message.startsWith('Unrepresented accidental appearance '))) {

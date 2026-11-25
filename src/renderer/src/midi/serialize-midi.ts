@@ -1,7 +1,8 @@
 import { collectUnsupportedChordTieWarnings, globalSwingPlaybackUnavailableReason, type Part, type Score, type VoiceAddress } from '../../../score-core'
 import {
   createPlaybackTimeline,
-  tempoMarkingToQuarterBpm
+  tempoMarkingToQuarterBpm,
+  type PlaybackTimeline
 } from '../playback/timeline'
 
 const MIDI_TICKS_PER_QUARTER = 480
@@ -69,10 +70,12 @@ export function serializeMidi(score: Score): Uint8Array {
 
 export function serializeMidiWithReport(score: Score): MidiExportReport {
   const unsupportedMeasureKeys = collectUnsupportedMidiMeasureKeys(score)
-  const tempoTrack = createTempoTrack(score)
+  const timeline = createPlaybackTimeline(score)
+  const tempoTrack = createTempoTrack(score, timeline)
   const partTracks = score.parts.map((part, partIndex) =>
     createPartNoteTrack(
       score,
+      timeline,
       part,
       resolveMidiChannel(partIndex),
       resolveMidiProgram(part),
@@ -90,7 +93,7 @@ export function serializeMidiWithReport(score: Score): MidiExportReport {
       createTrackChunk(tempoTrack),
       ...partTracks.map((track) => createTrackChunk(track))
     ]),
-    warnings: [...collectUnsupportedMidiWarnings(score), ...collectUnsupportedChordTieWarnings(score), ...collectSharedMidiChannels(score), ...collectUnperformedMidiWarnings(score), ...collectUnavailableSwingWarnings(score)]
+    warnings: [...collectUnsupportedMidiWarnings(score), ...collectUnsupportedChordTieWarnings(score), ...collectSharedMidiChannels(score), ...collectUnperformedMidiWarnings(score, timeline), ...collectUnavailableSwingWarnings(score)]
   }
 }
 
@@ -105,8 +108,7 @@ function collectUnavailableSwingWarnings(score: Score): MidiExportWarning[] {
   }]
 }
 
-function createTempoTrack(score: Score): number[] {
-  const timeline = createPlaybackTimeline(score)
+function createTempoTrack(score: Score, timeline: PlaybackTimeline): number[] {
   const initialQuarterBpm = score.tempo
     ? tempoMarkingToQuarterBpm(score.tempo)
     : DEFAULT_QUARTER_BPM
@@ -133,12 +135,12 @@ function createTempoTrack(score: Score): number[] {
 
 function createPartNoteTrack(
   score: Score,
+  timeline: PlaybackTimeline,
   part: Part,
   channel: number,
   program: number,
   unsupportedMeasureKeys: Set<string>
 ): number[] {
-  const timeline = createPlaybackTimeline(score)
   const messages: TimedMidiMessage[] = [
     {
       tick: 0,
@@ -178,7 +180,11 @@ function createPartNoteTrack(
     }
 
     const startTick = beatToMidiTick(event.startBeat)
-    const durationTick = Math.max(1, beatToMidiTick(event.durationBeats))
+    // Round shared split endpoints once so a same-pitch principal starts after
+    // the grace note-off, including when the split falls between MIDI ticks.
+    const endTick = Math.max(startTick + 1, event.graceSegment
+      ? beatToMidiTick(event.startBeat + event.durationBeats)
+      : startTick + beatToMidiTick(event.durationBeats))
     const velocity = velocityToMidi(event.velocityStart)
 
     for (const frequency of frequencies) {
@@ -192,7 +198,7 @@ function createPartNoteTrack(
       })
       order += 1
       messages.push({
-        tick: startTick + durationTick,
+        tick: endTick,
         order,
         bytes: [0x80 | channel, note, 0]
       })
@@ -203,7 +209,8 @@ function createPartNoteTrack(
   return renderTimedMessages(messages)
 }
 
-function collectUnperformedMidiWarnings(score: Score): MidiExportWarning[] {
+function collectUnperformedMidiWarnings(score: Score, timeline: PlaybackTimeline): MidiExportWarning[] {
+  const graceEvents = new Set(timeline.events.filter(event => event.graceSegment === 'leading').map(event => event.eventId))
   const warnings: MidiExportWarning[] = []
   score.parts.forEach((part, partIndex) => {
     part.staves.forEach((staff, staffIndex) => {
@@ -215,7 +222,7 @@ function collectUnperformedMidiWarnings(score: Score): MidiExportWarning[] {
             if (event.type !== 'note') return
             const source = { measureId: measure.id, measureNumber: measure.number }
             const path = `part[${partIndex + 1}].staff[${staffIndex + 1}].measure[${measureIndex + 1}].voice[${voiceIndex + 1}].event[${eventIndex + 1}]`
-            if (event.graceNotes?.length) warnings.push({
+            if (event.graceNotes?.length && !graceEvents.has(event.id)) warnings.push({
               code: 'unsupported-midi-grace',
               ...source,
               path: path + '.graceNotes',

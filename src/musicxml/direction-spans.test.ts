@@ -69,7 +69,7 @@ describe('direction span timing and voice', () => {
     const reopened = parseMusicXml(serializeMusicXml(score))
     const span = reopened.hairpins![0]!
     expect(address(reopened, span.startEventId)).toEqual(['voice-2', 0])
-    expect(address(reopened, span.endEventId)).toEqual(['voice-2', 3 * q])
+    expect(address(reopened, span.endEventId!)).toEqual(['voice-2', 3 * q])
     const events = reopened.parts[0]!.staves[0]!.measures[0]!.voices[1]!.events
     expect(events.find(event => event.id === span.startEventId)?.type).toBe('rest')
     expect(events.find(event => event.id === span.endEventId)?.type).toBe('rest')
@@ -82,7 +82,7 @@ describe('direction span timing and voice', () => {
 
   it('round-trips overlapping voice spans on interior notes without swapping anchors', () => {
     const reopened = parseMusicXml(serializeMusicXml(scoreWithSpans()))
-    expect(reopened.hairpins?.map(span => [span.type, address(reopened, span.startEventId), address(reopened, span.endEventId)])).toEqual([
+    expect(reopened.hairpins?.map(span => [span.type, address(reopened, span.startEventId), address(reopened, span.endEventId!)])).toEqual([
       ['crescendo', ['voice-1', 0], ['voice-1', 2 * q]],
       ['diminuendo', ['voice-2', q], ['voice-2', 3 * q]]
     ])
@@ -101,7 +101,7 @@ describe('direction span timing and voice', () => {
     </measure></part></score-partwise>`
     const score = parseMusicXml(xml)
     expect(address(score, score.hairpins![0]!.startEventId)).toEqual(['voice-2', q])
-    expect(address(score, score.hairpins![0]!.endEventId)).toEqual(['voice-2', 2 * q])
+    expect(address(score, score.hairpins![0]!.endEventId!)).toEqual(['voice-2', 2 * q])
   })
 
   it('keeps lower-staff voice direction anchors separate from upper-staff notes', () => {
@@ -117,7 +117,7 @@ describe('direction span timing and voice', () => {
     expect(lower).toBe(score.parts[0]!.staves[1])
     for (const span of [...reopened.hairpins!, ...reopened.octaveShifts!]) {
       expect(lowerIds.has(span.startEventId)).toBe(true)
-      expect(lowerIds.has(span.endEventId)).toBe(true)
+      expect(lowerIds.has(span.endEventId!)).toBe(true)
     }
   })
 

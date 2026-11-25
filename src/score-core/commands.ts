@@ -33,6 +33,9 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return { score: { ...score, swingPlayback: value },
         undo: { type: 'score-swing-playback.update', swingPlayback: score.swingPlayback } }
     }
+    case 'score-grace-playback.update':
+      return { score: { ...score, gracePlayback: command.enabled },
+        undo: { type: 'score-grace-playback.update', enabled: score.gracePlayback } }
     case 'score-octave-shifts.update':
       return updateScoreOctaveShifts(score, command.octaveShifts)
     case 'score-rehearsal-marks.update':

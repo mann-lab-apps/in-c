@@ -17,6 +17,7 @@ export function StudioTempoTools(props: {
   rhythm: string
   rhythms: readonly Choice[]
   swingPlayback: string
+  gracePlayback: boolean
   swingUnavailableReason?: string
   swingHint?: string
   onBpm: (value: number) => void
@@ -24,6 +25,7 @@ export function StudioTempoTools(props: {
   onVisible: (value: boolean) => void
   onRhythm: (value: string) => void
   onSwingPlayback: (value: string) => void
+  onGracePlayback: (enabled: boolean) => void
 }) {
   const hintId = useId()
   const preservedValue = parseAuthoredTempoBpm(String(props.bpm)) === undefined
@@ -48,6 +50,9 @@ export function StudioTempoTools(props: {
       ]} onChange={props.onSwingPlayback}/></div>
     </div>
     <Text as="p" variant="description">스윙 재생은 악보 전체의 발음 시점과 MIDI에 적용하며, 리듬 해석 표기와 별개입니다. 잇단음표나 더 짧은 음가가 겹친 두 음 묶음은 해당 성부에서 직선으로 유지합니다. 구간·보표별 변경은 지원하지 않습니다.</Text>
+    <Checkbox label="앞꾸밈음 발음" checked={props.gracePlayback}
+      onChange={event=>props.onGracePlayback(event.currentTarget.checked)}/>
+    <Text as="p" variant="description">일반 단음 앞의 꾸밈음 한 개를 재생과 MIDI에서 발음합니다. 설정은 프로젝트 파일에 저장됩니다.</Text>
     {props.swingUnavailableReason ? <Text as="p" variant="description">{props.swingUnavailableReason}</Text> : null}
   </section>
 }

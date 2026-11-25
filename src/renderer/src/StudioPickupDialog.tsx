@@ -4,6 +4,7 @@ import { measureDurationTicks, TICKS_PER_QUARTER, type Score } from '../../score
 import { isDocumentSaveShortcut } from './editor/draft-save'
 import { useDocumentDraftSaveGuard } from './editor/document-drafts'
 import { buildEmptyFirstMeasurePickupCommand, firstMeasurePickupIssues, inspectEmptyFirstMeasures } from './editor/existing-pickup'
+import { describeHairpinTimeEnd } from './editor/span-editing'
 import { parsePickupDuration } from './editor/new-score'
 import './studio-pickup-dialog.css'
 
@@ -57,6 +58,10 @@ export function StudioPickupDialog({ score, theme, onClose, onApply }: {
           return
         }
         if (result?.issue) { setError(firstMeasurePickupIssues[result.issue]); return }
+        if (result?.timeEnd) {
+          setError(`헤어핀 끝점(${describeHairpinTimeEnd(score, result.timeEnd)})이 새 마디 길이를 벗어납니다.`)
+          return
+        }
         if (onApply(ticks)) onClose()
         else setError('현재 악보의 첫 마디를 변경할 수 없습니다. 원본 표기와 적용 범위를 확인하세요.')
       }}>

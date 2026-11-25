@@ -60,6 +60,23 @@ describe('automatic slur interior fermata ink clearance',()=>{
  it('keeps already clear hanging endpoints unchanged',()=>{
   expect(resolveSlurFermataCurve(curve,[{...ink,y:75.3564453125}],true,true)).toBe(curve)
  })
+ it.each(['above', 'below'] as const)('separates nested slurs at a shared continuation edge on the %s side', side => {
+  const source: AutomaticSlurCurve = {
+    x1: 30, x2: 430, controlX: 230, y1: 100, y2: 100,
+    controlY: side === 'above' ? 78 : 122, side, strokeWidth: 1.6
+  }
+  const direction = side === 'above' ? -1 : 1
+  for (const atStart of [true, false]) {
+   const nested = { x: atStart ? 29.2 : 429, y: 99.2, width: 1.8, height: 1.6, nestedSlur: true }
+   const next = resolveSlurFermataCurve(source, [nested], atStart, !atStart)
+   expect(direction * (atStart ? next.y1 - source.y1 : next.y2 - source.y2)).toBeGreaterThan(8)
+   expect(atStart ? next.y2 : next.y1).toBe(100)
+   expect([next.x1, next.x2]).toEqual([source.x1, source.x2])
+   expect(resolveSlurFermataCurve(next, [nested], atStart, !atStart)).toBe(next)
+   expect(resolveSlurFermataCurve(source, [nested], false, false)).toBe(source)
+   expect(resolveSlurFermataCurve(source, [{ ...nested, nestedSlur: false }], atStart, !atStart)).toBe(source)
+  }
+ })
  it('preserves a separated notehead rectangle while retaining ordinary mark padding',()=>{
   const source={...curve,y1:122,y2:122,controlY:100},head={x:233,y:115,width:17,height:10}
   expect(resolveSlurFermataCurve(source,[{...head,collisionOnly:true}],false,false)).toBe(source)

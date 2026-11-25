@@ -53,7 +53,8 @@ export function createScoreRequest(score: Score): ScoreRequest {
     throw new Error('재생 가능한 음표가 있는 짧은 악보가 필요합니다.')
   }
   // Opaque identity shared with Python; includes event occurrences, rests, dynamics and tempo.
-  const scoreKey = JSON.stringify([bpm, timeline])
+  // Sample automation does not change the prediction request's score identity.
+  const scoreKey = JSON.stringify([bpm, timeline], (key, value) => key === 'sampleHairpinVelocity' ? undefined : value)
   return { version: 1, scoreKey, bpm, notes }
 }
 

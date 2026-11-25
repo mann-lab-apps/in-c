@@ -264,7 +264,7 @@ export function createScoreSemanticSnapshot(score: Score) {
     })),
     hairpins: score.hairpins?.map((hairpin) => ({
       startIndex: eventIndexById.get(hairpin.startEventId),
-      endIndex: eventIndexById.get(hairpin.endEventId),
+      endIndex: hairpin.endEventId === undefined ? undefined : eventIndexById.get(hairpin.endEventId),
       type: hairpin.type
     })),
     slurs: score.slurs?.map((slur) => ({

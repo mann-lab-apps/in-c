@@ -5,6 +5,7 @@ import { lyricDisplayText, minimumLyricColumnWidth } from './lyric-spacing'
 import { spacedHarmonies, type HarmonySpacingWidths } from './harmony-spacing'
 import { createSharedRepeatBarlines } from './repeat-barlines'
 import type { MeasureWidthRequirements } from './system-layout'
+import { sameDisplayedClef } from './vexflow-adapter'
 
 const empty:ReadonlyMap<string,number>=new Map()
 
@@ -17,8 +18,8 @@ export function useLyricWidths(score:Score,contextKey='',enabled=true):{widths:R
   return useMeasuredTextWidths(words,contextKey,'.notation-preview .notation-lyric')
 }
 
-export function useHarmonyWidths(score:Score,contextKey=''):{widths:ReadonlyMap<string,number>;ready:boolean} {
-  const words=useMemo(()=>[...new Set(spacedHarmonies(score).map(h=>h.text))].sort(),[score])
+export function useHarmonyWidths(score:Score|undefined,contextKey=''):{widths:ReadonlyMap<string,number>;ready:boolean} {
+  const words=useMemo(()=>score?[...new Set(spacedHarmonies(score).map(h=>h.text))].sort():[],[score])
   return useMeasuredTextWidths(words,contextKey,'.notation-preview .notation-harmony-mark')
 }
 
@@ -60,7 +61,7 @@ export function minimumLyricScoreWidths(score:Score,widths:ReadonlyMap<string,nu
   return minimumTextScoreWidths(score,widths)
 }
 
-export function useMinimumTextScoreWidths(score:Score,widths:ReadonlyMap<string,number>,harmonies?:HarmonySpacingWidths):MeasureWidthRequirements {
+export function useMinimumTextScoreWidths(score:Score|undefined,widths:ReadonlyMap<string,number>,harmonies?:HarmonySpacingWidths):MeasureWidthRequirements {
   const [fontRevision,setFontRevision]=useState(0)
   useEffect(()=>{
     const fonts=document.fonts
@@ -71,7 +72,7 @@ export function useMinimumTextScoreWidths(score:Score,widths:ReadonlyMap<string,
     fonts.addEventListener?.('loadingdone',refresh)
     return()=>{active=false;fonts.removeEventListener?.('loadingdone',refresh)}
   },[])
-  return useMemo(()=>minimumTextScoreWidths(score,widths,harmonies),[score,widths,harmonies,fontRevision])
+  return useMemo(()=>score?minimumTextScoreWidths(score,widths,harmonies):empty,[score,widths,harmonies,fontRevision])
 }
 
 export function minimumTextScoreWidths(score:Score,widths:ReadonlyMap<string,number>,harmonies?:HarmonySpacingWidths):MeasureWidthRequirements {
@@ -91,8 +92,7 @@ export function minimumTextScoreWidths(score:Score,widths:ReadonlyMap<string,num
     const changedHeader = index > 0 && staves.some(staff => {
       const bar = staff.measures[index], previous = staff.measures[index - 1]
       return bar && previous && (
-        bar.clef.sign !== previous.clef.sign || bar.clef.line !== previous.clef.line ||
-        bar.clef.octaveChange !== previous.clef.octaveChange ||
+        !sameDisplayedClef(previous.clef, bar.clef) ||
         bar.keySignature.fifths !== previous.keySignature.fifths || bar.keySignature.mode !== previous.keySignature.mode ||
         bar.timeSignature.beats !== previous.timeSignature.beats || bar.timeSignature.beatType !== previous.timeSignature.beatType)
     })

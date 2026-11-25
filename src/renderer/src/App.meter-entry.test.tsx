@@ -33,3 +33,32 @@ it('right-click opens the selected bar meter field without editing, then applies
  fireEvent.keyDown(window,{key:'z',code:'KeyZ',ctrlKey:true});expect(playbackMockState.lastScore).toEqual(source.score)
  fireEvent.keyDown(window,{key:'z',code:'KeyZ',ctrlKey:true,shiftKey:true});expect(playbackMockState.lastScore).toEqual(next)
 })
+
+it('changes the complete score at the selected bar through a separate explicit command', async () => {
+  window.history.replaceState({}, '', '/?fixture=release-test')
+  const source = createNativeProject(createNewScore({ title: 'Score meter QA', templateId: 'string-quartet',
+    measureCount: 3, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+  vi.mocked(window.inC.project.open).mockResolvedValueOnce({
+    filePath: '/fixture/score-meter.chromatics', fileName: 'score-meter.chromatics', contents: encodeNativeProject(source)
+  })
+  const { App } = await import('./App')
+  render(<App />)
+  openStudioWorkspace('파일')
+  fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+  await waitFor(() => expect(playbackMockState.lastScore).toEqual(source.score))
+  fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), { clientX: 200, clientY: 180 })
+  fireEvent.click(within(screen.getByRole('menu', { name: '마디 작업' })).getByRole('menuitem', { name: '박자표 변경…' }))
+  fireEvent.click(screen.getByRole('button', { name: '이 마디의 총보 박자표…' }))
+  const dialog = within(screen.getByRole('dialog', { name: '총보 박자표' }))
+  expect(dialog.getByText(/모든 보표의 이 마디/)).toBeVisible()
+  fireEvent.change(dialog.getByRole('spinbutton', { name: '박자 분자' }), { target: { value: '3' } })
+  fireEvent.click(dialog.getByRole('button', { name: '적용' }))
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: '총보 박자표' })).not.toBeInTheDocument())
+  const changed = playbackMockState.lastScore!
+  expect(changed.parts.map(part => part.staves[0].measures.map(bar => bar.timeSignature.beats)))
+    .toEqual(Array.from({ length: 4 }, () => [4, 3, 4]))
+  fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true })
+  expect(playbackMockState.lastScore).toEqual(source.score)
+  fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true, shiftKey: true })
+  expect(playbackMockState.lastScore).toEqual(changed)
+})

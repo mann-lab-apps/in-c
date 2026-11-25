@@ -32,6 +32,20 @@ describe('hairpin rendering', () => {
     ])
   })
 
+  it('uses the supplied measure-end position without extending it beyond the closing barline', () => {
+    const bounds = new Map([[0, { x1: 16, x2: 500, y: 40 }]])
+    expect(resolveHairpinSegments({ x: 80, y: 40 }, { x: 492, y: 40, exactEnd: true }, 0, 0, bounds))
+      .toEqual([{ systemIndex: 0, x1: 90, x2: 492, staffY: 40, isFirst: true, isLast: true }])
+  })
+
+  it('reduces the start inset to draw a short wedge at its exact measure-end closing position', () => {
+    const bounds = new Map([[0, { x1: 8, x2: 577, y: 40 }]])
+    const close = { x: 569, y: 40, exactEnd: true }
+    expect(resolveHairpinSegments({ x: 553.2, y: 40 }, close, 0, 0, bounds))
+      .toEqual([{ systemIndex: 0, x1: 560, x2: 569, staffY: 40, isFirst: true, isLast: true }])
+    expect(resolveHairpinSegments({ x: 565, y: 40 }, close, 0, 0, bounds)).toEqual([])
+  })
+
   it('layout.hairpin-system-segments keeps crescendo and diminuendo directions distinct', () => {
     expect(resolveHairpinOpenings('crescendo', true, true)).toEqual({
       left: 0,

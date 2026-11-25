@@ -7,3 +7,26 @@
   max-width: 100%;
 }
 .studio-repeat-tools > h3 { margin: 0; }
+
+.studio-navigation-tools > summary,
+.studio-volta-pass > summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.studio-navigation-tools__editor,
+.studio-volta-pass__editor {
+  padding-block-start: var(--dd-spacing-sm);
+}
+.studio-navigation-tools__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  align-items: start;
+  gap: var(--dd-spacing-sm);
+  min-width: 0;
+}
+
+
+.studio-navigation-tools__scope,
+.studio-navigation-tools__fields > [role="group"] {
+  grid-column: 1 / -1;
+}

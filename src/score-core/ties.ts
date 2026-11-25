@@ -1,4 +1,4 @@
-import { resolveNotePitch } from './pitch'
+import { pitchToMidi, resolveNotePitch } from './pitch'
 import { measureDurationTicks, sortVoiceEvents, voiceEventDurationTicks } from './timing'
 import type {
   Measure,
@@ -13,6 +13,7 @@ import type {
 export interface TiePair {
   fromEventId: string
   toEventId: string
+  respellsPitch?: true
 }
 
 interface EventLocation {
@@ -38,14 +39,15 @@ export function collectTiePairs(score: Score): TiePair[] {
       !next ||
       next.event.type !== 'note' ||
       !next.event.ties?.stop ||
-      !isAdjacentEqualPitch(location, next)
+      !isAdjacentEqualPitch(location, next, true)
     ) {
       return
     }
 
     pairs.push({
       fromEventId: location.event.id,
-      toEventId: next.event.id
+      toEventId: next.event.id,
+      ...(sameEnharmonicSinglePitch(location, next) ? { respellsPitch: true } : {})
     })
   })
 
@@ -70,7 +72,7 @@ export function validateTieRelations(score: Score): string[] {
         !next ||
         next.event.type !== 'note' ||
         !next.event.ties?.stop ||
-        !isAdjacentEqualPitch(location, next)
+        !isAdjacentEqualPitch(location, next, true)
       ) {
         errors.push(`Invalid tie start: ${event.id}`)
       }
@@ -83,7 +85,7 @@ export function validateTieRelations(score: Score): string[] {
         !previous ||
         previous.event.type !== 'note' ||
         !previous.event.ties?.start ||
-        !isAdjacentEqualPitch(previous, location)
+        !isAdjacentEqualPitch(previous, location, true)
       ) {
         errors.push(`Invalid tie stop: ${event.id}`)
       }
@@ -239,7 +241,8 @@ function findTieNeighbour(events: EventLocation[], index: number, direction: -1 
 
 function isAdjacentEqualPitch(
   from: EventLocation,
-  to: EventLocation
+  to: EventLocation,
+  allowEnharmonicSingle = false
 ): boolean {
   if (
     from.event.type !== 'note' ||
@@ -257,11 +260,30 @@ function isAdjacentEqualPitch(
   // Preserve the legacy primary-only branch for unequal shapes here; changing
   // acceptance of old partial-looking ties needs a separate compatibility policy.
 
-  return sameWholeChordPitches(from, to) || (
+  return sameWholeChordPitches(from, to) ||
+    (allowEnharmonicSingle && sameEnharmonicSinglePitch(from, to)) || (
     fromPitch.step === toPitch.step &&
     fromPitch.octave === toPitch.octave &&
     fromPitch.alter === toPitch.alter
   )
+}
+
+// Imported single notes can sustain one sounding pitch across a spelling
+// change. Tie creation still uses the editor's existing written-pitch rule.
+function sameEnharmonicSinglePitch(from: EventLocation, to: EventLocation): boolean {
+  if (
+    from.event.type !== 'note' || to.event.type !== 'note' ||
+    (from.event.pitches?.length ?? 0) > 1 || (to.event.pitches?.length ?? 0) > 1
+  ) return false
+
+  const fromPitch = resolveNotePitch(from.measure, from.voice, from.event)
+  const toPitch = resolveNotePitch(to.measure, to.voice, to.event)
+  const transpositionSemitones = (measure: Measure): number =>
+    (measure.transposition?.chromatic ?? 0) + 12 * (measure.transposition?.octaveChange ?? 0)
+
+  return pitchToMidi(fromPitch) === pitchToMidi(toPitch) &&
+    (fromPitch.step !== toPitch.step || fromPitch.octave !== toPitch.octave) &&
+    transpositionSemitones(from.measure) === transpositionSemitones(to.measure)
 }
 
 function sameWholeChordPitches(from: EventLocation, to: EventLocation): boolean {
@@ -289,6 +311,7 @@ export interface UnsupportedChordTieWarning extends TiePair {
 export function collectUnsupportedChordTieWarnings(score: Score): UnsupportedChordTieWarning[] {
   const locations = new Map(flattenVoiceEvents(score).map(location => [location.event.id, location]))
   return collectTiePairs(score).flatMap(pair => {
+    if (pair.respellsPitch) return []
     const from = locations.get(pair.fromEventId), to = locations.get(pair.toEventId)
     if (!from || !to || sameWholeChordPitches(from, to)) return []
     return [{

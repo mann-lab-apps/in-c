@@ -13,6 +13,7 @@ interface Props {
   pdfDisabled: boolean
   pdfHint: string
   onPdf: () => void
+  onPdfWithGroupedRests?: () => void
   onMidi: () => void
   xmlBusy: boolean
   xmlHint: string
@@ -28,10 +29,12 @@ interface Props {
 }
 
 const pageError = 'PDF 장수는 1 이상이어야 합니다.'
+const expandedXmlHint = '도돌이표·볼타·반복 이동을 현재 재생 순서대로 펼친 사본입니다. 일부 표기는 펼친 사본으로 옮길 수 없습니다. 원본은 프로젝트 파일로 보관하세요.'
 
 // File/output ownership stays in App. Page count retains its raw string draft:
 // NumberControl would clamp zero/empty and lose the existing invalid/retry contract.
 export function StudioExportTools(props: Props) {
+  const xmlHint = `${props.xmlHint}. 도돌이표·볼타와 반복 이동 표지를 유지합니다.`
   const pdfHint = [props.pdfHint, props.copySourceHint].filter(Boolean).join(' ')
   const midiHint = ['현재 악보 보기 또는 선택 파트보를 MIDI 파일로 내보내기', props.copySourceHint].filter(Boolean).join(' ')
   return <section className="studio-export-tools ddirori" aria-label="내보내기 작업"
@@ -56,20 +59,24 @@ export function StudioExportTools(props: Props) {
           <span className="studio-export-tools__command"><FileDown aria-hidden="true" size={18} strokeWidth={1.75}/><span>PDF 변환</span></span>
         </Button>
       </Tooltip>
+      {props.onPdfWithGroupedRests ? <Tooltip text="연속 온마디 쉼표를 묶어 이 파트보의 PDF를 만듭니다.">
+        <Button kind="secondary" busy={props.pdfBusy} disabled={props.pdfDisabled}
+          onClick={props.onPdfWithGroupedRests}>쉼표를 묶어 파트보 PDF 출력</Button>
+      </Tooltip> : null}
       <Tooltip text={midiHint}>
         <Button kind="secondary" aria-label="MIDI 내보내기"
           title={midiHint} onClick={() => { props.onMidi() }}>
           <span className="studio-export-tools__command"><FileVolume aria-hidden="true" size={18} strokeWidth={1.75}/><span>MIDI</span></span>
         </Button>
       </Tooltip>
-      <Tooltip text={props.xmlHint}>
-        <Button kind="secondary" aria-label="MusicXML 내보내기" title={props.xmlHint}
+      <Tooltip text={xmlHint}>
+        <Button kind="secondary" aria-label="MusicXML 내보내기" title={xmlHint}
           busy={props.xmlBusy} disabled={props.xmlBusy} onClick={() => { props.onXml() }}>
           <span className="studio-export-tools__command"><FileMusic aria-hidden="true" size={18} strokeWidth={1.75}/><span>MusicXML</span></span>
         </Button>
       </Tooltip>
-      <Tooltip text="반복과 볼타를 현재 재생 순서대로 펼친 사본입니다. 일부 표기는 옮길 수 없어 일반 MusicXML 내보내기나 프로젝트 저장이 필요합니다.">
-        <Button kind="secondary" aria-label="반복 펼치기 MusicXML 내보내기"
+      <Tooltip text={expandedXmlHint}>
+        <Button kind="secondary" aria-label="반복 펼치기 MusicXML 내보내기" title={expandedXmlHint}
           busy={props.xmlBusy} disabled={props.xmlBusy} onClick={()=>{props.onExpandedXml()}}>
           <span className="studio-export-tools__command"><FileMusic aria-hidden="true" size={18} strokeWidth={1.75}/><span>MusicXML 반복 펼치기</span></span>
         </Button>

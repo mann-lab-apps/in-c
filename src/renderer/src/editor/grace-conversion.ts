@@ -1,4 +1,4 @@
-import { applyScoreCommand, createRest, decomposeDurationTicks, durationToTicks, effectiveAlterAt, measureDurationTicks, resolveNotePitch, sortVoiceEvents, validateTieRelations, voiceEventDurationTicks, type Note, type Score, type ScoreCommand, type VoiceEvent } from '../../../score-core'
+import { applyScoreCommand, createRest, decomposeDurationTicks, durationToTicks, measureDurationTicks, preserveFollowingPitchSounds, resolveNotePitch, sortVoiceEvents, validateTieRelations, voiceEventDurationTicks, type Note, type Score, type ScoreCommand, type VoiceEvent } from '../../../score-core'
 import { collectSpanEndpointIds } from '../../../score-core/span-references'
 import type { EventLocation } from './editor-state'
 
@@ -17,21 +17,12 @@ export function buildGraceConversion(score: Score, location: EventLocation | und
   const ticks=voiceEventDurationTicks(note,measure)
   const rests=decomposeDurationTicks(ticks)
   if(!rests?.length)return blocked('이 음가를 마디 끝 쉼표로 옮길 수 없습니다.')
-  const next:VoiceEvent[]=events.filter(e=>e.id!==note.id).map((event,i)=>({ ...event,position:{...event.position,tick:event.position.tick-(i>=index?ticks:0)} }))
+  const shifted: VoiceEvent[] = events.filter(event => event.id !== note.id).map((event, i) => ({
+    ...event, position: { ...event.position, tick: event.position.tick - (i >= index ? ticks : 0) }
+  }))
+  const next = preserveFollowingPitchSounds(measure, voice, shifted, note.position.tick)
   const target=next[index] as Note
   next[index]={...target,graceNotes:[{pitch:resolveNotePitch(measure,voice,note),slash:true},...(target.graceNotes??[])]}
-  // Removing an explicit accidental must not respell later sounding pitches.
-  for(let i=index;i<next.length;i++){
-    const event=next[i],old=events.find(e=>e.id===event.id)
-    if(event.type!=='note'||old?.type!=='note')continue
-    const pin=(pitch:Note['pitch'])=>{
-      const desired=effectiveAlterAt({measure,voice,step:pitch.step,octave:pitch.octave,tick:old.position.tick,override:pitch.alter})
-      const actual=effectiveAlterAt({measure,voice:{...voice,events:next},step:pitch.step,octave:pitch.octave,tick:event.position.tick,override:pitch.alter})
-      return desired===actual?pitch:{...pitch,alter:desired}
-    }
-    const pitches=event.pitches?.map(pin)
-    next[i]={...event,pitch:pitches?.[0]??pin(event.pitch),...(pitches?{pitches}:{})}
-  }
   let tick=measureDurationTicks(measure)-ticks
   for(const duration of rests){next.push(createRest({id:createId(),position:{tick},duration}));tick+=durationToTicks(duration)}
   const command:ScoreCommand={type:'voice-events.replace',target:address,events:next,editedEventId:host.id}

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { resolveHairpinInkMinimums, type AutomaticHairpinInk } from './hairpin-ink-spacing'
+import { resolveHairpinInkMinimums, resolveHairpinStackOffset, type AutomaticHairpinInk } from './hairpin-ink-spacing'
 import { createStemExpressionHairpinFixture } from '../../../testing/stem-expression-hairpin-fixture'
 import { resolveMeasureAnnotationLanes } from './annotation-lanes'
 import { reserveInteriorHairpinLanes } from './hairpin-annotation-lanes'
@@ -37,4 +37,17 @@ it('reserves measured minimums before expression baselines and system extent are
   expect(middle.hairpinYOffset).toBe(183.91)
   expect(middle.expressionTextYOffsets[0]-17-(183.91+10.9)).toBeCloseTo(8)
   expect(middle.requiredBelow).toBeGreaterThan(middle.expressionTextYOffsets[0]+17)
+})
+
+it('separates overlapping hairpin ink from each occupied lane on the same staff and system', () => {
+  const upper = { ...span, y: 220, height: 20 }
+  const middle = { ...span, y: 246, height: 20 }
+  const farBelow = { ...span, y: 350, height: 20 }
+  const otherStaff = { ...span, y: 262, staffIndex: span.staffIndex + 1 }
+  const otherSystem = { ...span, y: 262, systemIndex: span.systemIndex + 1 }
+  const disjoint = { ...span, x: span.x + span.width + 5, y: 262 }
+
+  expect(resolveHairpinStackOffset([upper], [middle, farBelow, otherStaff, otherSystem, disjoint, upper])).toBe(54)
+  expect(resolveHairpinStackOffset([upper], [farBelow, otherStaff, otherSystem, disjoint])).toBe(0)
+  expect(resolveHairpinStackOffset([upper], [upper], 42)).toBe(42)
 })

@@ -65,7 +65,7 @@ export function StudioNoteDecorations(props:Props) {
     </div>
     <div className="studio-note-decorations__row">
       <Text as="h4" variant="label">부착 꾸밈음</Text>
-      <Tooltip text={props.note.graceNotes?.length?'선택 음표 앞의 꾸밈음 제거':'선택 음표 앞에 꾸밈음 붙이기'}>
+      <Tooltip text={props.note.graceNotes?.length?'선택 음표의 꾸밈음 제거':'선택 음표 앞에 꾸밈음 붙이기'}>
         <IconButton label="부착 꾸밈음" selected={Boolean(props.note.graceNotes?.length)} onClick={props.onGrace}><StudioDecorationGlyph kind="grace" /></IconButton>
       </Tooltip>
       <Text as="p" variant="caption" className="studio-note-decorations__help">선택 음표와 음가는 유지합니다. 다음 입력 설정을 바꾸지 않습니다.</Text>

@@ -15,16 +15,63 @@ export interface PianoManifest {
   samples: PianoSample[]
 }
 
+export interface PianoVelocityPoint {
+  /** Seconds from the scheduled sample start, on the audio clock. */
+  after: number
+  velocity: number
+}
+
+export interface PianoVoicePosition {
+  offsetSeconds: number
+  velocity: number
+}
+
+export const PIANO_ATTACK_SECONDS = .002
+
 interface Voice {
   id: string
   sources: AudioBufferSourceNode[]
   gains: GainNode[]
   startedAt: number
-  released: boolean
+  offsetSeconds: number
+  velocity: number
+  releaseAt?: number
   deferred: boolean
   offAt?: number
+  scorePedalRelease?: (time: number) => number
   naturalEnds: number[]
+  tailGains: Map<GainNode, number>
   endLimit?: number
+}
+
+// Automate the same gains used for stopping, release and loop fades, so
+// those operations cancel the remaining curve along with the sample.
+function scheduleSampleGain(gain: AudioParam, weight: number, velocity: number, at: number, start: number,
+  naturalEnd: number, curve: readonly PianoVelocityPoint[] = []): number {
+  const amplitude = (value: number) => weight * (.35 + .65 * value / 127)
+  const attackEnd = start + PIANO_ATTACK_SECONDS
+  const elapsed = attackEnd - at
+  let index = 1
+  while (index < curve.length && curve[index].after <= elapsed) index++
+  const previous = curve[index - 1]
+  const next = curve[index]
+  let attackVelocity = previous?.velocity ?? velocity
+  if (previous && next) {
+    const progress = (elapsed - previous.after) / (next.after - previous.after)
+    attackVelocity += (next.velocity - previous.velocity) * progress
+  }
+  gain.setValueAtTime(0, start)
+  gain.linearRampToValueAtTime(amplitude(attackVelocity), attackEnd)
+  for (; index < curve.length; index++) {
+    const point = curve[index]
+    gain.linearRampToValueAtTime(amplitude(point.velocity), at + point.after)
+  }
+  const last = curve.at(-1)
+  const tailGain = amplitude(last?.velocity ?? velocity)
+  // A future ramp lets Chromium's cancelAndHoldAtTime anchor a later fade
+  // at its requested time. Without it the fade starts at the last curve point.
+  if (naturalEnd > Math.max(attackEnd, at + (last?.after ?? 0))) gain.linearRampToValueAtTime(tailGain, naturalEnd)
+  return tailGain
 }
 
 const safetyCurve = Float32Array.from({ length: 65537 }, (_, i) => {
@@ -166,7 +213,8 @@ export class PianoSampler {
     return clone
   }
 
-  noteOn(id: string, pitch: number, velocity: number, at: number, offsetSeconds = 0) {
+  noteOn(id: string, pitch: number, velocity: number, at: number, offsetSeconds = 0,
+    velocityCurve?: readonly PianoVelocityPoint[]) {
     if (!this.ready) throw new Error('피아노 음원을 먼저 준비해 주세요.')
     if (!Number.isFinite(pitch) || pitch < 21 || pitch > 108 ||
         !Number.isFinite(velocity) || velocity <= 0 || velocity > 127) {
@@ -179,20 +227,23 @@ export class PianoSampler {
     this.stopVoice(this.voices.get(id), this.context.currentTime, 0.01)
     if (this.voices.size >= this.maxVoices) {
       const ordered = [...this.voices.values()].sort((a, b) =>
-        Number(b.released || b.deferred) - Number(a.released || a.deferred) || a.startedAt - b.startedAt)
+        Number(b.releaseAt !== undefined || b.deferred) - Number(a.releaseAt !== undefined || a.deferred) || a.startedAt - b.startedAt)
       this.stopVoice(ordered[0], Math.max(at, this.context.currentTime), 0.015)
     }
-    const voice: Voice = { id, sources: [], gains: [], startedAt: at,
-      released: false, deferred: false, naturalEnds: [] }
+    const start = Math.max(at, this.context.currentTime)
+    const voice: Voice = { id, sources: [], gains: [], startedAt: start, offsetSeconds: Math.max(0, offsetSeconds), velocity,
+      deferred: false, naturalEnds: [], tailGains: new Map() }
     this.voices.set(id, voice)
     for (const { sample, weight } of layers) {
       const source = this.context.createBufferSource(), gain = this.context.createGain()
       source.buffer = this.buffers.get(sample.file)!
       source.playbackRate.value = 2 ** ((pitch - sample.rootPitch) / 12)
-      const start = Math.max(at, this.context.currentTime)
-      const amplitude = weight * (0.35 + 0.65 * velocity / 127)
-      gain.gain.setValueAtTime(0, start)
-      gain.gain.linearRampToValueAtTime(amplitude, start + 0.002)
+      // Resume inside a held note without replaying the recorded hammer attack.
+      const offset = voice.offsetSeconds * source.playbackRate.value
+      if (offset >= source.buffer.duration) continue
+      const naturalEnd = start + (source.buffer.duration - offset) / source.playbackRate.value
+      const tailGain = scheduleSampleGain(gain.gain, weight, velocity, at, start, naturalEnd, velocityCurve)
+      voice.tailGains.set(gain, tailGain)
       source.connect(gain)
       gain.connect(this.master)
       voice.sources.push(source)
@@ -200,6 +251,7 @@ export class PianoSampler {
       source.onended = () => {
         source.disconnect()
         gain.disconnect()
+        voice.tailGains.delete(gain)
         const index = voice.sources.indexOf(source)
         if (index >= 0) {
           voice.sources.splice(index, 1)
@@ -211,26 +263,35 @@ export class PianoSampler {
           this.retiredVoices.delete(voice)
         }
       }
-      // Resume inside a held note without replaying the recorded hammer attack.
-      const offset = Math.max(0, offsetSeconds) * source.playbackRate.value
-      if (offset < source.buffer.duration) {
-        voice.naturalEnds.push(start + (source.buffer.duration - offset) / source.playbackRate.value)
-        source.start(start, offset)
-      }
-      else {
-        source.disconnect()
-        gain.disconnect()
-        voice.sources.pop()
-        voice.gains.pop()
-      }
+      voice.naturalEnds.push(naturalEnd)
+      source.start(start, offset)
     }
     if (!voice.sources.length) this.voices.delete(id)
   }
 
-  noteOff(id: string, at: number) {
+  captureManualSustain(at: number): Map<string, PianoVoicePosition> {
+    return this.pedalDown ? this.captureSoundingVoices(at, true) : new Map()
+  }
+
+  captureSoundingVoices(at: number, manualOnly = false): Map<string, PianoVoicePosition> {
+    const snapshots = new Map<string, PianoVoicePosition>()
+    for (const voice of this.voices.values()) {
+      if (voice.startedAt >= at || (voice.releaseAt ?? Infinity) <= at ||
+          !voice.naturalEnds.some(end => end > at)) continue
+      if (manualOnly && (!voice.deferred || (voice.offAt ?? Infinity) > at)) continue
+      snapshots.set(voice.id, {
+        offsetSeconds: voice.offsetSeconds + (at - voice.startedAt),
+        velocity: voice.velocity
+      })
+    }
+    return snapshots
+  }
+
+  noteOff(id: string, at: number, scorePedalRelease?: (time: number) => number) {
     const voice = this.voices.get(id)
-    if (!voice || voice.released) return
+    if (!voice || voice.releaseAt !== undefined) return
     voice.offAt = at
+    voice.scorePedalRelease = scorePedalRelease
     if (this.pedalDown) voice.deferred = true
     else this.releaseVoice(voice, at)
   }
@@ -256,23 +317,33 @@ export class PianoSampler {
     if (down) for (const voice of this.voices.values()) {
       // A note-off may already be scheduled within the transport lookahead.
       // Pedal pressed before that timestamp must cancel the future damper release.
-      if (voice.released && voice.offAt !== undefined && voice.offAt >= at) {
-        for (const gain of voice.gains) gain.gain.cancelAndHoldAtTime(voice.offAt)
+      const release = voice.releaseAt
+      if (release !== undefined && release >= at) {
+        for (const [index, gain] of voice.gains.entries()) {
+          gain.gain.cancelAndHoldAtTime(release)
+          const tailGain = voice.tailGains.get(gain)
+          const end = voice.naturalEnds[index]
+          if (tailGain !== undefined && end > release) gain.gain.linearRampToValueAtTime(tailGain, end)
+        }
         voice.sources.forEach((source, i) => source.stop(voice.naturalEnds[i]))
-        voice.released = false
+        voice.releaseAt = undefined
         voice.deferred = true
         this.applyEndLimit(voice)
       }
     }
     if (!down) for (const voice of this.voices.values()) {
-      if (voice.deferred) this.releaseVoice(voice, Math.max(at, voice.offAt ?? at))
+      if (!voice.deferred) continue
+      const earliest = Math.max(at, voice.offAt ?? at)
+      // A manual hold can bridge a score pedal lift and retake. When the
+      // manual pedal lifts, the part's current written pedal can still hold.
+      this.releaseVoice(voice, voice.scorePedalRelease?.(earliest) ?? earliest)
     }
   }
 
   private releaseVoice(voice: Voice, at: number) {
-    voice.released = true
-    voice.deferred = false
     const time = Math.max(at, this.context.currentTime)
+    voice.releaseAt = time
+    voice.deferred = false
     for (const gain of voice.gains) {
       gain.gain.cancelAndHoldAtTime(time)
       gain.gain.linearRampToValueAtTime(0, time + 0.22)
@@ -283,17 +354,22 @@ export class PianoSampler {
 
   private stopVoice(voice: Voice | undefined, at: number, fade: number) {
     if (!voice) return
+    const sounding = at > voice.startedAt
+    const limit = voice.endLimit ?? Infinity
+    const fadeEnd = Math.min(at + fade, limit)
     for (const gain of voice.gains) {
       gain.gain.cancelAndHoldAtTime(at)
-      gain.gain.linearRampToValueAtTime(0, at + fade)
+      if (sounding && fadeEnd > at) gain.gain.linearRampToValueAtTime(0, fadeEnd)
     }
-    for (const source of voice.sources) { try { source.stop(at + fade + 0.001) } catch { /* ended */ } }
+    const stopAt = sounding ? Math.min(fadeEnd + .001, limit) : at
+    for (const source of voice.sources) { try { source.stop(stopAt) } catch { /* ended */ } }
     if(voice.sources.length)this.retiredVoices.add(voice)
     if (this.voices.get(voice.id) === voice) this.voices.delete(voice.id)
   }
 
-  stopAll() {
-    for (const voice of new Set([...this.voices.values(),...this.retiredVoices])) this.stopVoice(voice, this.context.currentTime, 0.015)
+  stopAll(fade = .015) {
+    const at = this.context.currentTime
+    for (const voice of new Set([...this.voices.values(),...this.retiredVoices])) this.stopVoice(voice, at, fade)
     this.pedalDown = false
   }
 

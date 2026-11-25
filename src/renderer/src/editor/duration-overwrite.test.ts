@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest'
-import {applyScoreCommand,validateMeasureRhythm} from '../../../score-core'
+import {applyScoreCommand,resolveNotePitch,validateMeasureRhythm} from '../../../score-core'
 import {createStudioEditingFixture} from '../../../testing/studio-editing-fixture'
 import {buildDurationCommand,locateEvent} from './editor-state'
 import {buildDurationOverwrite} from './duration-overwrite'
@@ -25,4 +25,25 @@ it.each(['tie','span','tuplet','overflow'])('does not silently destroy protected
  const selection=kind==='overflow'?'editing-fourth':'editing-source',before=structuredClone(score)
  const result=buildDurationOverwrite(score,locateEvent(score,selection),{value:'whole',dots:0},()=> 'unused')
  expect(result.command).toBeUndefined();expect(score).toEqual(before)
+})
+
+it('preserves a grace outside the overwritten range when its accidental source is removed', () => {
+  const score = createStudioEditingFixture().score
+  const bar = score.parts[0].staves[0].measures[0]
+  bar.keySignature = { fifths: 0 }
+  const [source, covered, remaining] = bar.voices[0].events
+  if (source.type !== 'note' || covered.type !== 'note' || remaining.type !== 'note') throw new Error('Expected three notes')
+  source.pitch = { step: 'G', octave: 4 }
+  covered.pitch = { step: 'F', octave: 4, alter: 1 }
+  remaining.graceNotes = [{ pitch: { step: 'F', octave: 4 }, slash: true }]
+  const proposal = buildDurationOverwrite(score, locateEvent(score, source.id), { value: 'half', dots: 0 }, () => 'rest')
+  expect(proposal.count).toBe(1)
+  const { score: changed, undo } = applyScoreCommand(score, proposal.command!)
+  const next = changed.parts[0].staves[0].measures[0]
+  const voice = next.voices[0]
+  const tail = voice.events.find(event => event.id === remaining.id)
+  if (tail?.type !== 'note' || !tail.graceNotes?.[0]) throw new Error('Missing grace')
+  expect(tail.position).toEqual(remaining.position)
+  expect(resolveNotePitch(next, voice, { ...tail, pitch: tail.graceNotes[0].pitch })).toEqual({ step: 'F', octave: 4, alter: 1 })
+  expect(applyScoreCommand(changed, undo).score).toEqual(score)
 })

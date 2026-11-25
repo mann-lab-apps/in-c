@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Score } from '../../../score-core'
 import { applyExpressionProfile, createScoreRequest } from './expression-profile'
 import { applyVoicingProfile, createVoicingRequest, type AnyExpressionProfile } from './voicing-profile'
-import { PianoSampler } from './piano-sampler'
+import { PianoSampler, type PianoVoicePosition } from './piano-sampler'
 import { PianoTransport } from './piano-transport'
 import { resolveTremoloBeatInterval } from './tremolo-interval'
 import { createMetronomePlan } from './metronome'
@@ -17,6 +17,7 @@ import {
   elapsedSecondsToBeat,
   findPlaybackEvent,
   findPlaybackStartBeat,
+  resolveEventVelocityAtBeat,
   tempoMarkingToQuarterBpm,
   type PlaybackTimeline,
   type PlaybackEvent
@@ -99,6 +100,7 @@ export function useScorePlayback(
   const [audioErrorDetails, setAudioErrorDetails] = useState<{ message: string;source?:'metronome'|'playback' }>()
   const [sustain, setSustainState] = useState(false)
   const sustainRef = useRef(false)
+  const pausedSustainRef = useRef<ReadonlyMap<string, PianoVoicePosition> | undefined>(undefined)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [previewing, setPreviewing] = useState(false)
   const sourcesRef = useRef<OscillatorNode[]>([])
@@ -106,6 +108,7 @@ export function useScorePlayback(
   const startContextTimeRef = useRef(0)
   const startBeatRef = useRef(0)
   const tempoRef = useRef(tempo)
+  const runningTempoRef = useRef<number | undefined>(undefined)
   const timelineRef = useRef(timeline)
   const statusRef = useRef<PlaybackStatus>(status)
   const partMixerRef = useRef(partMixer)
@@ -135,8 +138,9 @@ export function useScorePlayback(
     statusRef.current = status
   }, [status])
 
-  const stopSources = useCallback(() => {
+  const stopSources = useCallback((keepPausedSustain = false) => {
     generationRef.current += 1
+    if (!keepPausedSustain) pausedSustainRef.current = undefined
     if (previewTimer.current) clearTimeout(previewTimer.current)
     previewTimer.current = undefined
     transportRef.current?.stop()
@@ -151,6 +155,7 @@ export function useScorePlayback(
     })
     sourcesRef.current = []
     runningLoopClockRef.current=undefined
+    runningTempoRef.current = undefined
   }, [])
 
   const cancelFrame = useCallback(() => {
@@ -160,14 +165,15 @@ export function useScorePlayback(
     }
   }, [])
 
-  const readCurrentBeat = useCallback(() => {
+  const readCurrentBeat = useCallback((at?: number) => {
     const context = audioContextRef.current
+    const bpm = runningTempoRef.current
 
-    if (!context || statusRef.current !== 'playing') {
+    if (!context || bpm === undefined || statusRef.current !== 'playing') {
       return startBeatRef.current
     }
 
-    const elapsedSeconds = context.currentTime - startContextTimeRef.current
+    const elapsedSeconds = (at ?? context.currentTime) - startContextTimeRef.current
     if(runningLoopClockRef.current)return runningLoopClockRef.current.beatAtElapsed(elapsedSeconds)
     return Math.max(
       startBeatRef.current,
@@ -175,7 +181,7 @@ export function useScorePlayback(
         timelineRef.current,
         startBeatRef.current,
         elapsedSeconds,
-        tempoRef.current
+        bpm
       )
     )
   }, [])
@@ -278,6 +284,8 @@ export function useScorePlayback(
           )
         }
 
+        const velocityTime = (beat: number | undefined) => beat === undefined ? undefined
+          : now + beatDeltaToSeconds(timeline, fromBeat, Math.max(fromBeat, beat), bpm)
         return frequencies.map((frequency) =>
           scheduleTone(
             context,
@@ -287,7 +295,9 @@ export function useScorePlayback(
             scheduleWindow.releaseStart,
             scheduleWindow.endTime,
             startVelocity * partGain,
-            endVelocity * partGain
+            endVelocity * partGain,
+            velocityTime(event.velocityEndBeat),
+            velocityTime(event.velocityStartBeat)
           )
         )
       })
@@ -308,14 +318,16 @@ export function useScorePlayback(
   }, [cancelFrame, readCurrentBeat, stopSources])
 
   const syncMetronome = useCallback((initial = false) => {
+    const bpm = runningTempoRef.current
+    if (!initial && bpm !== undefined && bpm !== tempoRef.current && metronomeEnabledRef.current) return
     metronomeRef.current?.stop()
     const context = audioContextRef.current, plan = metronomePlanRef.current
-    if (!context || !metronomeEnabledRef.current || plan.unavailableReason || statusRef.current !== 'playing') return
+    if (!context || bpm === undefined || !metronomeEnabledRef.current || plan.unavailableReason || statusRef.current !== 'playing') return
     const transport = metronomeRef.current ?? new MetronomeTransport(context, error => failMetronome(error))
     metronomeRef.current = transport
     try {
-      if(runningLoopClockRef.current)transport.start(plan.clicks,timelineRef.current,startBeatRef.current,tempoRef.current,startContextTimeRef.current,practiceLoopRef.current)
-      else transport.start(plan.clicks, timelineRef.current, startBeatRef.current, tempoRef.current, startContextTimeRef.current)
+      if(runningLoopClockRef.current)transport.start(plan.clicks,timelineRef.current,startBeatRef.current,bpm,startContextTimeRef.current,practiceLoopRef.current)
+      else transport.start(plan.clicks, timelineRef.current, startBeatRef.current, bpm, startContextTimeRef.current)
     } catch(error) { failMetronome(error, initial) }
   }, [failMetronome])
 
@@ -325,8 +337,10 @@ export function useScorePlayback(
       const currentTimeline = timelineRef.current
 
       if (!runningLoopClockRef.current && beat >= currentTimeline.totalBeats) {
+        generationRef.current += 1
         transportRef.current?.finish()
         metronomeRef.current?.stop()
+        runningTempoRef.current = undefined
         statusRef.current = 'stopped'
         setPositionBeat(0)
         setActiveEvent(undefined)
@@ -354,7 +368,7 @@ export function useScorePlayback(
   },[readCurrentBeat,stopSources,cancelFrame])
 
   const startFromBeat = useCallback(
-    async (beat: number, bpm: number) => {
+    async (beat: number, bpm: number, continuation?: 'paused' | 'playing') => {
       const AudioContextClass =
         window.AudioContext ??
         (
@@ -367,7 +381,10 @@ export function useScorePlayback(
         return
       }
 
-      stopSources()
+      // Keep the playing clock and samples during a live settings request.
+      const live = continuation === 'playing'
+      if (live) generationRef.current += 1
+      else stopSources(continuation === 'paused')
       const generation = generationRef.current
       let context: AudioContext, piano: PianoSampler
       setPreviewing(false)
@@ -387,8 +404,10 @@ export function useScorePlayback(
         }
       } catch (error) {
         if (generation === generationRef.current) {
+          const retainedBeat = live ? readCurrentBeat() : startBeatRef.current
           stopSources()
           cancelFrame()
+          startBeatRef.current = retainedBeat
           setStatus('stopped')
           statusRef.current = 'stopped'
           setPositionBeat(startBeatRef.current)
@@ -401,15 +420,22 @@ export function useScorePlayback(
       if (generation !== generationRef.current) return
       setAudioState('ready')
 
-      const requested=beat >= timelineRef.current.totalBeats ? 0 : Math.max(0,beat)
+      const at = live ? Math.max(context.currentTime, startContextTimeRef.current) : undefined
+      const targetBeat = live ? readCurrentBeat(at) : beat
+      if (live && targetBeat >= timelineRef.current.totalBeats) return
+      const requested = targetBeat >= timelineRef.current.totalBeats ? 0 : Math.max(0, targetBeat)
       const transport = transportRef.current ?? new PianoTransport(piano,failLoopAudio)
       transportRef.current = transport
       try {
         const loop=practiceLoopRef.current
         const clock=loop?createPracticeLoopClock(timelineRef.current,loop,requested,bpm):undefined
         runningLoopClockRef.current=clock;startBeatRef.current=clock?.fromBeat??requested
-        startContextTimeRef.current = loop?transport.start(timelineRef.current,startBeatRef.current,bpm,partMixerRef.current,sustainRef.current,loop):transport.start(
-          timelineRef.current, startBeatRef.current, bpm, partMixerRef.current, sustainRef.current)
+        const pausedSustain = continuation === 'paused' ? pausedSustainRef.current : undefined
+        pausedSustainRef.current = undefined
+        startContextTimeRef.current = at === undefined
+          ? transport.start(timelineRef.current, startBeatRef.current, bpm, partMixerRef.current, sustainRef.current, loop, pausedSustain)
+          : transport.reschedule(timelineRef.current, startBeatRef.current, bpm, partMixerRef.current, sustainRef.current, loop, at)
+        runningTempoRef.current = bpm
       } catch (error) {
         stopSources()
         cancelFrame()
@@ -428,11 +454,11 @@ export function useScorePlayback(
       syncMetronome(true)
       if (statusRef.current === 'playing') startTicker()
     },
-    [acquireAudioContext, cancelFrame, startTicker, stopSources, syncMetronome,failLoopAudio]
+    [acquireAudioContext, cancelFrame, readCurrentBeat, startTicker, stopSources, syncMetronome,failLoopAudio]
   )
 
   const play = useCallback(() => {
-    void startFromBeat(startBeatRef.current, tempoRef.current)
+    void startFromBeat(startBeatRef.current, tempoRef.current, statusRef.current === 'paused' ? 'paused' : undefined)
   }, [startFromBeat])
 
   const previewNote = useCallback(async (pitch = 60, velocity = 84) => {
@@ -443,7 +469,7 @@ export function useScorePlayback(
       setAudioError('이 환경에서는 피아노 소리를 재생할 수 없습니다.')
       return
     }
-    stopSources()
+    stopSources(statusRef.current === 'paused')
     const generation = generationRef.current
     setAudioError(''); setAudioErrorDetails(undefined)
     try {
@@ -488,8 +514,10 @@ export function useScorePlayback(
     }
 
     const beat = Math.min(readCurrentBeat(), timelineRef.current.totalBeats)
+    const pausedSustain = sustainRef.current ? transportRef.current?.captureManualSustain() : undefined
     startBeatRef.current = beat
     stopSources()
+    pausedSustainRef.current = pausedSustain
     cancelFrame()
     setPositionBeat(beat)
     setActiveEvent(findPlaybackEvent(timelineRef.current, beat))
@@ -536,34 +564,22 @@ export function useScorePlayback(
         MAX_TEMPO,
         Math.max(MIN_TEMPO, Math.round(nextTempo))
       )
-      const currentBeat = readCurrentBeat()
-      const wasPlaying = statusRef.current === 'playing'
-
       tempoRef.current = normalizedTempo
       setTempoState(normalizedTempo)
 
-      if (wasPlaying) {
-        stopSources()
-        cancelFrame()
-        startBeatRef.current = currentBeat
-        void startFromBeat(currentBeat, normalizedTempo)
+      if (statusRef.current === 'playing') {
+        void startFromBeat(startBeatRef.current, normalizedTempo,
+          runningTempoRef.current !== undefined ? 'playing' : undefined)
       }
     },
-    [cancelFrame, readCurrentBeat, startFromBeat, stopSources]
+    [startFromBeat]
   )
 
   useEffect(() => {
-    if (statusRef.current !== 'playing') {
-      return
+    if (statusRef.current === 'playing' && runningTempoRef.current !== undefined) {
+      void startFromBeat(startBeatRef.current, tempoRef.current, 'playing')
     }
-
-    const currentBeat = readCurrentBeat()
-
-    stopSources()
-    cancelFrame()
-    startBeatRef.current = currentBeat
-    void startFromBeat(currentBeat, tempoRef.current)
-  }, [cancelFrame, storedPartMixer, readCurrentBeat, startFromBeat, stopSources])
+  }, [storedPartMixer, startFromBeat])
 
   useEffect(() => {
     stop()
@@ -623,23 +639,11 @@ export function useScorePlayback(
     audioState, audioProgress, audioError, audioErrorDetails, sustain, previewing, previewNote,
     setSustain: (down: boolean) => {
       sustainRef.current = down
+      if (!down) pausedSustainRef.current = undefined
       setSustainState(down)
       pianoRef.current?.setSustain(down)
     }
   }
-}
-
-function resolveEventVelocityAtBeat(event: PlaybackEvent, beat: number): number {
-  if (event.durationBeats <= 0) {
-    return event.velocityStart
-  }
-
-  const ratio = Math.min(
-    1,
-    Math.max(0, (beat - event.startBeat) / event.durationBeats)
-  )
-
-  return event.velocityStart + (event.velocityEnd - event.velocityStart) * ratio
 }
 
 export function resolvePlaybackEventScheduleWindow(
@@ -905,7 +909,9 @@ function scheduleTone(
   releaseStart: number,
   endTime: number,
   startVelocity: number,
-  endVelocity: number
+  endVelocity: number,
+  velocityEndTime = releaseStart,
+  velocityStartTime = sustainStart
 ): OscillatorNode {
   const oscillator = context.createOscillator()
   const gain = context.createGain()
@@ -914,7 +920,11 @@ function scheduleTone(
   oscillator.frequency.setValueAtTime(frequency, startTime)
   gain.gain.setValueAtTime(0.0001, startTime)
   gain.gain.exponentialRampToValueAtTime(startVelocity, sustainStart)
-  gain.gain.linearRampToValueAtTime(endVelocity, releaseStart)
+  const rampEnd = Math.min(releaseStart, Math.max(sustainStart, velocityEndTime))
+  const rampStart = Math.min(rampEnd, Math.max(sustainStart, velocityStartTime))
+  if (rampStart > sustainStart) gain.gain.setValueAtTime(startVelocity, rampStart)
+  gain.gain.linearRampToValueAtTime(endVelocity, rampEnd)
+  if (rampEnd < releaseStart) gain.gain.setValueAtTime(endVelocity, releaseStart)
   gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
   oscillator.connect(gain)
   gain.connect(context.destination)

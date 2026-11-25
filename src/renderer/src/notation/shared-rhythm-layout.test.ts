@@ -81,6 +81,31 @@ it('shares actual tick contexts across different durations, chords, rests, and s
   expect(groups[1].voices[0].notes.every(note => note.getStave() === groups[1].stave)).toBe(true)
   expect([top, lower]).toEqual(source)
 })
+
+it('reserves space for conflicting voices without shifting a note on another staff', () => {
+  const sharp = { step: 'F', octave: 4, alter: 1 } as const
+  const natural = { step: 'F', octave: 4, alter: 0 } as const
+  const top = bar([{ ...n('top-sharp', 0), pitch: sharp }, { ...n('top-next', quarter), pitch: sharp }])
+  top.voices.push({ id: 'voice-2', events: [
+    { ...n('top-natural', 0), pitch: natural }, { ...n('top-match', quarter), pitch: sharp }
+  ] })
+  const lower = bar([{ ...n('lower-natural', 0), pitch: natural }])
+  const before = structuredClone([top, lower])
+  const staves = [staffGroup(top, 0), staffGroup(lower, 130)]
+  const [first, next] = staves[0].voices[0].notes
+  const [conflict, samePitch] = staves[0].voices[1].notes
+  const [otherStaff] = staves[1].voices[0].notes
+
+  formatSharedRhythm(staves)
+
+  expect(conflict.getNoteHeadBeginX()).toBeGreaterThan(first.getNoteHeadBeginX())
+  expect(conflict.getNoteHeadBeginX()).toBeGreaterThanOrEqual(first.getNoteHeadEndX())
+  expect(next.getNoteHeadBeginX()).toBeGreaterThan(conflict.getNoteHeadEndX())
+  expect(samePitch.getNoteHeadBeginX()).toBe(next.getNoteHeadBeginX())
+  expect(otherStaff.getTickContext()).toBe(first.getTickContext())
+  expect(otherStaff.getXShift()).toBe(0)
+  expect([top, lower]).toEqual(before)
+})
 it('uses explicit model onsets for mixed tuplets, pickup and a late-starting second voice', () => {
   const top = bar([n('t0', 0, 'eighth'), n('t1', quarter / 3), n('t2', quarter)])
   for (const event of top.voices[0].events.slice(0, 2)) event.duration.tuplet = { actualNotes: 3, normalNotes: 2 }

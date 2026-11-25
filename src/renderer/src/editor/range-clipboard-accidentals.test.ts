@@ -63,4 +63,36 @@ describe('range clipboard accidental context',()=>{
     expect(events.slice(0,2).map(e=>e.pitch.alter)).toEqual([1,undefined])
     const measure=result.score.parts[0].staves[0].measures[1];expect(events.slice(0,2).map(e=>pitchToMidi(resolveNotePitch(measure,voice(result.score,1),e)))).toEqual([61,61])
   })
+
+  it('keeps the unselected note and its grace in tune when overlapping paste removes an accidental cancellation', () => {
+    const score = make(note('leader', 0, { ...autoPitch, alter: 1 }), note('automatic', T, autoPitch))
+    const makeF = (alter?: Pitch['alter']): Pitch => ({ step: 'F', octave: 4, alter })
+    const measure = score.parts[0].staves[0].measures[0]
+    const trailing = {
+      ...note('tail', 3 * T, makeF()),
+      graceNotes: [{ pitch: makeF(), slash: true }]
+    }
+    measure.voices[0].events = [
+      note('sharp', 0, makeF(1)),
+      note('g', T, { step: 'G', octave: 4 }),
+      note('natural', 2 * T, makeF(0)),
+      trailing
+    ]
+    const original = structuredClone(score)
+    const source = createRangeSelection(score, 'sharp', 'g')!
+    const destination = createRangeSelection(score, 'g', 'natural')!
+    const clipboard = buildRangeClipboard(score, source)!
+    const ids = ['pasted-sharp', 'pasted-g']
+    const command = buildRangePasteCommand(score, destination, clipboard, () => ids.shift()!)!
+    const { score: updated, undo } = applyScoreCommand(score, command)
+    const bar = updated.parts[0].staves[0].measures[0]
+    const events = bar.voices[0].events as Note[]
+    expect(events.map(event => event.id)).toEqual(['sharp', 'pasted-sharp', 'pasted-g', 'tail'])
+    expect(events.map(event => pitchToMidi(resolveNotePitch(bar, bar.voices[0], event)))).toEqual([66, 66, 67, 65])
+    expect(events[3].graceNotes).toEqual([{ pitch: makeF(0), slash: true }])
+    expect(score).toEqual(original)
+    const undone = applyScoreCommand(updated, undo)
+    expect(undone.score).toEqual(original)
+    expect(applyScoreCommand(undone.score, undone.undo).score).toEqual(updated)
+  })
 })

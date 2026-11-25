@@ -8,6 +8,7 @@ export function legacySpanOrderFixture(kind: 'slur' | 'hairpin', order: 'equal' 
   const family = kind === 'slur' ? 'slurs' : 'hairpins'
   const span = source[family]![0]
   const originalStart = span.startEventId, originalEnd = span.endEventId
+  if (originalEnd === undefined) throw new Error('Expected an event endpoint in the fixture')
   span.endEventId = originalStart
   if (order === 'reversed') span.startEventId = originalEnd
   const edited = structuredClone(source)

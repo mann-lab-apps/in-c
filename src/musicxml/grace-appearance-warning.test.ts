@@ -74,6 +74,30 @@ it('retains distinct source indices for two grace notes on the same host', () =>
   ])
 })
 
+it('preserves a grace chord and a following single grace note through Native and MusicXML', () => {
+  const members = '<note><grace/><chord/><pitch><step>B</step><alter>-1</alter><octave>5</octave></pitch><type>eighth</type></note>'
+    + '<note><grace/><pitch><step>A</step><octave>5</octave></pitch><type>eighth</type></note>'
+  const source = createGraceAppearanceFixture({ type: 'eighth', dots: 0, slash: 'yes' })
+    .replace('</note>', '</note>' + members)
+  const { score, report } = parseMusicXmlWithReport(source)
+  const controls = parseMusicXmlWithReport(source.replace('<chord/>', '')).score
+  const stored = decodeNativeProject(encodeNativeProject(createNativeProject(score))).score
+  const host = stored.parts[0].staves[0].measures[0].voices[0].events[0]
+  expect(report.warnings).toEqual([])
+  expect(host.type === 'note' && host.graceNotes?.map(({ chord, pitch }) => [Boolean(chord), pitch.step]))
+    .toEqual([[false, 'G'], [true, 'B'], [false, 'A']])
+  const copy = serializeMusicXml(stored)
+  expect(copy).toMatch(/<grace\/><chord\/>|<grace\/>\s+<chord\/>/)
+  expect(parseMusicXmlWithReport(copy).score).toEqual(stored)
+  expect(serializeMidi(stored)).toEqual(serializeMidi(controls))
+})
+
+it('rejects a grace chord member without a preceding grace note', () => {
+  const source = createGraceAppearanceFixture({ type: 'eighth', dots: 0, slash: 'yes' })
+    .replace(/(<grace[^>]*\/>)/, '$1<chord/>')
+  expect(() => parseMusicXmlWithReport(source)).toThrow(/꾸밈음 화음/)
+})
+
 it('retains all repeated source paths', () => {
   const warnings = parseMusicXmlWithReport(createRepeatedGraceAppearanceFixture()).report.warnings
   expect(warnings).toHaveLength(30)

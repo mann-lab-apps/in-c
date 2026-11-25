@@ -76,6 +76,10 @@ export type Ornament = 'trill' | 'mordent' | 'inverted-mordent' | 'turn'
 export interface GraceNote {
   pitch: Pitch
   slash?: boolean
+  /** Shares the preceding grace note's onset. */
+  chord?: true
+  /** Is engraved after its host rather than before it. */
+  after?: true
 }
 
 export interface Note {
@@ -133,6 +137,7 @@ export interface Measure {
   transposition?: InstrumentTransposition
   repeat?: RepeatMark
   volta?: VoltaMark
+  navigation?: NavigationMark[]
   voices: Voice[]
 }
 
@@ -216,13 +221,27 @@ export interface RepeatMark {
   start?: boolean
   end?: boolean
   times?: number
+  afterJump?: boolean
 }
 
-export interface VoltaMark {
-  number: 1 | 2
+// Markers are attached to the opening boundary. Actions occur after the bar.
+interface NavigationWords {
+  words: string
+  coda?: true
+}
+
+export type NavigationMark =
+  | { type: 'segno' | 'coda'; label: string; symbol?: true }
+  | { type: 'dacapo' | 'fine'; passes?: number[]; display?: NavigationWords }
+  | { type: 'dalsegno' | 'tocoda'; label: string; passes?: number[]; display?: NavigationWords }
+
+export type VoltaMark = {
   start?: boolean
   end?: boolean
-}
+} & (
+  | { number: 1 | 2; passes?: never }
+  | { passes: number[]; number?: never }
+)
 
 export interface HarmonyMark {
   id: string
@@ -292,13 +311,21 @@ export interface SpanEngraving {
   height?: number
 }
 
-export interface Hairpin {
+export interface HairpinTimeEnd {
+  measureId: MeasureId
+  voiceId: VoiceId
+  tick: Tick
+}
+
+export type Hairpin = {
   id: string
   startEventId: VoiceEventId
-  endEventId: VoiceEventId
   type: HairpinType
   engraving?: SpanEngraving
-}
+} & (
+  | { endEventId: VoiceEventId; endAnchor?: 'onset' | 'release'; endTime?: never }
+  | { endTime: HairpinTimeEnd; endEventId?: never; endAnchor?: never }
+)
 
 export interface Slur {
   id: string
@@ -317,6 +344,7 @@ export interface Score {
   pedalEvents?: PedalEvent[]
   rhythmFeel?: RhythmFeelMarking
   swingPlayback?: SwingPlayback
+  gracePlayback?: boolean
   octaveShifts?: OctaveShift[]
   harmonies?: HarmonyMark[]
   rehearsalMarks?: RehearsalMark[]
@@ -384,6 +412,10 @@ export type ScoreCommand =
   | {
       type: 'score-swing-playback.update'
       swingPlayback?: SwingPlayback
+    }
+  | {
+      type: 'score-grace-playback.update'
+      enabled?: boolean
     }
   | {
       type: 'score-octave-shifts.update'

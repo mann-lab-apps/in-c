@@ -61,8 +61,10 @@ it('does not extend unknown or cross-staff native endpoints into unrelated measu
   const other = structuredClone(score.parts[0]); other.id = 'other-part'; other.staves[0].id = 'other-staff'
   for (const m of other.staves[0].measures) { m.id = 'other-' + m.id; for (const v of m.voices) for (const e of v.events) e.id = 'other-' + e.id }
   score.parts.push(other)
-  expect(hairpinCoveredMeasureIds(score, { ...score.hairpins![0], endEventId: 'other-interior-note-2' })).toEqual([])
-  expect(hairpinCoveredMeasureIds(score, { ...score.hairpins![0], endEventId: 'missing' })).toEqual([])
+  const hairpin = score.hairpins![0]
+  if (hairpin.endTime) throw new Error('Expected an event endpoint in the fixture')
+  expect(hairpinCoveredMeasureIds(score, { ...hairpin, endEventId: 'other-interior-note-2' })).toEqual([])
+  expect(hairpinCoveredMeasureIds(score, { ...hairpin, endEventId: 'missing' })).toEqual([])
 })
 
 it.each([false,true])('treats empty native engraving as automatic interior lanes (cross=%s)',cross=>{

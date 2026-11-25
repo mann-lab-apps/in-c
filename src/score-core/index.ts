@@ -1,5 +1,6 @@
 export * from './commands'
 export * from './factories'
+export * from './following-pitch-sounds'
 export * from './pitch'
 export * from './octave-shifts'
 export * from './repeats'

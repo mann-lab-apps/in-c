@@ -1,6 +1,6 @@
 import { measureDurationTicks, voiceEventDurationTicks } from './timing'
 import { resolveNotePitch } from './pitch'
-import type { Pitch, Score } from './types'
+import type { Measure, Pitch, Score, Voice } from './types'
 
 export function convertOctaveShiftPitches(score: Score, direction: 'performed' | 'display'): Score {
   if (!score.octaveShifts?.length) return score
@@ -31,17 +31,57 @@ export function convertOctaveShiftPitches(score: Score, direction: 'performed' |
       }
     }
   }
-  const shift = (pitch: Pitch, amount: number): Pitch => ({ ...pitch, octave: pitch.octave + amount })
-  return { ...score, parts: score.parts.map(part => ({ ...part, staves: part.staves.map(staff => ({
-    ...staff, measures: staff.measures.map(measure => ({ ...measure, voices: measure.voices.map(voice => ({
-      ...voice, events: voice.events.map(event => {
-        const amount = offsets.get(event.id)
-        if (!amount || event.type !== 'note') return event
-        return { ...event, pitch: shift(resolveNotePitch(measure, voice, event), amount),
-          ...(event.pitches ? { pitches: event.pitches.map(pitch => shift(pitch, amount)) } : {}),
-          ...(event.graceNotes ? { graceNotes: event.graceNotes.map(note => ({ ...note, pitch: shift(note.pitch, amount) })) } : {})
-        }
-      })
-    })) }))
-  })) })) }
+  return {
+    ...score,
+    parts: score.parts.map(part => ({
+      ...part,
+      staves: part.staves.map(staff => ({
+        ...staff,
+        measures: staff.measures.map(measure => ({
+          ...measure,
+          voices: measure.voices.map(voice => convertVoiceOctaves(measure, voice, offsets))
+        }))
+      }))
+    }))
+  }
+}
+
+function convertVoiceOctaves(measure: Measure, voice: Voice, offsets: ReadonlyMap<string, number>): Voice {
+  if (!voice.events.some(event => offsets.get(event.id))) return voice
+
+  const events = [...voice.events]
+  const projected = { ...voice, events }
+  const musicalOrder = Array.from(voice.events.entries())
+    .sort(([, left], [, right]) => left.position.tick - right.position.tick)
+
+  // Earlier projected notes can change the accidental inherited at the new
+  // octave, even for a pitch just outside the line. Preserve each written
+  // pitch's alteration and process history in score order.
+  for (const [index, event] of musicalOrder) {
+    if (event.type !== 'note') continue
+    const amount = offsets.get(event.id) ?? 0
+    const convertPitch = (source: Pitch, forceExplicit = false): Pitch => {
+      const shifted = amount ? { ...source, octave: source.octave + amount } : source
+      if (source.alter !== undefined) return shifted
+
+      const { alter } = resolveNotePitch(measure, voice, { ...event, pitch: source })
+      if (forceExplicit) return { ...shifted, alter }
+      const inherited = resolveNotePitch(measure, projected, { ...event, pitch: shifted }).alter
+      return alter === inherited ? shifted : { ...shifted, alter }
+    }
+
+    const pitch = convertPitch(event.pitch, amount !== 0)
+    const pitches = event.pitches?.map(member => convertPitch(member))
+    const graceNotes = event.graceNotes?.map(note => {
+      const pitch = convertPitch(note.pitch)
+      return pitch === note.pitch ? note : { ...note, pitch }
+    })
+
+    if (pitch !== event.pitch || pitches?.some((member, i) => member !== event.pitches?.[i]) ||
+        graceNotes?.some((note, i) => note !== event.graceNotes?.[i])) {
+      events[index] = { ...event, pitch, pitches, graceNotes }
+    }
+  }
+
+  return projected
 }

@@ -27,16 +27,33 @@ export function StudioMeasureTools({theme, actions, signatures, enabled, meterSc
   signatures: readonly Signature[]
   enabled: boolean
   meterScope?: string
-  customMeter?: { value: TimeSignature; owner: string; onApply: (value: TimeSignature) => boolean }
+  customMeter?: {
+    value: TimeSignature
+    owner: string
+    onApply: (value: TimeSignature) => boolean | string
+    onApplyToScore?: (value: TimeSignature) => string | undefined
+  }
 }) {
   const [open,setOpen]=useState(false),[owner,setOwner]=useState('')
+  const [applyToScore, setApplyToScore] = useState(false)
   const [beats,setBeats]=useState('4'),[beatType,setBeatType]=useState('4')
   const [error,setError]=useState<string>(),[invalidBeats,setInvalidBeats]=useState(false)
   const composing=useRef(false)
   const close=()=>{composing.current=false;setOpen(false);setError(undefined);setInvalidBeats(false)}
   useEffect(()=>{if(open&&owner!==customMeter?.owner)close()},[open,owner,customMeter?.owner])
   const parsed=parseCustomTimeSignature(beats,beatType)
-  const unchanged=parsed&&parsed.beats===customMeter?.value.beats&&parsed.beatType===customMeter.value.beatType
+  const unchanged=!applyToScore&&parsed&&parsed.beats===customMeter?.value.beats&&parsed.beatType===customMeter.value.beatType
+  const dialogTitle = applyToScore ? '총보 박자표' : '사용자 지정 박자표'
+  const openMeter = (wholeScore: boolean) => {
+    if (!customMeter) return
+    setApplyToScore(wholeScore)
+    setOwner(customMeter.owner)
+    setBeats(String(customMeter.value.beats))
+    setBeatType(String(customMeter.value.beatType))
+    setError(undefined)
+    setInvalidBeats(false)
+    setOpen(true)
+  }
   return <section className="studio-measure-tools ddirori" data-theme={theme} data-density="compact" aria-label="마디 구조와 조표·박자표"
     onKeyDown={event => {
       if (event.nativeEvent.isComposing || event.keyCode === 229) { event.stopPropagation(); return }
@@ -50,9 +67,8 @@ export function StudioMeasureTools({theme, actions, signatures, enabled, meterSc
       {signatures.map(signature => <div key={signature.label} className="studio-measure-tools__signature" data-signature={signature.label}>
         <Select key={JSON.stringify([customMeter?.owner,signature.label])} label={signature.label} value={signature.value} options={signature.options} onChange={signature.onChange} disabled={!enabled}/>
       </div>)}
-      {customMeter ? <Button kind="secondary" disabled={!enabled} onClick={()=>{
-        setOwner(customMeter.owner);setBeats(String(customMeter.value.beats));setBeatType(String(customMeter.value.beatType));setError(undefined);setInvalidBeats(false);setOpen(true)
-      }}>사용자 지정 박자표…</Button> : null}
+      {customMeter ? <Button kind="secondary" disabled={!enabled} onClick={() => openMeter(false)}>사용자 지정 박자표…</Button> : null}
+      {customMeter?.onApplyToScore ? <Button kind="secondary" disabled={!enabled} onClick={() => openMeter(true)}>이 마디의 총보 박자표…</Button> : null}
       <Text variant="description">조표: 선택한 마디부터 적용 · 박자표 적용: {meterScope ?? '선택 보표의 이 마디만'}</Text>
     </div>
     {open&&customMeter&&owner===customMeter.owner ? <div className="studio-measure-tools__custom-meter"
@@ -63,16 +79,25 @@ export function StudioMeasureTools({theme, actions, signatures, enabled, meterSc
         if(isDocumentSaveShortcut(event)){event.preventDefault();setError('박자표를 적용하거나 취소한 뒤 프로젝트를 저장하세요.');return}
         if(event.key==='Escape'){event.preventDefault();close()}
       }}>
-      <Dialog open title="사용자 지정 박자표" onClose={close}>
-        <form aria-label="사용자 지정 박자표" noValidate onSubmit={event=>{
+      <Dialog open title={dialogTitle} onClose={close}>
+        <form aria-label={dialogTitle} noValidate onSubmit={event=>{
           event.preventDefault();event.stopPropagation()
           if(composing.current||owner!==customMeter.owner)return
           if(!parsed){setInvalidBeats(true);setError('분자는1–128 사이의 정수, 분모는1·2·4·8·16·32·64 중에서 지정하세요.');return}
           if(unchanged)return
-          if(customMeter.onApply(parsed))close()
-          else setError('이 마디의 음표·표기가 새 박자표에 맞지 않습니다. 기존 내용을 확인하거나 다른 박자표를 지정하세요.')
+          if (applyToScore && customMeter.onApplyToScore) {
+            const issue = customMeter.onApplyToScore(parsed)
+            if (issue) setError(issue)
+            else close()
+            return
+          }
+          const result = applyToScore ? false : customMeter.onApply(parsed)
+          if (result === true) close()
+          else setError(typeof result === 'string' ? result : '이 마디의 음표·표기가 새 박자표에 맞지 않습니다. 기존 내용을 확인하거나 다른 박자표를 지정하세요.')
         }}>
-          <Text as="p" variant="description">적용 범위: {meterScope ?? '선택 보표의 이 마디만'}. 다른 보표와 이후 마디는 바뀌지 않습니다.</Text>
+          <Text as="p" variant="description">{applyToScore
+            ? '총보 · 모든 보표의 이 마디에 적용합니다. 이후 마디의 박자표는 유지합니다.'
+            : `적용 범위: ${meterScope ?? '선택 보표의 이 마디만'}. 다른 보표와 이후 마디는 바뀌지 않습니다.`}</Text>
           <div className="studio-measure-tools__custom-fields">
             <Input label="박자 분자" type="number" min={1} max={128} step={1} value={beats}
               error={invalidBeats?'1–128 사이의 정수를 입력하세요.':undefined} help="한 마디의 박 수"

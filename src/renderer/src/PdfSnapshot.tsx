@@ -15,6 +15,7 @@ export interface PdfRenderSnapshot {
   lyricWidths: ReadonlyMap<string, number>
   harmonyWidths?: HarmonySpacingWidths
   minimumMeasureWidths: ReadonlyMap<string, number>
+  multimeasureRestCounts?: ReadonlyMap<string, number>
 }
 export function samePdfSource(a: PdfRenderSnapshot, b?: PdfRenderSnapshot): boolean {
   // Inverse commands can restore exactly the same notation and paper plan
@@ -71,6 +72,7 @@ export const PdfSnapshot = memo(function PdfSnapshot({ snapshot, rootRef, kind =
         <span className="metadata-display metadata-display--composer">{snapshot.score.composer ?? '\u00a0'}</span>
       </div>
       <NotationPreview score={snapshot.score} printLayout printLayoutPlan={snapshot.plan}
+        multimeasureRestCounts={snapshot.multimeasureRestCounts}
         lyricWidths={snapshot.lyricWidths} harmonyWidths={snapshot.harmonyWidths} minimumMeasureWidths={snapshot.minimumMeasureWidths}
         onSelectEvent={ignore} onSelectEventRange={ignore} onSelectLyric={ignore}
         onSelectMeasure={ignore} onOpenMeasureContextMenu={ignore} />

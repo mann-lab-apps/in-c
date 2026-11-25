@@ -106,6 +106,36 @@ describe('score-core pitch context', () => {
     ).toMatchObject({ step: 'B', octave: 4 })
   })
 
+  it('uses the preceding written accidental on the staff while resolving pitches within their voices', () => {
+    const sharp = note('sharp', 0, 'F', 4, 1)
+    const natural = note('natural', 100, 'F', 4)
+    const repeatedNatural = note('repeated-natural', 200, 'F', 4)
+    const repeatedSharp = note('repeated-sharp', 300, 'F', 4)
+    const upper = createVoice({ id: 'voice-1', events: [sharp, repeatedSharp] })
+    const lower = createVoice({ id: 'voice-2', events: [natural, repeatedNatural] })
+    const measure = createMeasure({ voices: [lower, upper] })
+
+    expect(effectiveAlterAt({ measure, voice: lower, step: 'F', octave: 4, tick: 100 })).toBe(0)
+    expect(effectiveAlterAt({ measure, voice: upper, step: 'F', octave: 4, tick: 300 })).toBe(1)
+    expect(shouldDisplayAccidental(measure, upper, sharp)).toBe(true)
+    expect(shouldDisplayAccidental(measure, lower, natural)).toBe(true)
+    expect(shouldDisplayAccidental(measure, lower, repeatedNatural)).toBe(false)
+    expect(shouldDisplayAccidental(measure, upper, repeatedSharp)).toBe(true)
+  })
+
+  it.each([0, 1] as const)('visits simultaneous independent voices in number order for alteration %i', alter => {
+    const sharp = note('sharp', 0, 'F', 4, 1)
+    const sameOnset = note('same-onset', 0, 'F', 4, alter)
+    const next = note('next', 100, 'F', 4)
+    const upper = createVoice({ id: 'voice-1', events: [sharp] })
+    const lower = createVoice({ id: 'voice-2', events: [sameOnset, next] })
+    const measure = createMeasure({ voices: [lower, upper] })
+
+    expect(shouldDisplayAccidental(measure, upper, sharp)).toBe(true)
+    expect(shouldDisplayAccidental(measure, lower, sameOnset)).toBe(alter === 0)
+    expect(shouldDisplayAccidental(measure, lower, next)).toBe(false)
+  })
+
   it('supports diatonic, chromatic, and octave movement', () => {
     expect(transposeDiatonic({ step: 'B', octave: 4 }, 1)).toEqual({
       step: 'C',

@@ -3,6 +3,7 @@ import {
   buildRhythmEditCommand,
   effectiveAlterAt,
   nearestPitch,
+  preserveFollowingPitchSounds,
   resolveNotePitch,
   sortVoiceEvents,
   pitchToMidi,
@@ -274,36 +275,9 @@ export function buildEnharmonicRespellCommand(
   return retainUnselectedPitchSounds(command, location.measure, voice, note)
 }
 
-// Private adapter shared by the existing pitch-edit commands. The edited
-// note keeps its original command result; no score command or model is added.
 function retainUnselectedPitchSounds(command: ScoreCommand | undefined, measure: Measure, voice: Voice, note: Note): ScoreCommand | undefined {
   if (command?.type !== 'voice-events.replace') return command
-
-  // A pitch edit must not remove an inherited accidental or introduce a new
-  // accidental into the unselected suffix. Pin only sounds that would change.
-  const events = [...command.events]
-  const nextVoice = { ...voice, events }
-  for (let index = 0; index < events.length; index += 1) {
-    const event = events[index]
-    if (event.type !== 'note' || event.id === note.id || event.position.tick <= note.position.tick) continue
-    const old = voice.events.find(candidate => candidate.id === event.id)
-    if (old?.type !== 'note') continue
-    const sourcePitches = old.pitches?.length ? old.pitches : [old.pitch]
-    const pinned = sourcePitches.map(member => {
-      const input = { measure: measure, step: member.step, octave: member.octave, tick: old.position.tick, override: member.alter }
-      const desired = effectiveAlterAt({ ...input, voice })
-      const actual = effectiveAlterAt({ ...input, voice: nextVoice })
-      return desired === actual ? member : { ...member, alter: desired }
-    })
-    if (pinned.every((member, memberIndex) => member === sourcePitches[memberIndex])) continue
-    // The vector is authoritative for a chord. Do not normalize an unrelated
-    // legacy primary pitch merely because one of its members needs pinning.
-    const primaryMatches = old.pitch.step === sourcePitches[0].step &&
-      old.pitch.octave === sourcePitches[0].octave && old.pitch.alter === sourcePitches[0].alter
-    events[index] = { ...event, pitch: primaryMatches ? pinned[0]! : old.pitch,
-      ...(old.pitches?.length ? { pitches: pinned } : {}) }
-  }
-  return { ...command, events }
+  return { ...command, events: preserveFollowingPitchSounds(measure, voice, command.events, note.position.tick) }
 }
 
 // Internal adapter for the existing inspector/Shift+A-G chord handlers.

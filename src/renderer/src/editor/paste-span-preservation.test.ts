@@ -1,12 +1,42 @@
 import { expect, it } from 'vitest'
 import { TICKS_PER_QUARTER as T, applyScoreCommand, createMeasure, createNote, createPart, createRest, createScore, createStaff, createTimePosition, createVoice } from '../../../score-core'
-import { createNativeProject } from '../../../project/schema'
+import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../../project/schema'
+import { parseMusicXml, serializeMusicXml } from '../../../musicxml'
+import { serializeMidi } from '../midi/serialize-midi'
 import { buildRangeClipboard, buildRangePasteCommand, createRangeSelection } from './editor-state'
 
 const make = () => createScore({ parts: [createPart({ staves: [createStaff({ measures: [createMeasure({ voices: [createVoice({ events:
   (['C', 'D', 'E', 'F'] as const).map((step, i) => createNote({ id: `n${i}`, position: createTimePosition(i * T), pitch: { step, octave: 4 } }))
 })] })] })] })] })
 const events = (s: ReturnType<typeof make>) => s.parts[0].staves[0].measures[0].voices[0].events
+
+it('copies both endpoints of an explicit hairpin with new IDs and one undo', () => {
+  const score = make()
+  const span = { id: 'source-span', type: 'crescendo' as const, startEventId: 'n0', endEventId: 'n1',
+    endAnchor: 'release' as const, engraving: { offsetX: -.5, height: 2 } }
+  score.hairpins = [span]
+  const original = createNativeProject(score)
+  const clipboard = buildRangeClipboard(score, createRangeSelection(score, 'n0', 'n1')!)!
+  let id = 0
+  const command = buildRangePasteCommand(score, createRangeSelection(score, 'n2', 'n3')!, clipboard, () => `copied-${++id}`)!
+  const result = applyScoreCommand(score, command)
+  expect(result.score.hairpins).toEqual([
+    span, { ...span, id: 'copied-3', startEventId: 'copied-1', endEventId: 'copied-2' }
+  ])
+  const native = decodeNativeProject(encodeNativeProject(createNativeProject(result.score)))
+  expect(native.score.hairpins).toEqual(result.score.hairpins)
+  const reopened = parseMusicXml(serializeMusicXml(native.score))
+  expect(reopened.hairpins?.map(hairpin => hairpin.endAnchor)).toEqual(['release', 'release'])
+  expect(serializeMidi(reopened)).toEqual(serializeMidi(native.score))
+  const undone = applyScoreCommand(result.score, result.undo)
+  expect(createNativeProject(undone.score)).toEqual(original)
+  expect(applyScoreCommand(undone.score, undone.undo).score).toEqual(result.score)
+  expect(createNativeProject(score)).toEqual(original)
+
+  const fragment = buildRangeClipboard(score, { type: 'event', eventId: 'n0' })!
+  const partial = buildRangePasteCommand(score, { type: 'event', eventId: 'n2' }, fragment, () => 'fragment')!
+  expect(applyScoreCommand(score, partial).score.hairpins).toEqual([span])
+})
 
 it.each(['single', 'range', 'rest'] as const)('cleans only invalidated slur endpoints during %s paste', mode => {
   const score = make()

@@ -68,13 +68,23 @@ it('keeps text, closed Select and IME with their owner while configured score de
   expect(playbackMockState.lastScore).toEqual(project.score)
   customKey(); expect(playbackMockState.lastScore).not.toEqual(project.score)
 })
-it('keeps existing selected-measure removal and exact undo when its key is reassigned', async () => {
+it('retains the reassigned content-deletion key and the explicit measure-removal chord', async () => {
   const { project } = await setup({ delete: chord })
-  fireEvent.click(screen.getByRole('button', { name: '1마디 선택' })); fireEvent.keyDown(window, { key: 'Delete' })
+  fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+  fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
   expect(playbackMockState.lastScore).toEqual(project.score)
-  customKey(); expect(playbackMockState.lastScore!.parts[0].staves[0].measures).toHaveLength(2)
+  customKey()
+  const cleared = playbackMockState.lastScore!
+  expect(cleared.parts[0].staves[0].measures).toHaveLength(3)
+  expect(cleared.parts[0].staves[0].measures[0].voices[0].events).toMatchObject([{ type: 'rest', fullMeasure: true }])
+  expect(cleared.parts[1]).toEqual(project.score.parts[1])
   expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정')
-  fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true }); expect(playbackMockState.lastScore).toEqual(project.score)
+  fireEvent.keyDown(window, { key: 'Delete', code: 'Delete', ctrlKey: true })
+  expect(playbackMockState.lastScore!.parts[0].staves[0].measures).toHaveLength(2)
+  fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true })
+  expect(playbackMockState.lastScore).toEqual(cleared)
+  fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true })
+  expect(playbackMockState.lastScore).toEqual(project.score)
 })
 
 it('reloads deletion alongside an older undo mapping, then unassigns/restores it with current help', async () => {

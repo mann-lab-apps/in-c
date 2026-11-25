@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expandScoreRepeatsForMusicXml } from './expand-repeats'
 import { parseMusicXml, serializeMusicXml, serializeMusicXmlWithReport } from './index'
@@ -21,7 +21,7 @@ function rangeOrder(score: Score) {
   score.parts.forEach((part, p) => part.staves.forEach((staff, s) => staff.measures.forEach((measure, m) => {
     measure.voices.forEach((voice, v) => voice.events.forEach(event => addresses.set(event.id, [p, s, m, v, event.position.tick])))
   })))
-  return score.hairpins?.map(span => ({ start: addresses.get(span.startEventId), end: addresses.get(span.endEventId), type: span.type }))
+  return score.hairpins?.map(span => ({ start: addresses.get(span.startEventId), end: addresses.get(span.endEventId!), type: span.type }))
 }
 
 function copied(score: Score, pairs: number[][], label: string) {
@@ -31,7 +31,7 @@ function copied(score: Score, pairs: number[][], label: string) {
   for (const part of result.parts) for (const staff of part.staves) staff.measures.forEach((measure, index) => {
     for (const voice of measure.voices) for (const event of voice.events) locations.set(event.id, { index, tick: event.position.tick })
   })
-  expect(result.hairpins?.map(span => [locations.get(span.startEventId)?.index, locations.get(span.endEventId)?.index])).toEqual(pairs)
+  expect(result.hairpins?.map(span => [locations.get(span.startEventId)?.index, locations.get(span.endEventId!)?.index])).toEqual(pairs)
   expect(envelope(result)).toEqual(envelope(score))
   const { contents, report } = serializeMusicXmlWithReport(result), reopened = parseMusicXml(contents)
   expect(contents.match(/<wedge\b[^>]*type="(?:crescendo|diminuendo)"/g)).toHaveLength(pairs.length)
@@ -52,7 +52,7 @@ function copied(score: Score, pairs: number[][], label: string) {
     writeFileSync(join(directory, 'expanded.musicxml'), contents)
     writeFileSync(join(directory, 'expected.mid'), serializeMidi(score))
     writeFileSync(join(directory, 'oracle.json'), JSON.stringify({ pairs: result.hairpins?.map(span => ({
-      from: locations.get(span.startEventId), to: locations.get(span.endEventId), type: span.type
+      from: locations.get(span.startEventId), to: locations.get(span.endEventId!), type: span.type
     })), sourceHairpins: score.hairpins, envelope: envelope(score), warnings: report.warnings }))
   }
   return { result, report }
@@ -81,6 +81,21 @@ it('copies a same-measure range without joining repeated passes', () => {
   const score = createRepeatTempoStateFixture()
   score.hairpins = [{ id: 'within-bar', startEventId: 'tempo-a', endEventId: 'tempo-b', type: 'crescendo' }]
   copied(score, [[0, 0], [1, 1], [2, 2]], 'hairpin-same-measure')
+})
+
+it('keeps the ending voice and barline release in every copy of a simultaneous two-voice hairpin', () => {
+  const xml = readFileSync(new URL('./fixtures/hairpin-long-note-end.musicxml', import.meta.url), 'utf8')
+  const score = parseMusicXml(xml)
+  score.parts[0].staves[0].measures[0].repeat = { start: true, end: true, times: 2 }
+
+  const { result } = copied(score, [[0, 0], [1, 1]], 'hairpin-two-voice-barline')
+  const expandedXml = serializeMusicXml(result)
+  const stops = [...expandedXml.matchAll(/<wedge type="stop"\/>[\s\S]*?<\/direction>/g)].map(match => match[0])
+  expect(stops).toHaveLength(2)
+  for (const stop of stops) {
+    expect(stop).toContain(`<offset>${4 * TICKS_PER_QUARTER}</offset>`)
+    expect(stop).toContain('<voice>1</voice>')
+  }
 })
 
 it('copies a complete introduction range only on its original complete occurrence', () => {

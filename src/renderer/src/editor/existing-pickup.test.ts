@@ -104,3 +104,17 @@ it('round-trips the shortened first measure and following note timing through XM
   expect(serializeMidi(result.score)).not.toEqual(serializeMidi(score))
   expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
 })
+
+
+it('preserves an independent hairpin ending when shortening the first bar', () => {
+  const score = source()
+  const bar = score.parts[1].staves[0].measures[0], voice = bar.voices[0]
+  const endTime = { measureId: bar.id, voiceId: voice.id, tick: 1.5 * T }
+  score.hairpins = [{ id: 'time-hairpin', startEventId: voice.events[0].id, endTime, type: 'crescendo' }]
+  const original = structuredClone(score)
+  expect(build(score, T)).toEqual({ timeEnd: endTime })
+  expect(score).toEqual(original)
+  const changed = applyScoreCommand(score, build(score, endTime.tick).command!)
+  expect(createNativeProject(changed.score).score.hairpins).toEqual(score.hairpins)
+  expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(original)
+})

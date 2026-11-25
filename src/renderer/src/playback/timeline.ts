@@ -19,7 +19,8 @@ import {
   type DynamicValue,
   type Note,
   type Score,
-  type TempoMarking
+  type TempoMarking,
+  type Voice
 } from '../../../score-core'
 import { createGlobalMeasureResolver } from '../editor/global-measure-reference'
 import { resolveTremoloBeatInterval } from './tremolo-interval'
@@ -52,6 +53,7 @@ export interface PlaybackEvent {
   tiedEvents?: { eventId: string; measureId: string }[]
   startBeat: number
   durationBeats: number
+  graceSegment?: 'leading' | 'principal'
   frequency?: number
   frequencies?: number[]
   tremolo?: Note['tremolo']
@@ -61,7 +63,13 @@ export interface PlaybackEvent {
   trillFrequency?: number
   velocityStart: number
   velocityEnd: number
+  velocityStartBeat?: number
+  velocityEndBeat?: number
+  sampleHairpinVelocity?: true
 }
+
+type LeadingGrace = { frequency: number; maxBeats: number }
+type NotatedPlaybackEvent = PlaybackEvent & { leadingGrace?: LeadingGrace }
 
 export interface PlaybackTempoEvent {
   id: string
@@ -85,10 +93,15 @@ type StaffMeasures = NonNullable<
 
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   score = convertOctaveShiftPitches(score, 'performed')
-  const events: PlaybackEvent[] = []
+  const events: NotatedPlaybackEvent[] = []
   let totalBeats = 0
   const scoreRepeatPlaybackPlan = createScoreRepeatPlaybackPlan(score)
   const tieTargets = new Map(collectTiePairs(score).map(pair => [pair.fromEventId, pair.toEventId]))
+  const tiedHairpinAnchors = new Map<string, PlaybackEvent[]>()
+  for (const hairpin of score.hairpins ?? []) {
+    tiedHairpinAnchors.set(hairpin.startEventId, [])
+    if (hairpin.endEventId !== undefined) tiedHairpinAnchors.set(hairpin.endEventId, [])
+  }
 
   for (const part of score.parts) {
     for (const staff of part.staves) {
@@ -98,7 +111,8 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
         staff.id,
         staff.measures,
         scoreRepeatPlaybackPlan,
-        tieTargets
+        tieTargets,
+        tiedHairpinAnchors
       )
 
       events.push(...staffTimeline.events)
@@ -115,11 +129,29 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
     events: applyHairpinVelocity(
       score,
       events.sort((left, right) => left.startBeat - right.startBeat),
-      scoreRepeatPlaybackPlan
-    ).map((event) => {
+      scoreRepeatPlaybackPlan,
+      tiedHairpinAnchors
+    ).flatMap(({ leadingGrace, ...event }) => {
       const beat = performedClock(event)
-      return { ...event, startBeat: beat(event.startBeat),
-        durationBeats: beat(event.startBeat + event.durationBeats, 'end') - beat(event.startBeat) }
+      const startBeat = beat(event.startBeat)
+      const endBeat = beat(event.startBeat + event.durationBeats, 'end')
+      const performed = { ...event, startBeat, durationBeats: endBeat - startBeat }
+      if (event.velocityStartBeat !== undefined) performed.velocityStartBeat = beat(event.velocityStartBeat)
+      if (event.velocityEndBeat !== undefined) performed.velocityEndBeat = beat(event.velocityEndBeat, 'end')
+      if (!leadingGrace || endBeat <= startBeat) return [performed]
+
+      const graceBeats = Math.min(leadingGrace.maxBeats, performed.durationBeats / 2)
+      const principalStart = startBeat + graceBeats
+      const splitVelocity = performed.velocityStartBeat === undefined && performed.velocityEndBeat === undefined
+        ? event.velocityStart + (event.velocityEnd - event.velocityStart) * graceBeats / performed.durationBeats
+        : resolveEventVelocityAtBeat(performed, principalStart)
+      return [
+        { ...performed, graceSegment: 'leading' as const, durationBeats: graceBeats,
+          frequency: leadingGrace.frequency, frequencies: [leadingGrace.frequency], velocityEnd: splitVelocity,
+          ...(performed.velocityEndBeat !== undefined ? { velocityEndBeat: Math.min(principalStart, performed.velocityEndBeat) } : {}) },
+        { ...performed, graceSegment: 'principal' as const, startBeat: principalStart,
+          durationBeats: endBeat - principalStart, velocityStart: splitVelocity }
+      ]
     }).sort((left, right) => left.startBeat - right.startBeat),
     tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan).map((event) => ({
       ...event, startBeat: performedBeat(event.startBeat)
@@ -199,9 +231,10 @@ function createStaffPlaybackEvents(
   staffId: string,
   measures: StaffMeasures,
   scoreRepeatPlaybackPlan: RepeatPlaybackPlan | undefined,
-  tieTargets: ReadonlyMap<string, string>
-): PlaybackTimeline {
-  const events: PlaybackEvent[] = []
+  tieTargets: ReadonlyMap<string, string>,
+  tiedHairpinAnchors: ReadonlyMap<string, PlaybackEvent[]>
+): { events: NotatedPlaybackEvent[]; totalBeats: number } {
+  const events: NotatedPlaybackEvent[] = []
   let scoreBeat = 0
 
   for (const measure of measures) {
@@ -214,7 +247,11 @@ function createStaffPlaybackEvents(
           event.type === 'note'
             ? eventFrequencies(measure, voice, event)
             : undefined
+        const leadingGrace = score.gracePlayback && event.type === 'note'
+          ? resolveLeadingGrace(measure, voice, event, durationBeats)
+          : undefined
         const playbackEvent = {
+          ...(leadingGrace ? { leadingGrace } : {}),
           eventId: event.id,
           partId,
           staffId,
@@ -255,8 +292,7 @@ function createStaffPlaybackEvents(
   )
 
   return {
-    events: mergePerformedTies(repeatedTimeline.events, tieTargets),
-    tempoEvents: [],
+    events: mergePerformedTies(repeatedTimeline.events, tieTargets, tiedHairpinAnchors),
     totalBeats: repeatedTimeline.totalBeats
   }
 }
@@ -264,8 +300,9 @@ function createStaffPlaybackEvents(
 // Expand the performed traversal before sustaining ties. A repeat jump can
 // interrupt a notated chain or revisit a continuation without its predecessor.
 // Each pending chain must reach its original next event at the actual ending beat.
-function mergePerformedTies(events: PlaybackEvent[], tieTargets: ReadonlyMap<string, string>): PlaybackEvent[] {
-  const result: PlaybackEvent[] = []
+function mergePerformedTies(events: NotatedPlaybackEvent[], tieTargets: ReadonlyMap<string, string>,
+  tiedHairpinAnchors: ReadonlyMap<string, PlaybackEvent[]>): NotatedPlaybackEvent[] {
+  const result: NotatedPlaybackEvent[] = []
   const pendingByVoice = new Map<string, { event: PlaybackEvent; nextEventId: string }>()
   for (const event of events) {
     const pending = pendingByVoice.get(event.voiceId)
@@ -275,6 +312,7 @@ function mergePerformedTies(events: PlaybackEvent[], tieTargets: ReadonlyMap<str
       pending.event.startBeat + pending.event.durationBeats === event.startBeat
     const sustained = continues ? pending.event : event
     if (continues) {
+      tiedHairpinAnchors.get(event.eventId)?.push(event)
       sustained.durationBeats += event.durationBeats
       sustained.velocityEnd = event.velocityEnd
       sustained.tiedEvents ??= []
@@ -299,11 +337,11 @@ function sameChordFrequencies(left?: number[], right?: number[]): boolean {
 }
 
 function applyRepeatPlayback(
-  events: PlaybackEvent[],
+  events: NotatedPlaybackEvent[],
   measures: StaffMeasures,
   totalBeats: number,
   repeatPlaybackPlan = createRepeatPlaybackPlan(measures)
-): { events: PlaybackEvent[]; totalBeats: number } {
+): { events: NotatedPlaybackEvent[]; totalBeats: number } {
   const measureStartBeats = createStaffMeasureStartBeatMap(measures)
   const nextEvents = repeatPlaybackPlan.entries.flatMap((entry) => {
     const measure = measures[entry.measureIndex]
@@ -347,6 +385,22 @@ function createStaffMeasureStartBeatMap(
   }
 
   return startBeats
+}
+
+function resolveLeadingGrace(
+  measure: StaffMeasures[number], voice: Voice, event: Note, durationBeats: number
+): LeadingGrace | undefined {
+  const grace = event.graceNotes?.[0]
+  if (!grace || event.graceNotes?.length !== 1 || grace.after || grace.chord ||
+    (event.pitches?.length ?? 0) > 1 || event.ties?.start || event.ties?.stop ||
+    event.duration.tuplet || event.fermata || event.tremolo || event.ornaments?.length) return undefined
+
+  const pitch = resolveNotePitch(measure, voice, { ...event, pitch: grace.pitch })
+  const offset = (measure.transposition?.chromatic ?? 0) + 12 * (measure.transposition?.octaveChange ?? 0)
+  return {
+    frequency: pitchToFrequency(pitch) * 2 ** (offset / 12),
+    maxBeats: Math.min(grace.slash ? 1 / 16 : 1 / 2, durationBeats / 2)
+  }
 }
 
 function eventFrequencies(
@@ -657,33 +711,63 @@ function resolveMeasureVelocity(score: Score, measureId: string): number {
 
 function applyHairpinVelocity(
   score: Score,
-  events: PlaybackEvent[],
-  scoreRepeatPlaybackPlan?: RepeatPlaybackPlan
-): PlaybackEvent[] {
+  events: NotatedPlaybackEvent[],
+  scoreRepeatPlaybackPlan: RepeatPlaybackPlan | undefined,
+  tiedHairpinAnchors: ReadonlyMap<string, PlaybackEvent[]>
+): NotatedPlaybackEvent[] {
   const nextEvents = events.map((event) => ({ ...event }))
+  const anchorOccurrences = (eventId: string) => {
+    const sounding = nextEvents.filter(event => event.eventId === eventId)
+    const tied = tiedHairpinAnchors.get(eventId)
+    // A collapsed continuation still owns its performed beat and voice.
+    return tied?.length ? [...sounding, ...tied].sort((a, b) => a.startBeat - b.startBeat) : sounding
+  }
 
   for (const hairpin of score.hairpins ?? []) {
-    const starts = nextEvents.filter((event) => event.eventId === hairpin.startEventId)
+    const starts = anchorOccurrences(hairpin.startEventId)
     const first = starts[0]
     if (!first) continue
     const staff = score.parts.find(part => part.id === first.partId)?.staves.find(staff => staff.id === first.staffId)
     if (!staff) continue
     // Use the same performed plan as event expansion, including repeats owned
-    // by a secondary aligned staff. No source-event or project schema mutation.
+    // by a secondary aligned staff.
     const plan = scoreRepeatPlaybackPlan ?? createRepeatPlaybackPlan(staff.measures)
     const repeatBoundaries = plan.entries.filter((entry, index) => index > 0 &&
-      entry.measureIndex <= plan.entries[index - 1].measureIndex).map(entry => entry.outputBeat)
+      (entry.navigationJump || entry.measureIndex <= plan.entries[index - 1].measureIndex)).map(entry => entry.outputBeat)
+    const release = hairpin.endAnchor === 'release'
+    const exactEnd = hairpin.endAnchor !== undefined || hairpin.endTime !== undefined
+    const ends = hairpin.endTime ? (() => {
+      const { measureId, tick, voiceId } = hairpin.endTime
+      const measureIndex = staff.measures.findIndex(measure => measure.id === measureId)
+      return plan.entries.filter(entry => entry.measureIndex === measureIndex)
+        .map(entry => ({ startBeat: entry.outputBeat, voiceId, beat: entry.outputBeat + tick / TICKS_PER_QUARTER }))
+    })() : anchorOccurrences(hairpin.endEventId).flatMap(event => {
+      const { startBeat, voiceId } = event
+      if (!release) {
+        const duration = hairpin.endAnchor === 'onset' ? 0 : event.durationBeats
+        return [{ startBeat, voiceId, beat: startBeat + duration }]
+      }
+      const measure = staff.measures.find(candidate => candidate.id === event.measureId)
+      const source = measure?.voices.find(voice => voice.id === voiceId)?.events.find(note => note.id === hairpin.endEventId)
+      return measure && source ? [{
+        startBeat, voiceId, beat: startBeat + voiceEventDurationTicks(source, measure) / TICKS_PER_QUARTER
+      }] : []
+    })
     for (const [index, startEvent] of starts.entries()) {
       // A skipped stop must not spill across a backward (or same-bar) repeat,
       // even when the start itself appears only in the first ending.
       const nextStartBeat = starts[index + 1]?.startBeat ?? Infinity
       const nextRepeatBeat = repeatBoundaries.find(beat => beat > startEvent.startBeat) ?? Infinity
-      const endEvent = nextEvents.find((event) => event.eventId === hairpin.endEventId &&
-        event.startBeat >= startEvent.startBeat && event.startBeat < Math.min(nextStartBeat, nextRepeatBeat))
-
-      if (!endEvent) continue
-
-      applyHairpinTraversal(nextEvents, startEvent, endEvent, hairpin.type)
+      const limit = Math.min(nextStartBeat, nextRepeatBeat)
+      const afterMeasureStart = release || hairpin.endTime !== undefined
+      const floor = afterMeasureStart ? (repeatBoundaries.filter(beat => beat <= startEvent.startBeat).at(-1) ?? 0) : startEvent.startBeat
+      // A release or time anchor can start in the same measure before
+      // the hairpin itself. Its end must still belong to this traversal.
+      const end = ends.find(({ startBeat, beat }) => startBeat >= floor &&
+        startBeat < limit && (!afterMeasureStart || beat > startEvent.startBeat))
+      if (!end) continue
+      const spanEnd = exactEnd ? Math.min(end.beat, limit) : end.beat
+      applyHairpinTraversal(nextEvents, startEvent, end.voiceId, hairpin.type, spanEnd, exactEnd, hairpin.endTime !== undefined)
     }
   }
 
@@ -693,11 +777,13 @@ function applyHairpinVelocity(
 function applyHairpinTraversal(
   events: PlaybackEvent[],
   startEvent: PlaybackEvent,
-  endEvent: PlaybackEvent,
-  type: NonNullable<Score['hairpins']>[number]['type']
+  endVoiceId: string,
+  type: NonNullable<Score['hairpins']>[number]['type'],
+  spanEnd: number,
+  exactEnd: boolean,
+  sampleHairpinVelocity: boolean
 ): void {
   const spanStart = startEvent.startBeat
-  const spanEnd = endEvent.startBeat + endEvent.durationBeats
   const spanDuration = spanEnd - spanStart
 
   if (spanDuration <= 0) return
@@ -709,22 +795,35 @@ function applyHairpinTraversal(
 
   events.forEach((event) => {
     if (event.partId !== startEvent.partId || event.staffId !== startEvent.staffId ||
-      (startEvent.voiceId === endEvent.voiceId && event.voiceId !== startEvent.voiceId)) return
+      (startEvent.voiceId === endVoiceId && event.voiceId !== startEvent.voiceId)) return
     const eventEnd = event.startBeat + event.durationBeats
 
     if (eventEnd <= spanStart || event.startBeat >= spanEnd) return
 
-    event.velocityStart = interpolateVelocity(
-      baseVelocity,
-      targetVelocity,
-      (Math.max(event.startBeat, spanStart) - spanStart) / spanDuration
-    )
+    if (event.startBeat >= spanStart) {
+      event.velocityStart = interpolateVelocity(baseVelocity, targetVelocity, (event.startBeat - spanStart) / spanDuration)
+    }
+    if (exactEnd && event.startBeat < spanStart) event.velocityStartBeat = spanStart
+    else delete event.velocityStartBeat
     event.velocityEnd = interpolateVelocity(
       baseVelocity,
       targetVelocity,
       (Math.min(eventEnd, spanEnd) - spanStart) / spanDuration
     )
+    if (exactEnd && spanEnd < eventEnd) event.velocityEndBeat = spanEnd
+    else delete event.velocityEndBeat
+    if (sampleHairpinVelocity) event.sampleHairpinVelocity = true
+    else delete event.sampleHairpinVelocity
   })
+}
+
+export function resolveEventVelocityAtBeat(event: PlaybackEvent, beat: number): number {
+  const from = event.velocityStartBeat ?? event.startBeat
+  const duration = event.velocityStartBeat === undefined && event.velocityEndBeat === undefined
+    ? event.durationBeats : (event.velocityEndBeat ?? event.startBeat + event.durationBeats) - from
+  if (duration <= 0) return event.velocityStart
+  const progress = Math.min(1, Math.max(0, (beat - from) / duration))
+  return event.velocityStart + (event.velocityEnd - event.velocityStart) * progress
 }
 
 function interpolateVelocity(start: number, end: number, ratio: number): number {

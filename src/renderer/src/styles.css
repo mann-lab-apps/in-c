@@ -1235,7 +1235,8 @@ h2:not(.dd-text) {
 
 .notation-grace-notes,
 .notation-lyric,
-.notation-ornament {
+.notation-ornament,
+.notation-navigation-symbol {
   fill: #111827;
   pointer-events: none;
   text-anchor: middle;
@@ -1258,10 +1259,18 @@ h2:not(.dd-text) {
 }
 
 
-.notation-ornament {
+.notation-ornament,
+.notation-navigation-symbol {
   font-family: Bravura;
   font-size: 28px;
   font-weight: 400;
+}
+
+.notation-navigation-symbol--end {
+  font-family: Georgia, Bravura, serif;
+  font-size: 16px;
+  font-weight: 600;
+  text-anchor: end;
 }
 
 .notation-state-overlays {

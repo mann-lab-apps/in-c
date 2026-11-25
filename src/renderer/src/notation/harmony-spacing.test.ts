@@ -9,7 +9,7 @@ import { serializeMidi } from '../midi/serialize-midi'
 import { Stave } from 'vexflow'
 import { createStaveNote } from './NotationPreview'
 import { formatSharedRhythm, minimumSharedRhythmWidth } from './shared-rhythm-layout'
-import { harmonySpacingByMeasure, spacedHarmonies } from './harmony-spacing'
+import { harmonySpacingByMeasure, resolveHarmonyBarlineShifts, spacedHarmonies } from './harmony-spacing'
 import { minimumTextScoreWidths } from './use-lyric-layout'
 import { resolveMeasureAnnotationLanes } from './annotation-lanes'
 
@@ -138,4 +138,18 @@ it('keeps lone/coincident, boundary and unknown-owner chords out of the interior
     { ...first, id: 'unknown', measureId: 'absent' }]
   expect(spacedHarmonies(score)).toEqual([])
   expect(harmonySpacingByMeasure(score, new Map([[first.text, 84]])).size).toBe(0)
+})
+
+
+it('clears intersecting chord glyphs at a shared barline without moving other labels or creating new overlaps', () => {
+  const first = { x: 86, y: 20, width: 89, height: 18, bar: { x: 8, width: 142 } }
+  const next = { x: 156, y: 20, width: 63, height: 18, bar: { x: 150, width: 107 } }
+  const following = { x: 263, y: 20, width: 63, height: 18, bar: { x: 257, width: 107 } }
+  expect(resolveHarmonyBarlineShifts([first, next, following])).toEqual([-27, 0, 0])
+  expect(resolveHarmonyBarlineShifts([first, { ...next, x: 145 }])).toEqual([-27, 7])
+  expect(resolveHarmonyBarlineShifts([first, { ...next, y: 39 }])).toEqual([0, 0])
+  expect(resolveHarmonyBarlineShifts([first, { ...next, bar: first.bar }])).toEqual([0, 0])
+  expect(resolveHarmonyBarlineShifts([{ ...first, width: 160 }, next])).toEqual([0, 0])
+  const before = { ...first, x: 16, width: 47 }
+  expect(resolveHarmonyBarlineShifts([before, first, next])).toEqual([0, 0, 0])
 })

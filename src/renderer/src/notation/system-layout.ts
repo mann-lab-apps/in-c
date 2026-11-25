@@ -1,3 +1,4 @@
+import { clefDisplayOctave, sameDisplayedClef } from './vexflow-adapter'
 import type { MeasuredPrintLayout } from './measured-print-pages'
 import { keySignatureCancellation } from './key-signature-header'
 import {
@@ -447,7 +448,7 @@ function systemPitchExtremes(measures: Measure[]): SystemPitchExtremes {
 
 export function pitchStaffLine(pitch: Pitch, clef: Clef): number {
   const stepIndex = ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(pitch.step)
-  const baseLine = ((pitch.octave - 4) * 7 + stepIndex) / 2
+  const baseLine = ((pitch.octave - clefDisplayOctave(clef) - 4) * 7 + stepIndex) / 2
 
   return baseLine + clefLineShift(clef)
 }
@@ -532,7 +533,7 @@ function measureMinimumWidth(
   const previousMeter = spacing.previousMeasures.get(measure)
   const leadingModifierWidth = leadingNotationPadding(measure, {
     showsClef:
-      isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
+      isSystemStart || !previousMeasure || !sameDisplayedClef(previousMeasure.clef, measure.clef),
     showsKeySignature:
       isSystemStart || !previousMeasure || !sameKeySignature(previousMeasure, measure),
     cancelledKeyAccidentals:keySignatureCancellation(measure.keySignature,previousMeter?.keySignature)?.count,
@@ -580,13 +581,6 @@ export function leadingNotationPadding(
     (leadingNotation.showsTimeSignature ? TIME_SIGNATURE_PADDING : 0)
 
   return Math.min(MAX_LEADING_NOTATION_PADDING, padding)
-}
-
-function sameClef(previous: Measure, current: Measure): boolean {
-  return (
-    previous.clef.sign === current.clef.sign &&
-    previous.clef.line === current.clef.line
-  )
 }
 
 function sameKeySignature(previous: Measure, current: Measure): boolean {

@@ -35,11 +35,11 @@ export class PracticeLoopQueue<T extends {time:number}> {
   private cycle=-1
   private cursor=0
   private commands:T[]=[]
-  constructor(private readonly clock:PracticeLoopClock,private readonly build:(fromBeat:number,endBeat:number)=>T[]){}
+  constructor(private readonly clock:PracticeLoopClock,private readonly build:(fromBeat:number,endBeat:number,cycle:number)=>T[]){}
   takeDue(elapsed:number,lookahead=.75):{command:T;at:number;cycle:number;end:number}[]{
     const due:{command:T;at:number;cycle:number;end:number}[]=[],horizon=elapsed+lookahead
     const current=Math.max(0,this.clock.cycleAtElapsed(elapsed))
-    if(this.cycle<current){this.cycle=current;this.cursor=0;const segment=this.clock.segment(this.cycle);this.commands=this.build(segment.fromBeat,segment.endBeat)}
+    if(this.cycle<current){this.cycle=current;this.cursor=0;const segment=this.clock.segment(this.cycle);this.commands=this.build(segment.fromBeat,segment.endBeat,segment.cycle)}
     while(true){
       const segment=this.clock.segment(this.cycle)
       if(segment.startSeconds>horizon+1e-9)break
@@ -51,7 +51,7 @@ export class PracticeLoopQueue<T extends {time:number}> {
       }
       const next=this.clock.segment(this.cycle+1)
       if(next.startSeconds>horizon+1e-9)break
-      this.cycle++;this.cursor=0;this.commands=this.build(next.fromBeat,next.endBeat)
+      this.cycle++;this.cursor=0;this.commands=this.build(next.fromBeat,next.endBeat,next.cycle)
     }
     return due
   }

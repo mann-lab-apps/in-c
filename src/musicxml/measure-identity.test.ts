@@ -47,7 +47,7 @@ it('control keeps nonzero node-keyed source timing, concrete spans, ties and glo
     throw Error('Missing concrete source anchor')
   }
   expect(score.slurs?.map(s=>[address(s.startEventId),address(s.endEventId)])).toEqual([[[0,0,0,0],[0,0,2,2*q]]])
-  expect(score.hairpins?.map(s=>[address(s.startEventId),address(s.endEventId)])).toEqual([[[0,1,0,2*q],[0,1,2,0]]])
+  expect(score.hairpins?.map(s=>[address(s.startEventId),address(s.endEventId!)])).toEqual([[[0,1,0,2*q],[0,1,2,0]]])
   expect(score.octaveShifts?.map(s=>[address(s.startEventId),address(s.endEventId)])).toEqual([[[1,0,1,0],[1,0,3,2*q]]])
   expect(() => createNativeProject(score)).not.toThrow()
 })

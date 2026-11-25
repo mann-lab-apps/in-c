@@ -1,6 +1,7 @@
 import VexFlow, { Formatter, Fraction, GhostNote, Stave, type StaveNote, type TickContext, Voice } from 'vexflow'
 import { measureDurationTicks, TICKS_PER_QUARTER, voiceEventDurationTicks, type Measure, type VoiceEvent } from '../../../score-core'
 import { lyricDisplayText } from './lyric-text'
+import { joinNotationVoices } from './format-voices'
 import type { TimedAnnotationAnchor } from './timed-annotation-position'
 
 export interface SharedStaffLayout {
@@ -94,7 +95,7 @@ function sharedFormatter(staves: SharedStaffLayout[]) {
     const group = rhythmicVoices(staff, meter, onsets)
     const annotations = annotationVoice(staff, meter, onsets)
     if (annotations) { group.push(annotations); hasAnnotationVoice = true }
-    formatter.joinVoices(group)
+    joinNotationVoices(formatter, group)
     return group
   })
   return { formatter, voices, onsets, hasAnnotationVoice }

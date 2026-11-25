@@ -2906,13 +2906,14 @@ describe('App component shell', () => {
     const menu = screen.getByRole('menu', { name: '마디 작업' })
     const items = within(menu).getAllByRole('menuitem')
     expect(within(menu).getByRole('menuitem', {name:'마디 제거'})).toBeDisabled()
+    const clear = within(menu).getByRole('menuitem', { name: '이 보표의 마디 내용 지우기' })
     fireEvent.keyDown(items[0], { key: 'End' })
-    expect(within(menu).getByRole('menuitem', {name:'박자표 변경…'})).toHaveFocus()
-    expect(fireEvent.keyDown(within(menu).getByRole('menuitem', {name:'박자표 변경…'}), { key: 'Enter', isComposing: true })).toBe(false)
-    expect(fireEvent.keyDown(within(menu).getByRole('menuitem', {name:'박자표 변경…'}), { key: 'Escape', isComposing: true })).toBe(false)
+    expect(clear).toHaveFocus()
+    expect(fireEvent.keyDown(clear, { key: 'Enter', isComposing: true })).toBe(false)
+    expect(fireEvent.keyDown(clear, { key: 'Escape', isComposing: true })).toBe(false)
     expect(onSelect).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
-    fireEvent.keyDown(within(menu).getByRole('menuitem', {name:'박자표 변경…'}), { key: 'Tab' })
+    fireEvent.keyDown(clear, { key: 'Tab' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -2928,7 +2929,7 @@ describe('App component shell', () => {
     const items = within(menu).getAllByRole('menuitem')
     expect(items.map(item => item.textContent?.trim())).toEqual([
       '앞에 마디 추가', '뒤에 마디 추가', '도돌이표 시작', '도돌이표 끝',
-      '1번 볼타', '2번 볼타', '마디 속성…', '박자표 변경…', '마디 제거'
+      '1번 볼타', '2번 볼타', '마디 속성…', '박자표 변경…', '이 보표의 마디 내용 지우기', '마디 제거'
     ])
     items.forEach(item => expect(item).toHaveClass('dd-button'))
     expect(items[0]).toHaveFocus()

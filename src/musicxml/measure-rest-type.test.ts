@@ -29,10 +29,36 @@ it.each(cases)('imports a typeless full-bar rest in %i/%i pickup=%s with its act
       writeFileSync(join(dir, name), contents, { flag: 'wx' })
   }
 })
-it.each(['ordinary-rest', 'pitched-note'] as const)('does not invent a duration for a typeless %s', kind => {
-  const xml = makeMeasureRestXml().replace('<rest measure="yes"/>', kind === 'ordinary-rest' ? '<rest/>' : '<pitch><step>C</step><octave>4</octave></pitch>').replace('<type>whole</type>', '')
-  expect(() => parseMusicXmlWithReport(xml)).toThrow(/type/)
+it.each(['ordinary-rest', 'pitched-note'] as const)('checks the exact duration of a typeless %s', kind => {
+  const explicit = makeMeasureRestXml().replace('<rest measure="yes"/>', kind === 'ordinary-rest' ? '<rest/>' : '<pitch><step>C</step><octave>4</octave></pitch>')
+  const xml = explicit.replace('<type>whole</type>', '')
+  expect(parseMusicXmlWithReport(xml)).toEqual(parseMusicXmlWithReport(explicit))
+  expect(() => parseMusicXmlWithReport(xml.replace('<duration>16</duration>', '<duration>15</duration>'))).toThrow(/지원하는 음가/)
 })
 it('still rejects an explicitly unsupported graphic type on a complete measure rest', () => {
   expect(() => parseMusicXmlWithReport(makeMeasureRestXml(4,4,true).replace('<type>whole</type>', '<type>unknown</type>'))).toThrow(/type/)
+})
+
+it.each(['regular', 'full measure'] as const)('reports a %s rest’s specified staff position without changing its rhythm', kind => {
+  const tag = kind === 'full measure' ? 'rest measure="yes"' : 'rest'
+  const control = makeMeasureRestXml(4, 4, true).replace(
+    '<rest measure="yes"/><duration>16</duration><voice>2</voice>',
+    `<${tag}/><duration>16</duration><voice>2</voice>`
+  )
+  const source = control.replace(
+    `<${tag}/><duration>16</duration><voice>2</voice>`,
+    `<${tag}><display-step>A</display-step><display-octave>5</display-octave></rest><duration>16</duration><voice>2</voice>`
+  )
+  const positioned = parseMusicXmlWithReport(source)
+  const defaultPlacement = parseMusicXmlWithReport(control)
+  expect(positioned.report.warnings.filter(warning => warning.message.startsWith('Unrepresented rest staff placement ')))
+    .toEqual([expect.objectContaining({
+      code: 'unsupported-notation', partNumber: 1, measureNumber: 1, eventIndex: 2,
+      path: 'part[1].measure[1].note[2].rest',
+      message: expect.stringContaining('"displayStep":"A","displayOctave":"5","staff":"2","voice":"2"')
+    })])
+  expect(defaultPlacement.report.warnings).toEqual([])
+  expect(positioned.score).toEqual(defaultPlacement.score)
+  expect(serializeMusicXml(positioned.score)).toBe(serializeMusicXml(defaultPlacement.score))
+  expect(serializeMidi(positioned.score)).toEqual(serializeMidi(defaultPlacement.score))
 })

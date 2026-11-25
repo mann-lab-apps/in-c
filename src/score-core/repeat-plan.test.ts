@@ -36,3 +36,82 @@ it('does not invent a shared plan for absent or misaligned marks',()=>{
  const {input}=secondaryRepeatFixture('primary','repeat')
  expect(createScoreRepeatPlaybackPlan(input)).toBeUndefined()
 })
+
+it('restarts a closed inner repeat on every explicit outer pass without changing the written measures', () => {
+  const measures = [
+    bar('outer-start', { repeat: { start: true } }),
+    bar('inner-start', { repeat: { start: true }, timeSignature: { beats: 3, beatType: 4 } }),
+    bar('inner-end', { repeat: { end: true, times: 3 } }),
+    bar('outer-end', { repeat: { end: true } }),
+    bar('after')
+  ]
+  const before = structuredClone(measures)
+  const plan = createRepeatPlaybackPlan(measures)
+  const expected = [0, 1, 2, 1, 2, 1, 2, 3, 0, 1, 2, 1, 2, 1, 2, 3, 4]
+  expect(plan.entries.map(entry => entry.measureIndex)).toEqual(expected)
+  expect(plan.entries.map(entry => entry.outputBeat)).toEqual([0, 4, 7, 11, 14, 18, 21, 25, 29, 33, 36, 40, 43, 47, 50, 54, 58])
+  expect(plan.totalBeats).toBe(62)
+  expect(measures).toEqual(before)
+})
+
+it('keeps prior traversal for nested expansions beyond the linear bound and for an unclosed outer mark', () => {
+  const measures = [
+    bar('outer-start', { repeat: { start: true } }),
+    bar('inner-start', { repeat: { start: true } }),
+    bar('inner-end', { repeat: { end: true, times: 100 } }),
+    bar('outer-end', { repeat: { end: true, times: 100 } })
+  ]
+  expect(createRepeatPlaybackPlan(measures).entries).toHaveLength(301)
+  measures[2].repeat = { end: true }
+  measures[3].repeat = undefined
+  expect(createRepeatPlaybackPlan(measures).entries.map(entry => entry.measureIndex)).toEqual([0, 1, 2, 1, 2, 3])
+})
+
+it.each(['before', 'after'] as const)('plays closed nested repeats with a separate volta section %s them', position => {
+  const nested = [
+    bar('outer-start', { repeat: { start: true } }),
+    bar('inner-start', { repeat: { start: true } }),
+    bar('inner-end', { repeat: { end: true } }),
+    bar('outer-end', { repeat: { end: true } })
+  ]
+  const endings = [
+    bar('ending-start', { repeat: { start: true } }),
+    bar('first-ending', { volta: { number: 1, start: true, end: true }, repeat: { end: true } }),
+    bar('second-ending', { volta: { number: 2, start: true, end: true } })
+  ]
+  const measures = position === 'before' ? [...endings, ...nested] : [...nested, ...endings]
+  const before = structuredClone(measures)
+  const expectedNested = [0, 1, 2, 1, 2, 3, 0, 1, 2, 1, 2, 3]
+  const expectedEndings = [0, 1, 0, 2]
+  const indices = position === 'before'
+    ? [...expectedEndings, ...expectedNested.map(index => index + endings.length)]
+    : [...expectedNested, ...expectedEndings.map(index => index + nested.length)]
+
+  expect(createRepeatPlaybackPlan(measures)).toEqual({
+    entries: indices.map((measureIndex, occurrence) => ({
+      measureIndex,
+      outputBeat: occurrence * 4,
+      pass: (position === 'before'
+        ? [1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 2, 1, 1, 2, 2, 2]
+        : [1, 1, 1, 2, 2, 1, 2, 1, 1, 2, 2, 2, 1, 1, 2, 2])[occurrence]
+    })),
+    totalBeats: 64
+  })
+  expect(measures).toEqual(before)
+})
+
+it('keeps the legacy traversal when an ending spans a nested repeat', () => {
+  const measures = [
+    bar('volta-start', { volta: { number: 1, start: true } }),
+    bar('outer-start', { repeat: { start: true } }),
+    bar('inner-start', { repeat: { start: true } }),
+    bar('inner-end', { repeat: { end: true } }),
+    bar('outer-end', { repeat: { end: true } }),
+    bar('volta-end', { volta: { number: 1, end: true } }),
+    bar('after')
+  ]
+
+  const plan = createRepeatPlaybackPlan(measures)
+  expect(plan.entries.map(entry => entry.measureIndex)).toEqual([0, 1, 2, 3, 6])
+  expect(plan.totalBeats).toBe(20)
+})

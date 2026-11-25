@@ -62,4 +62,13 @@ describe('MusicXML tempo direction positions',()=>{
     expect(score.tempoEvents?.map(event=>event.tick)).toEqual([TICKS_PER_QUARTER/2,TICKS_PER_QUARTER*2])
     expect(parseMusicXml(serializeMusicXml(score)).tempoEvents?.map(event=>event.tick)).toEqual([TICKS_PER_QUARTER/2,TICKS_PER_QUARTER*2])
   })
+
+  it('applies exact decimal divisions to notes, tempo offsets and inherited positions', () => {
+    const source = sourceXml(15, 'offset')
+    const decimal = source.replace(/<(divisions|duration)([^>]*)>(\d+)<\/\1>/g, (_match, name, attrs, value) =>
+      `<${name}${attrs}>${Number(value) / 100}</${name}>`
+    ).replace(/(<offset sound="yes">)(\d+)/g, (_match, tag, value) => tag + Number(value) / 100)
+    expect(parseMusicXml(decimal)).toEqual(parseMusicXml(source))
+    expect(serializeMidi(parseMusicXml(decimal))).toEqual(serializeMidi(parseMusicXml(source)))
+  })
 })

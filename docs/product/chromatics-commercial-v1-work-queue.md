@@ -1,5 +1,495 @@
 > Current work: [live checkpoint and execution index](studio-active-work.md). Older Current/Latest headings below are historical evidence.
 
+## 2026-11-25 — 재생 중 믹서 변경과 샘플 피아노 유지음
+
+재생 중 믹서를 변경해도 계속 들리는 샘플 피아노는 원래 위치에서 이어진다. 실제 두 폭에서 음소거·솔로·루프 마지막 박·늦은 응답을 확인했다. 재생 전용 빠르기는 훅과 오프라인 WAV로, 기보 빠르기 편집은 앱에서 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#재생-중-믹서-변경과-샘플-피아노-유지음)
+
+## 2026-11-25 — 같은 위치에서 수동 페달 음 재개
+
+같은 일시정지 위치에서 실제 수동 페달 유지음을 원래 샘플 위치로 복원한다. 두 폭의 연속 재개·루프·최신 믹서와 지연 요청 격리, WAV·Native·MusicXML·MIDI·PDF를 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-위치에서-수동-페달-음-재개)
+
+## 2026-11-25 — 일시정지 중 페달·믹서·연습 루프 검증
+
+수동 페달만으로 이어지던 음의 재개 기준과 복원 후보 WAV를 준비했다. 두 폭에서 일시정지 중 페달·믹서·악보 및 루프 교체를 검증했다. 지연된 이전 재개가 정지나 새 재생을 덮지 않았고, 계속 유효한 재개는 최신 믹서와 페달 해제를 사용했다. 복원 정책은 답변 대기다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#일시정지-중-페달믹서연습-루프-검증)
+
+## 2026-11-25 — 악보 댐퍼와 수동 서스테인의 릴리스
+
+악보 페달을 다시 밟은 구간에서 수동 페달을 떼면 두 파트가 함께 풀리던 결함을 수정했다. 실제 두 화면 폭에서 두 페달의 해제 순서, 빠르기 변경, 탐색·반복·루프를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#악보-댐퍼와-수동-서스테인의-릴리스)
+
+## 2026-11-24 — 샘플 피아노의 릴리스 시작 시각
+
+일반 샘플의 조기 릴리스와 정지 직후의 예약 타건을 수정했다. 실제 두 화면 폭에서 이벤트·독립 끝점, 두 페달 전환, 미리 듣기·겹친 음·탐색·루프와 출력을 확인했다. 오프라인 WAV에서 정시 대조와 일치했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#샘플-피아노의-릴리스-시작-시각)
+
+## 2026-11-24 — 샘플 피아노에서 울리는 음의 헤어핀
+
+가져온 독립 종료 박까지 샘플 피아노의 지속음 세기가 이어진다. 실제 두 화면 폭의 선택 위치 재생·재개·정지·루프와 WAV 16개, Native·MusicXML·MIDI·PDF를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#샘플-피아노에서-울리는-음의-헤어핀)
+
+## 2026-11-24 — 가져온 헤어핀의 독립 종료 박
+
+SMG-035의 마디 편집 보호와 SMG-036의 가져온 시간 끝점 최초 범위를 구현했다. 직접 생성과 끝점 연결 편집, 외부 앱 재저장은 후속 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#가져온-헤어핀의-독립-종료-박)
+
+## 2026-11-24 — 시간 끝점 저장 후보와 다중 보표 박자 보호
+
+SMG-035의 두 보표 9/16 적용과 아래 보표로 인한 전체 거부가 검증됐다. SMG-036 독립 종료 박은 Native 형식과 무효 주소 처리 결정을 기다린다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#시간-끝점-저장-후보와-다중-보표-박자-보호)
+
+## 2026-11-24 — 박자와 마디 구조 편집의 헤어핀 끝점
+
+SMG-035·SMG-036의 박자·음가 및 구조 변경 검증을 마쳤다. 독립 종료 박은 두 divisions 예제로 검증할 수 있도록 정리했으며 저장 형식·구형 Native·무효 주소 처리를 정한 뒤 진행한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#박자음가와-마디-구조-변경의-헤어핀-끝점)
+
+## 2026-11-24 — 연결되지 않는 헤어핀 종료 진단과 악보단 시작
+
+SMG-035·SMG-036의 끝점 진단과 줄·페이지 시작의 이어짐을 검증했다. 독립 종료 박 도입에서 무효 주소 처리와 Native 호환을 후속 결정으로 남겼다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#연결되지-않는-헤어핀-종료-진단과-악보단-시작)
+
+## 2026-11-24 — 일부 악보단의 헤어핀 겹침과 표준 종료 위치
+
+SMG-035·SMG-036의 줄 합치기 초점, 아래 보표 잉크, 정확한 마디 끝을 검증했다. 표준 offset 전달에서 역할이 결정되지 않는 경우와 1.5박 모델 선택을 후속으로 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#일부-악보단의-헤어핀-겹침과-표준-종료-위치)
+
+## 2026-11-24 — 헤어핀의 혼합 종료 역할과 악보단 경계
+
+SMG-035·SMG-036의 혼합 종료 역할, 자동 헤어핀 겹침 수정과 줄·페이지 경계의 쉼표 끝점을 두 폭으로 검증했다. 외부 재저장과 임의 박 모델은 후속 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#헤어핀의-혼합-종료-역할과-악보단-경계)
+
+## 2026-11-24 — 헤어핀 종료 역할의 저장·반복 붙여넣기·쉼표 전환
+
+SMG-035·SMG-036의 두 차례 붙여넣기와 대상 끝점 보호, 역할 식별자와 쉼표 변환 후 파일 저장을 실제 앱에서 검증했다. 외부 편집기 재저장과 임의 박 위치는 후속 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#헤어핀-종료-역할의-저장반복-붙여넣기쉼표-전환)
+
+## 2026-11-24 — 편집·복사한 헤어핀의 MusicXML 왕복
+
+두 폭의 시작점 이동·구간 붙여넣기·종료 후보 충돌과 실제 파일·재생을 확인했다. 연결되지 않는 임의 위치의 모델 검토와 외부 사본 재변환은 후속 범위에 남긴다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#편집복사한-헤어핀의-musicxml-왕복)
+
+## 2026-11-24 — 헤어핀의 음 시작과 길이 끝 왕복
+
+승인 범위에서 선택적 종료 역할, 타이가 이어지는 재생, 반복 펼치기·파트보 및 페이지 인쇄를 실제 검증했다. 기존 프로젝트 호환과 외부 앱의 확인 범위를 인계에 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#헤어핀의-음-시작과-길이-끝-왕복)
+
+## 2026-11-24 — 마디 끝 헤어핀의 반복 펼치기
+
+같은 마디의 지원되는 두 성부 헤어핀을 실제 반복 펼치기에서 확인했다. 사본의 재열기·MusicXML·MIDI 검증과 기존 Native·PDF 보존, 남은 종료 위치 정책을 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#마디-끝-헤어핀의-반복-펼치기)
+
+종료 정보를 넣은 시험용 Native의 거부와 현재 문서 보존을 확인했다. 일반 종료 역할의 저장 및 재생 적용 범위에 제품 결정이 필요하다. [호환성 검증](../releases/studio-post-alpha42-parity-20261122/handoff.md#후보-종료-정보의-이전-native-호환성)
+
+## 2026-11-24 — 헤어핀 종료 위치의 가져오기 경고
+
+MusicXML 종료가 음 길이 끝에서 시작으로 옮겨지는 경우 한국어 경고와 원본·적용 위치를 표시한다. 두 폭의 세 대조에서 경고 범위와 Native·MIDI·PDF·XML 사본 동등성을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#보존되지-않은-헤어핀-종료의-가져오기-안내)
+
+## 2026-11-24 — 헤어핀 종료 재현과 재생 중 앞꾸밈음 전환
+
+1박 종료와 4박 종료가 실제 앱의 Native·MIDI·PDF와 1박 사본으로 합쳐지는 사례를 두 폭에서 재현했다. 이미 지원되는 마디 끝 헤어핀에 표시되던 잘못된 순서 오류를 고치고 수동 배치·undo·재열기·출력을 확인했다. 앞꾸밈음 설정 변경·undo·redo는 활성 루프의 예약을 취소하고 다음 재생에서 새 타임라인을 사용했다. 명시적 종료 정보와 새 입력의 재생 범위는 제품 결정 대기다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#헤어핀-종료-위치-재현과-속성-패널앞꾸밈음-전환)
+
+## 2026-11-24 — 장음 끝 헤어핀과 앞꾸밈음 실제 루프·파트보
+
+동시에 시작한 다른 성부의 장음이 마디 끝에서 끝나는 경우, 헤어핀의 종료 박·성부와 조판을 복원했다. 실제 두 폭의 Native·MIDI를 보존하고 원본과 왕복 사본의 MuseScore PDF가 일치했다. 앞꾸밈음 루프 8개 경로에서 샘플 중간 재개·정지·문서 교체를 확인했다. 총보와 파트보의 9음 및 공통 빠르기가 일치하고, 지원 범위 밖 2마디만 MIDI 경고에 표시됐다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#장음의-마디-끝-헤어핀-왕복과-앞꾸밈음-실제-재생)
+
+## 2026-11-24 — 마디 안 이조 보호와 앞꾸밈음 재생 설정
+
+지원 범위에서 원래 음높이를 보존할 수 없는 마디 안 이조는 파트·보표·마디·반음값을 안내하고 가져오기를 중단한다. 기존 악보와 이력을 보존한다. 앞꾸밈음 발음은 프로젝트별 설정으로 적용하며 기존 프로젝트는 꺼짐이다. 실제 두 화면 폭의 Native·XML·MIDI·PDF와 꾸밈음 WAV를 확인했다. [이조 검증](../releases/studio-post-alpha42-parity-20261122/handoff.md#마디-안-이조의-음높이-보호) · [재생 검증](../releases/studio-post-alpha42-parity-20261122/handoff.md#프로젝트별-앞꾸밈음-발음)
+
+## 2026-11-24 — 헤어핀 재생과 실음 보기 문서 전환
+
+타이로 이어진 음에 연결한 헤어핀의 재생 세기를 복구했다. 두 폭의 실제 파일과 샘플 피아노·MuseScore WAV를 대조했다. 실음 보기의 열기 취소·문서 교체·늦은 응답은 실제 두 폭에서 회귀를 보강했다. 앞꾸밈음과 마디 안 이조의 승인안은 후보 결과로 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#타이로-이어진-음에-연결한-헤어핀의-재생)
+
+## 2026-11-23 — 악보단을 합쳤다가 나눈 뒤 초점과 전체 회귀
+
+슬러 조각을 합쳤다가 다시 나누면 처음 초점을 둔 마디로 돌아온다. 두 폭의 실제 앱·파일과 집중 144건을 확인했다. 이 마지막 수정 직전의 전체 실행은 Vitest 7,705건·Node 5건 통과, 외부 opt-in 1건 건너뜀이다. 고정 입력 6,596개가 독립 확인에서도 일치했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#악보단을-합쳤다가-다시-나눌-때의-초점)
+
+## 2026-11-23 — 줄 나누기 실행 취소와 슬러 초점
+
+줄 나누기 편집에서 실행 취소할 때 마지막 슬러 조각의 초점을 같은 마디로 복구한다. 두 폭의 줄·페이지 나누기 네 조건과 Native·XML·MIDI·PDF, 수동 배치 대조를 확인했다. 타입·생산 빌드와 두 조판 스냅샷도 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#줄-나누기-실행-취소와-슬러-초점)
+
+## 2026-11-23 — 줄바꿈 헤어핀 조각 서식 안내
+
+MusicXML의 이어지는 헤어핀 조각에 지정된 서식의 손실을 안내한다. 두 폭에서 시작·끝, 세 조각, Native·MusicXML·MIDI·PDF를 확인했다. 이전 전체 실패 파일은 같은 이전 소스의 두 워커 재수집에서 556건이 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#줄바꿈-헤어핀의-조각-서식-안내)
+
+## 2026-11-23 — 헤어핀·다성부 슬러 최종 회귀
+
+최종 일반 전체 실행은 renderer 77건 실패로 종료했다. 동일 소스에서 해당 77건과 Node 검사 5건이 분리 통과했고 최종 빌드의 profile·fixed-canvas도 통과했다. 전체 실행의 실패 기록과 입력 해시를 보존했다. [실행과 분리 재검증](../releases/studio-post-alpha42-parity-20261122/handoff.md#최종-소스의-전체-실행과-분리-재검증)
+
+## 2026-11-23 — 같은 파트의 두 보표에 놓인 헤어핀
+
+한 파트 안에서 파일 순서가 겹치는 헤어핀의 번호를 분리했다. 기존 MuseScore 왕복에서 빠지던 아래 보표의 시작·끝을 보존한다. 두 폭의 Native·MIDI·PDF 동등성과 관련 2,383건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-파트의-두-보표에-놓인-헤어핀)
+
+## 2026-11-23 — 헤어핀 정수 번호와 누적 회귀
+
+동일한 헤어핀 번호의 XML 정수 표기가 달라도 가져온다. 두 폭의 파일 왕복과 관련 2,305건을 확인했다. 직전 헤어핀·슬러 누적 검사는 Vitest 7,696건과 Node 5건이 통과했고 외부 1건을 건너뛰었다. 최종 빌드의 DPR 2에서 두 조판 스냅샷이 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-헤어핀-번호의-다른-정수-표기)
+
+## 2026-11-23 — 같은 줄 경계를 넘는 두 슬러
+
+두 자동 슬러가 함께 이어질 때 다음 악보단 시작부의 교차를 수정했다. 두 화면 폭의 줄·페이지 나누기와 실제 PDF를 확인했고, 이전 수동 배치 대조의 Native와 PDF 결과를 유지했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-줄-경계를-넘는-두-슬러)
+
+## 2026-11-23 — 악보단·페이지 경계를 잇는 슬러 간격
+
+줄·페이지를 나눈 뒤 짧은 슬러와 겹치던 긴 자동 슬러를 수정했다. 두 폭의 실제 곡선 잉크와 화면·PDF에서 네 경로를 확인했다. 수동 높이와 0 오프셋, Native·MusicXML·MIDI를 보존했다. 관련 3,106건이 통과했다. DPR 1에서 두 스냅샷이 수정 전후 동일한 셈여림 경계 차이로 실패했으며 baseline은 유지했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#악보단페이지-경계를-잇는-슬러-간격)
+
+## 2026-11-23 — MusicXML에 끝점이 먼저 기록된 헤어핀
+
+같은 보표에서 끝점이 먼저 기록된 헤어핀을 MusicXML로 가져온다. 두 폭의 화면·파일과 MuseScore 정상 변환으로 시작·끝을 확인했다. 관련 2,903건이 통과했고, 이전 슬러 작업까지 누적 7,687건과 Node 5건도 완료했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml에-끝점이-먼저-기록된-헤어핀)
+
+## 2026-11-23 — 다성부 자동 슬러의 방향과 곡선 간격
+
+다성부 자동 슬러를 바깥쪽으로 배치하고 같은 쪽의 두 곡선이 교차하지 않도록 조정했다. 960/1400px 실제 곡선 간격·수동 배치·PDF를 확인했고 Native·MusicXML·MIDI를 보존했다. 관련 806건과 두 조판 스냅샷 검사가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#다성부-자동-슬러의-방향과-곡선-간격)
+
+## 2026-11-23 — 서로 다른 성부를 잇는 슬러의 MusicXML 순서
+
+같은 보표의 성부 사이 슬러가 XML에 끝점부터 기록돼도 가져오며, 파일에서 번호가 겹치면 다시 배정한다. 두 폭의 실제 저장·재열기·PDF와 MuseScore의 정상 사본에서 연결 음표를 확인했다. 관련 3,525건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#서로-다른-성부를-잇는-슬러의-musicxml-순서)
+
+## 2026-11-23 — MusicXML의 글자 성부 식별자
+
+숫자·글자 성부를 보표별로 배정해 슬러·헤어핀과 재생을 보존한다. 두 폭에서 가져오기·파일 출력과 압축 MXL 반복을 확인했다. 정상 MuseScore 변환 세 건의 음높이와 시작 박이 Studio와 일치했고, 관련 3,306건이 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml의-글자-성부-식별자)
+
+## 2026-11-23 — 읽기 전용 실음 보기에서의 PNG
+
+고정 이조 단일 파트에서 실음 화면을 켜도 PNG는 기보음으로 저장된다. 두 폭의 300dpi PNG 4건이 바이트 단위로 일치했고 선택·Native 저장·재열기를 확인했다. 최신 누적 Vitest 7,675건과 Node-native 5건이 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#읽기-전용-실음-보기에서의-png)
+
+## 2026-11-23 — 두 보표 파트의 줄·페이지 나누기와 묶음 쉼표
+
+아래 보표에 지정한 두 수동 나누기를 포함한 파트보의 일반·묶음 PDF를 두 폭에서 검증했다. 실제 두 페이지에서 5·6마디가 분리되고 12마디부터 새 페이지가 시작한다. 제품 변경 없이 Native·MusicXML·MIDI 보존과 재열기 회귀를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#두-보표-파트의-줄페이지-나누기와-묶음-쉼표)
+
+## 2026-11-23 — MusicXML 아래 보표의 성부 번호 충돌
+
+MusicXML에서 아래 보표의 서로 다른 원본 성부가 하나로 합쳐져 리듬 초과로 거부되던 문제를 수정했다. 두 화면 폭의 Native·MusicXML·MIDI·PDF와 MuseScore 4.7.5의 정상 변환을 확인했다. 관련 3,302건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-아래-보표의-성부-번호-충돌)
+
+## 2026-11-23 — 꾸밈음 변환과 음가 덮어쓰기의 기존 음높이
+
+꾸밈음 변환과 음가 덮어쓰기 뒤 남아 있는 기존 꾸밈음의 음높이를 유지한다. 실제 편집·취소·Native·MusicXML·MIDI·PDF를 두 폭에서 확인했다. 직전 누적 전체 7,670건·Node-native 5건과 이번 관련 검사 3,146건이 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#꾸밈음-변환과-음가-덮어쓰기의-기존-음높이)
+
+## 2026-11-23 — 빈 성부로 이동한 뒤의 꾸밈음 음높이
+
+단음을 빈 성부로 옮긴 뒤 원래 성부에 남은 꾸밈음의 음높이를 유지한다. 실제 두 폭의 편집·재열기·출력과 정상 MuseScore의 F♯ 사본을 확인했다. 최신 실제 DPR 2에서 두 조판 스냅샷도 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#빈-성부로-이동한-뒤의-꾸밈음-음높이)
+
+## 2026-11-23 — 음표 삭제와 쉼표 변환 뒤의 기존 음높이
+
+선택한 음표·범위를 지우거나 쉼표로 바꿀 때 뒤 화음·꾸밈음이 반음 바뀌던 문제를 수정했다. 실제 두 화면 폭의 네 동작, 실행 취소와 Native 재열기·MIDI·MusicXML·PDF를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#음표-삭제와-쉼표-변환-뒤의-기존-음높이)
+
+## 2026-11-23 — 앞꾸밈음 화음과 다른 성부의 구성음 충돌
+
+같은 박에서 다른 성부와 겹치던 앞꾸밈음 화음의 두 구성음을 각각 분리했다. 두 화면 폭, 실제 PDF, Native·MusicXML·MIDI 및 정상 MuseScore 대조를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#앞꾸밈음-화음과-다른-성부의-구성음-충돌)
+
+## 2026-11-23 — 두 성부의 앞꾸밈음 연속 그룹 분리
+
+마지막 F♯와 F♭가 겹치던 두 연속 그룹을 빔까지 함께 분리했다. 두 화면 폭과 PDF, Native·MusicXML·MIDI 보존 및 기존 단일 꾸밈음 좌표를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#두-성부의-앞꾸밈음-연속-그룹-분리)
+
+## 2026-11-23 — 같은 오선 위치의 두 앞꾸밈음 분리
+
+두 성부의 F♯와 F♭ 단일 앞꾸밈음이 서로 가리던 문제를 수정했다. 두 화면 폭과 실제 PDF, Native 재열기, MIDI·MusicXML 바이트 보존을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-오선-위치의-두-앞꾸밈음-분리)
+
+## 2026-11-23 — 앞꾸밈음과 같은 박의 다른 성부 임시표
+
+먼저 읽는 F♯ 앞꾸밈음의 샤프와 같은 박의 정규 F에 필요한 제자리표를 표시한다. 누적 전체는 Vitest 7,659건·Node-native 5건 통과, 외부 opt-in 1건 건너뜀이다. 두 화면 폭과 MusicXML·PDF·Native·MIDI 및 MuseScore PDF의 배치 차이를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#앞꾸밈음과-같은-박의-다른-성부-임시표)
+
+## 2026-11-23 — 뒤꾸밈음과 같은 박의 다른 성부 임시표
+
+뒤꾸밈음의 제자리표 때문에 같은 박의 다른 성부에서 필요한 제자리표가 빠지던 오류를 고쳤다. 두 화면 폭과 PDF, Native 재열기, MIDI 바이트 및 다른 음이름 대조를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#뒤꾸밈음과-같은-박의-다른-성부-임시표)
+
+## 2026-11-23 — MusicXML 쉼표의 세로 위치 손실 안내
+
+일반·온마디 쉼표에 지정된 오선 높이를 자동 위치로 가져올 때 원래 값을 경고로 보여준다. 두 화면 폭의 실제 가져오기·Native·MIDI·PDF와 정상 MuseScore PDF 대조를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-쉼표의-세로-위치-손실-안내)
+
+## 2026-11-23 — 한 파트의 옥타브선 번호 충돌
+
+파일에서 겹치는 옥타브선에 다른 번호를 쓰고 순서대로 닫히는 쌍은 번호를 다시 쓴다. 실제 두 폭에서 교환을 재검증했고 MuseScore의 위 보표 음높이 86·88이 의도한 74·76과 일치하도록 수정했다. 누적 Vitest 7,652건과 Node-native 5건이 통과했고, 기존 음머리 클릭은 네 화면 조건에서 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#한-파트의-옥타브선-번호-충돌)
+
+## 2026-11-23 — 성부가 다른 옥타브선의 MusicXML 재열기
+
+시작과 끝이 다른 성부에 있는 옥타브선에서 파일의 실제 시간과 종료 성부를 보존한다. 두 화면 폭에서 이전·새 XML의 가져오기, Native·MIDI·PDF를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#성부가-다른-옥타브선의-musicxml-재열기)
+
+## 2026-11-23 — 옥타브선 MusicXML 사본의 음높이
+
+같은 성부의 8va·8vb 방향을 실제 음표의 시작과 끝에 기록한다. MuseScore에서 구간 앞의 첫 음이 한 옥타브 올라가던 오류를 고쳤다. 두 폭의 실음 보기·기보음 PDF·Native와 정상 MuseScore MIDI 두 건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-옥타브선의-실제-경계)
+
+## 2026-11-23 — 고정 이조 단일 파트의 실음 보기
+
+공개 보기 메뉴에서 읽기 전용으로 전환한다. 같은 선택·재생 위치와 기보음의 Native·MusicXML·PDF 및 MIDI를 두 폭에서 확인했다. 한 파트의 두 보표와 서로 다른 이조의 안내를 추가 검증했다. 누적 Vitest 7,646건과 Node-native 5건이 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#고정-이조-단일-파트의-실음-보기)
+
+## 2026-11-23 — MusicXML 전통 조표 범위 안내
+
+적용할 조표가 플랫 7개부터 샤프 7개까지의 범위를 벗어나면 원래 값과 마디·보표를 안내한다. 두 폭의 미저장 편집 보존·실행 취소·재시도와 실제 출력·도움말을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-전통-조표-범위-안내)
+
+## 2026-11-23 — MusicXML 조표 취소 제자리표 안내
+
+조표를 취소하는 제자리표의 표시나 위치가 달라질 때 원래 값을 안내한다. 두 폭의 Native·XML·MIDI·PDF와 앱 도움말을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-조표-취소-제자리표-안내)
+
+## 2026-11-23 — MusicXML 이명동음 단음 타이
+
+이름이 다른 같은 음의 MusicXML 단음 타이를 가져오고 필요한 임시표를 유지한다. 같은 줄과 줄바꿈의 두 폭·Native·MusicXML·MIDI·PDF와 MuseScore 재생을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-이명동음-단음-타이)
+
+## 2026-11-23 — MusicXML 화음 구성음 길이 안내
+
+기준음과 길이가 다른 화음 구성음을 가져올 때 원래 값과 적용한 길이를 표시한다. 두 폭의 Native·MusicXML·MIDI·PDF와 실제 MuseScore 대조를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-화음-구성음의-서로-다른-길이)
+
+## 2026-11-23 — MusicXML 소수 시간 단위
+
+소수 길이와 상대 위치를 원본 자릿수로 계산해 정수 tick으로 정확히 읽는다. 960/1400px의 Native·XML·MIDI·PDF와 표기·재생 빠르기 위치 불일치 경고를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-소수-시간-단위의-정확한-환산)
+
+## 2026-11-23 — 생략된 MusicXML 음가 가져오기
+
+`<type>`이 없어도 원래 길이와 명시된 점·잇단음표 비율이 지원 음가에 정확히 맞으면 가져온다. 실제 960/1400px의 Native·XML·MIDI·PDF와 정상 MuseScore MIDI를 비교했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml에서-생략된-음표쉼표의-기보-음가)
+
+## 2026-11-23 — 못갖춘마디 시간 이동 경고
+
+MusicXML의 시간 이동으로 남긴 무음이 빠져 못갖춘마디가 짧아지면 원래 길이와 가져온 길이를 안내한다. 실제 두 폭에서 MIDI 시작이 1·2박에서 0·1박으로 앞당겨진 경우를 확인했다. 무음 구간 보존은 설계 대기다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#못갖춘마디의-musicxml-시간-이동과-실제-길이)
+
+## 2026-11-23 — 기존 이조에서 옥타브 값 0
+
+같은 악기 이조에서 옥타브 변화량 0을 생략한 경우와 명시한 경우에 같은 묶음 쉼표를 출력한다. 실제 한 옥타브 변화는 경계를 유지한다. 두 화면 폭과 관련 116건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#기존-이조에-명시한-옥타브-값-0)
+
+## 2026-11-23 — MusicXML 시간 이동 공백 안내
+
+시간 이동(`forward`)이 있는 마디에서 성부 길이를 맞출 수 없으면 마디와 원래 보표·성부·시간 이동 값을 안내한다. 실제 두 폭에서 현재 악보와 원본 파일 해시가 유지됐다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-forward와-성부-길이-안내)
+
+## 2026-11-23 — 파트보 묶음 쉼표의 이조 값 0
+
+이조 생략과 모든 간격 값의 0을 같은 상태로 계산해, 실제 이조가 바뀔 때만 묶음 쉼표를 나눈다. 960/1400px의 6개 출력과 관련 114건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#이조-값-0과-파트보-묶음-쉼표)
+
+## 2026-11-23 — MusicXML 쉼표 뒤 첫 음의 이조
+
+쉼표 뒤 첫 음부터 적용되는 MusicXML 이조를 마디 시작에 배치해 재생 음높이를 보존한다. 두 화면 폭의 Native·MusicXML·MIDI·PDF와 관련 2,192건을 확인했다. MuseScore 4.7.5는 원본과 Studio 사본의 중간 이조를 놓쳤으며 직접 실음 대조의 음높이·시작 박은 일치했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#쉼표-뒤-첫-음의-musicxml-이조)
+
+## 2026-11-23 — 창 너비 변경의 Tab 초점
+
+음표와 쉼표에 둔 Tab 초점을 창 크기 변경 중 보존한다. 두 폭의 실제 포인터·Tab·Enter, 기존 선택·출력 및 관련 70건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#창-크기-변경의-음표쉼표-tab-초점)
+
+## 2026-11-23 — 실음 전환의 선택·재생 위치
+
+같은 악보를 두 방식으로 그린 격리 앱에서 기존 선택·초점·캐럿과 재생 좌표를 확인했다. 보기 전환에서 이전 드래그를 종료하도록 수용 기준을 추가했다. 두 폭의 기존 기보 출력과 관련 44건을 검증했다. 공개 보기·편집·PDF 범위는 결정 대기다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#실음-전환의-선택드래그재생-위치-검증)
+
+## 2026-11-23 — MusicXML 임시표와 음높이 불일치
+
+원본 임시표 기호와 음높이 값이 서로 다르면 음높이 값으로 가져오고 기술 정보에 원래 기호와 값을 표시한다. 실제 두 폭과 Native·MusicXML·PDF·MIDI, 관련 2,189건을 검증했다. MuseScore 정상 대조의 음높이와 시작 박이 일치했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-임시표와-음높이-값이-서로-다른-경우)
+
+## 2026-11-23 — 앞꾸밈음의 오프라인 발음 대조
+
+Studio 실제 피아노 샘플러로 첫 박과 반복 복귀의 B♭5 꾸밈음과 지연된 C5를 렌더링했다. 후보 타임라인의 음높이에서 캐시 대상도 계산해야 한다. 정상 MuseScore WAV와 기존 회귀 23건을 확인했다. 제품 재생의 기본값은 결정 대기다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#앞꾸밈음-발음의-studio-오프라인-렌더링)
+
+## 2026-11-23 — MusicXML 특수 임시표 경고
+
+원래 기호가 바뀌는 MusicXML에 파트·마디·기호를 안내한다. 두 화면 폭에서 기본값 대조와 Native·MIDI·XML·PDF를 확인했다. 이전 숫자 표기 수정까지 전체 Vitest 7,598건과 Node-native 5건이 통과했고, 이번 경고는 후속 관련 2,186건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-특수-임시표-기호-손실-안내)
+
+## 2026-11-23 — MusicXML의 더하기 기호가 붙은 정수
+
+조표·옥타브·이조·음가의 숫자 앞에 +가 붙어도 같은 정수로 읽는다. 두 화면 폭에서 Native·MIDI·XML·PDF 동등성을 확인했다. MuseScore 일반 정수 대조의 네 음은 일치했고 + 입력은 비정상 종료했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml의-더하기-기호가-붙은-정수)
+
+## 2026-11-23 — MusicXML 정수 반음의 소수 표기
+
+정수 반음을 소수로 쓴 음높이·코드 심벌·이조를 읽고 미분음은 반올림 없이 안내한다. 두 폭의 Native·XML·MIDI·PDF를 확인했다. MuseScore 4.7.5의 정상 원본 대조에서 멜로디 네 음의 차이를 확인했고 Studio 사본의 외부 변환은 비정상 종료했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-정수-반음의-소수-표기)
+
+## 2026-11-23 — MusicXML 조표·박자표의 표시와 묶음 안내
+
+조표 숨김·기호 옥타브와 박자표 숨김·기호 지정의 손실에 한국어 안내를 추가했다. 묶음 박자표를 열 수 없는 경우 원래 분자·분모를 기술 정보에서 확인할 수 있다. 숫자 대조와 실제 MuseScore 교환 범위를 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-조표와-박자표의-표시-손실-안내)
+
+## 2026-11-23 — MusicXML 끝 박의 박자표·조표·이조 묶음
+
+동일 블록의 3/4·조표·이조가 앞 마디 길이 검증을 바꾸거나 누락되던 가져오기 실패를 수정했다. 앞 2/4 두 마디와 뒤 3/4의 실제 화면·Native·XML·MIDI·PDF를 두 폭에서 확인했다. MuseScore의 늦은 이조 차이와 직접 실음 대조를 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-끝-박의-박자표조표이조-묶음)
+
+## 2026-11-23 — MusicXML 끝 박의 조표를 다음 마디에 적용
+
+두 폭의 실제 화면에서 끝 박 변경을 셋째 마디에 표시한다. 문맥을 앞당기거나 누락하던 두 경우를 고쳤고 Native 재열기, MusicXML, MIDI와 PDF를 확인했다. MuseScore의 정상 출력과 6음의 음높이·시작이 일치했다. 관련 2,755건을 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-끝-박의-조표를-다음-마디에-적용)
+
+## 2026-11-23 — 옥타브선 경계의 임시표
+
+옥타브선 안의 화음·꾸밈음과 바로 뒤 음의 임시표를 보존한다. 960/1400px에서 Native·화면과 PDF는 동일했고 실제 MIDI와 MusicXML 왕복의 음높이가 복원됐다. 앞선 코드 심벌까지 누적 Vitest 7,565건과 Node-native 5건, 최신 옥타브 경계 집중 검사 138건을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#옥타브선-경계의-임시표-보존)
+
+## 2026-11-23 — MusicXML 코드 이름과 마디선 간격
+
+여덟 코드 종류의 근음·베이스를 복원하고 인접 마디의 글자 겹침을 해소했다. 960/1400px 화면의 잉크·선택 영역, 동일 Native 재열기·XML·MIDI와 실제 A4 PDF를 확인했다. 타입 포함 빌드·Studio profile·fixed-canvas가 통과했다. 직전 마디 끝 이조까지 누적 Vitest 7,555건과 Node-native 5건을 확인했으며 외부 opt-in 1건을 건너뛰었다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-코드-이름과-마디선-간격)
+
+## 2026-11-23 — MusicXML 끝 박의 이조를 다음 마디에 적용
+
+정확한 마디 끝의 이조가 앞 마디에 소급되거나 빠지던 경우를 수정했다. 두 폭의 Native·MusicXML·MIDI·PDF와 직접 실음을 적은 MuseScore 대조를 확인했다. MuseScore는 기보 XML의 이조 해제를 놓쳤다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-끝-박의-이조를-다음-마디에-적용)
+
+## 2026-11-23 — 가져온 음자리표의 종류와 줄 표시
+
+팔레트·마디 설정의 ‘기타 음자리표’를 실제 계열과 줄로 표시한다. 960/1400px 실제 포인터·팔레트 휠·설정과 Native 보존을 확인했다. App 집중 검사 31건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#가져온-음자리표의-종류와-줄-표시)
+
+## 2026-11-23 — 파트보 묶음 쉼표와 옥타브 변화량 0
+
+생략과 명시적 0을 같은 음자리표로 분류해 파트보 쉼표 세 마디를 묶는다. 실제 위 8과 기존 나누기 조건은 유지한다. 두 폭 앱과 전후 PDF, Native, MusicXML과 MIDI를 확인했다. 집중 검사 45건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#파트보-묶음-쉼표와-옥타브-변화량-0)
+
+## 2026-11-23 — 마디 안 음자리표 변경의 다음 마디 적용
+
+마디 안 G·F·C 변경의 시작 기호와 다음 마디 상태를 보존한다. 중복 divisions와 backup이 결과를 바꾸던 문제를 수정했다. 960/1400px 앱, Native, XML 24건, 동일 MIDI와 한 페이지 PDF를 검증했다. 줄 생략을 거부하던 기존 기대 3건은 유효한 기본 줄과 무음정 음표 거부를 각각 확인하도록 갱신했다. 수정 후 98건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#마디-안-음자리표-변경의-다음-마디-적용)
+
+## 2026-11-23 — 줄을 생략한 MusicXML 음자리표
+
+줄을 생략한 G·F·C 음자리표를 G2·F4·C3으로 가져온다. 960/1400px·Native·MusicXML·PDF와 MuseScore의 정상 높은음자리표 MIDI를 확인했다. 합본 focused 89건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml에서-줄을-생략한-음자리표)
+
+## 2026-11-23 — 가져온 음자리표의 지정 오선
+
+G1·F3/F5·C1/C2/C5의 기호와 기준음이 MusicXML에 지정된 줄에 그려진다. 두 폭과 A4 PDF에서 확인했고 Native·MusicXML·MIDI는 이전과 일치했다. MuseScore Native C1/C2/C5의 실제 PDF와 비교했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-음자리표의-지정-오선)
+
+## 2026-11-23 — 옥타브 음자리표의 모양과 오선 위치
+
+MusicXML에서 가져온 높은음·낮은음 8·15와 C 테너 아래 8을 앱과 PDF에 표시한다. 실제 두 폭에서 음머리 위치·일반 음자리표 복귀를 확인했다. 기존 Native·MusicXML·MIDI의 음높이를 유지한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#옥타브-음자리표의-모양과-오선-위치)
+
+## 2026-11-23 — 두 성부의 마디 끝 뒤꾸밈음 조판
+
+다른 성부의 마지막 정규 음 뒤·마디선 앞에 뒤꾸밈음을 배치한다. 960/1400px의 한 보표와 두 보표, 셋째 박 제자리표를 뒤따르는 샤프, Native와 실제 XML·MIDI·PDF를 확인했다. 밀집 줄 끝과 끝 도돌이표도 두 폭·A4 PDF에서 확인했다. Focused 55건과 타입 포함 생산 빌드, 전체 Vitest 7,518건과 Node-native 5건이 통과했다. 외부 opt-in 1건을 건너뛰었고 고정 입력 6,583개가 일치했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#두-성부의-마디-끝-뒤꾸밈음-조판-수정)
+
+## 2026-11-23 — 마디 끝 뒤꾸밈음의 MusicXML 왕복
+
+마디 끝 뒤꾸밈음을 같은 성부의 마지막 본음 오른쪽에 보존한다. 두 화면 폭에서 Native 재열기와 MusicXML 저장·사본·PDF를 검증했다. 마디 중간 편집으로 위치를 보존할 수 없으면 MusicXML 파일을 쓰기 전에 프로젝트 저장을 안내한다. 전체 Vitest 788파일·7,513건과 Node-native 5건이 통과했고 고정 입력 6,582개가 일치했다. 외부 opt-in 1건을 건너뛰었다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#마디-끝-뒤꾸밈음의-가져오기와-저장)
+
+## 2026-11-23 — 꾸밈음 화음의 조판과 교환
+
+같은 성부에서 함께 시작하는 꾸밈음의 화음 관계를 화면·PDF·Native·MusicXML에 보존한다. 실제 960/1400px에서 차례로 붙인 꾸밈음과 구분하고 MuseScore 4.7.5로 실제 사본을 다시 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-꾸밈음-화음과-차례로-붙인-꾸밈음)
+
+## 2026-11-23 — 화음·온음표가 섞인 다중 성부 음머리
+
+같은 오선 위치의 F♯·F·F♭를 분리했다. 960/1400px에서 개별 선택을 확인하고 Native·MusicXML·MIDI와 PDF를 비교했다. 베이스 클라리넷의 옥타브 이조·마디 경계 해제는 별도 실음 대조와 비교했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#화음온음표와-같은-위치의-다중-성부-음머리)
+
+## 2026-11-23 — 쉼표와 같은 박의 음머리 분리
+
+다른 성부의 쉼표가 있을 때도 겹치던 F♯·F♭를 분리했다. 960/1400px에서 세 기호의 개별 선택과 PDF, Native·MusicXML·MIDI 보존을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-박의-쉼표-사이에서-겹치는-음머리)
+
+## 2026-11-23 — 세 성부의 같은 위치 음머리와 선택
+
+같은 박의 F♯·F·F♭를 구분해 표시하고 960/1400px에서 각 음표의 선택을 확인했다. 같은 음높이 대조와 Native·MusicXML·MIDI를 보존했고 실제 A4 PDF를 검토했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#세-성부의-같은-위치-음머리와-선택)
+
+## 2026-11-23 — 동시 F와 F♯의 음머리 분리
+
+동시에 시작하는 두 성부의 F와 F♯ 음머리를 분리했다. 한 보표·두 보표의 960/1400px 실앱에서 음마다 포인터 선택을 확인하고, PDF와 Native·MusicXML·MIDI를 비교했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-박의-서로-다른-f와-f-음머리-분리)
+
+## 2026-11-22 — 같은 보표의 성부 사이 임시표
+
+같은 보표의 서로 다른 성부에서 이어지는 음의 임시표 누락과 중복을 수정했다. 실제 두 폭의 화면·PDF·XML을 정상 종료한 MuseScore 4.7.5 재출력과 대조했고 기존 Native·MIDI를 보존했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#한-보표의-여러-성부에서-이어지는-임시표)
+
+## 2026-11-22 — 꾸밈음 뒤의 임시표 조판
+
+꾸밈음 뒤에 필요한 임시표를 표시하고 같은 음높이에서는 반복 기호를 생략한다. MuseScore 4.7.5와 이전 PDF의 차이 세 건을 확인했고, 수정 후 실제 두 폭의 PDF·XML과 Native·MIDI 보존을 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#꾸밈음-뒤에-필요한-임시표)
+
+## 2026-11-22 — 겹침 붙여넣기 뒤 선택 밖의 음높이
+
+겹친 범위 붙여넣기가 선택 밖의 다음 음과 꾸밈음의 음높이를 바꾸던 문제를 수정했다. 실제 960/1400px, 두 앱의 XML 및 PDF를 비교했다. 관련 855건과 타입 포함 생산 빌드가 통과했다. 꾸밈음과 본음에 같은 제자리표가 이어지는 조판 차이는 별도 조사한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#겹치는-붙여넣기-뒤-선택-밖의-임시표)
+
+## 2026-11-22 — 조표 편집에서 꾸밈음 음높이 보존
+
+조표를 바꿔도 꾸밈음의 기존 음높이를 유지한다. 실제 960/1400px의 undo/redo·Native·XML·PDF 및 MuseScore 재출력으로 F♯·F 표기를 확인했다. 관련 719건과 타입 포함 생산 빌드가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#조표-편집에서-꾸밈음의-음높이-보존)
+
+## 2026-11-22 — 겹치는 마디 붙여넣기의 꾸밈음
+
+같은 보표·성부의 겹치는 마디 붙여넣기에서 꾸밈음의 음높이를 보존한다. 실제 두 폭에서 새 이벤트와 한 번의 undo/redo·Native 재열기, MusicXML·MIDI·PDF를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#겹치는-마디-붙여넣기의-꾸밈음)
+
+## 2026-11-22 — MusicXML의 생략 음높이 보존
+
+조표나 직전 임시표로 달라지던 MusicXML의 생략 음높이를 제자리음으로 가져온다. 960/1400px의 실제 Native·XML·MIDI·PDF와 MuseScore 4.7.5의 12음·시작 박을 확인했다. 실음 보기와 꾸밈음 발음의 수용 기준은 확인했으며 두 기능은 제품 결정 대기다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml에서-alter를-생략한-음)
+
+## 2026-11-22 — 독립 반복의 복귀와 MusicXML 제자리표
+
+명시적 반복 재실행과 여러 독립 구간, MusicXML 제자리표 보존을 실제 앱에서 검증했다. 꾸밈음과 실음 보기는 두 제품 정책의 근거와 범위를 남겼다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#앞쪽-일반-도돌이표의-점프-뒤-재실행)
+
+## 2026-11-22 — 앞쪽 일반 도돌이표의 명시적 점프 뒤 반복 생략
+
+앞쪽 일반 끝의 기본값에 이어 명시적인 반복 생략도 지원한다. 반복 재실행과 중첩은 후속 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#앞쪽-일반-도돌이표의-명시적-점프-뒤-반복-생략)
+
+## 2026-11-22 — 앞쪽 독립 도돌이표와 D.S. 복귀
+
+앞쪽 일반 반복 하나와 여러 끝 도돌이표의 D.S. 복귀를 지원한다. 명시적인 점프 뒤 반복, 중첩 또는 뒤쪽 추가 반복은 별도 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#앞쪽-독립-도돌이표와-ds-복귀)
+
+## 2026-11-22 — 여러 끝 도돌이표와 D.S. al Coda
+
+여러 끝과 Coda의 실제 출력·외부 검증을 추가했다. 여러 독립 반복이 함께 있는 이동과 중첩 이동은 남은 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#여러-끝-도돌이표와-ds-al-coda)
+
+## 2026-11-22 — 여러 끝 도돌이표와 D.S. al Fine
+
+한 반복 그룹의 D.S. al Fine을 실제 프로젝트와 양쪽 XML, MIDI·PDF로 확인했다. 외부 재생은 펼친 사본과 같은 순서를 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#여러-끝-도돌이표와-ds-al-fine)
+
+## 2026-11-22 — 여러 끝 도돌이표의 회차 확인 안내
+
+닫힌 볼타에서 여러 끝의 회차가 겹치면 마지막 끝 위치를 안내한다. 점프와 결합하는 경우는 후속 검증 대상이다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#회차가-겹치거나-빠진-여러-끝-도돌이표의-가져오기-안내)
+
+## 2026-11-22 — 한 시작을 공유하는 여러 끝 도돌이표
+
+여러 끝이 같은 시작을 공유하고 각 볼타의 회차가 분명한 구조를 지원한다. 기존 2번 볼타의 재생을 보호하고 필요한 경우 펼친 사본을 안내한다. 회차가 모호한 반복과 점프 결합은 후속 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#한-시작을-공유하는-여러-끝-도돌이표의-재생)
+
+## 2026-11-22 — 끝 표시 없이 한 마디에 붙인 2번 볼타
+
+끝 표시 없는 기존 2번 볼타를 구조 유지 XML에 쓸 때 회차 목록만 변환한다. 실제 두 화면에서 재생 범위 안내, 실행 취소·재실행과 저장을 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#끝-표시-없이-한-마디에-붙인-2번-볼타)
+
+## 2026-11-22 — MusicXML 단일 2번 볼타와 기존 프로젝트 호환
+
+새 XML 가져오기와 기존 프로젝트의 숫자 2 의미를 보존한다. 기본 XML 저장과 사본에 회차 변환을 안내한다. 실제 두 화면·파일을 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-단일-2번-볼타와-기존-프로젝트-호환)
+
+## 2026-11-22 — 반복 횟수 밖의 볼타 가져오기 경고
+
+재생되지 않는 볼타 회차를 기술 정보에 반복 횟수와 함께 표시한다. 횟수가 다른 실제 앱의 4박·6박을 대조했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#반복-횟수-밖의-볼타-가져오기-경고)
+
+## 2026-11-22 — 복수 회차 볼타와 D.S. 복귀
+
+복수 회차 볼타의 점프 뒤 Fine·Coda 경로를 재생 계획에 연결했다. Fine의 실제 앱·프로젝트 재열기와 출력, Coda의 회귀 검증을 완료했다. 동일 Fine 구조 사본의 외부 변환 실패와 명시 횟수 없는 입력의 차이를 추적한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#복수-회차-볼타와-ds-복귀)
+
+## 2026-11-22 — 볼타 재생 회차 직접 편집
+
+볼타 회차 목록을 직접 적용한다. 입력 오류·IME·Escape·미확정 저장과 한 번의 undo를 검증했다. 외부 앱이 일부 구조 유지 사본을 동일하게 재생하지 않는 차이를 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#볼타-재생-회차-직접-편집)
+
+## 2026-11-22 — 같은 번호의 볼타를 구간별로 편집
+
+마디 우클릭과 반복 설정에서 같은 편집 범위를 사용한다. 두 별도 반복의 1번 볼타가 Native와 구조 유지 사본에 남고, 단일 명령·되돌리기·MIDI 재생을 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#같은-번호의-볼타를-구간별로-편집)
+
+## 2026-11-22 — 반복 이동과 단순 1·2번 볼타
+
+두 너비에서 Fine/To Coda와 볼타 괄호의 잉크 및 출력에 겹침이 없음을 확인했다. 구조 유지 교환의 MuseScore 차이, 명시적 플래그가 붙은 복합 경로와 회차 편집은 후속 검증 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#반복-이동과-단순-12번-볼타)
+
+## 2026-11-22 — 반복 이동 표지 직접 입력과 소유 보표 삭제
+
+선택한 마디의 이동 표지와 소유 보표를 편집 UI에서 확인한다. 직접 작성한 D.C. al Coda와 D.S. al Fine의 프로젝트·MIDI·MusicXML·PDF 검증을 완료했다. 볼타가 결합된 점프, 펼치지 않은 외부 재생과 드래그 입력은 후속 범위다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#반복-이동-표지-직접-입력과-소유-보표-삭제)
+
+## 2026-11-22 — MusicXML 반복 이동과 마디 끝 표기
+
+정렬된 총보의 지원 경로를 파일·재생·기보에서 확인했다. 파트보의 묶음 쉼표는 이동 표지 마디를 보존한다. 사용자 작성과 편집, 점프를 가로지르는 타이·볼타, 외부 앱이 구조 유지 사본을 같은 경로로 읽는지 이어서 확인한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-반복-이동과-마디-끝-표기)
+
+## 2026-11-22 — 나뉜 MusicXML 마디 시작 설정과 이조
+
+나뉜 마디 시작 설정은 이조·보표 수를 적용하며, 박 중간 이조 위치의 손실을 안내한다. 재현과 실제 출력 검증을 마쳤다. MuseScore가 마지막 마디의 0 이조를 적용하는지 별도 호환성 항목으로 추적한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#나뉜-musicxml-마디-시작-설정과-이조)
+
+## 2026-11-22 — MusicXML 볼타 외형 손실 안내
+
+볼타 외형 손실 경고의 최초 실패 1건과 수정 후 108건, 타입·격리 빌드·960/1400px 실제 출력 검증을 기록했다. 세 번 반복하여 단일 2번 볼타를 테스트한 재현을 후속 큐에 추가했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml-볼타-외형의-손실-안내)
+
+## 2026-11-22 — 마디 내용 지우기와 구조 제거의 키 분리
+
+마디 선택의 Delete/Backspace는 선택 보표의 내용 지우기, ⌘/Ctrl 조합은 마디 구조 제거에 사용한다. focused 76검사와 타입 포함 빌드, 960/1400px 실제 키·undo·Native·MIDI·XML·PDF를 검증했다. 직전 볼타까지 포함한 전체 Vitest 7,387검사와 Node 5검사가 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#마디-내용-지우기와-구조-제거의-키-분리)
+
+## 2026-11-22 — 단순 반복의 MusicXML 볼타 회차 목록
+
+승인된 복수·3번 이상 회차는 가져오기·기보·재생과 Native·MusicXML에 보존한다. 960/1400px 실제 앱과 PDF, MIDI 6음·기본 및 펼치기 XML, MuseScore 4.7.5 펼친 사본의 음높이·시작 박을 확인했다. 기존 빌드에도 같은 셈여림 화면 기준 차이가 재현돼 baseline을 유지했다. 직전 전체 Vitest는 7,380건과 Node 5건을 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#musicxml의-단순-반복에-지정된-볼타-회차)
+
+## 2026-11-22 — 여러 성부를 비운 마디의 파트보 쉼표
+
+모든 성부에 온마디 쉼표만 남은 마디를 파트보 PDF에 묶는다. 960/1400px에서 실제 내용 지우기와 undo/redo, 두 보표의 첫 세 마디 묶음, 이웃 성부의 음표, A4 2쪽과 Native 재열기를 검증했다. focused 47검사·빌드와 실제 XML 4건 XSD를 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#마디를-비운-뒤-여러-성부의-쉼표-출력)
+
+## 2026-11-22 — 독립 볼타와 중첩 반복의 파일 교환
+
+앞뒤의 별도 볼타가 닫힌 중첩 반복을 끄던 문제를 수정했다. 960/1400px 앱과 MIDI·두 XML 방식에서 16박을 확인했다. MuseScore 4.7.5의 펼친 사본은 MIDI 음높이와 시작 박이 일치했고, 도돌이표가 남은 입력은 SIGABRT였다. 47파일·508검사, 타입 포함 빌드, Native와 PDF를 검증했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#별도-볼타-구간과-명시적-중첩-반복)
+
+## 2026-11-22 — 중첩 반복 타이·빠르기와 최신 전체 검사
+
+승인한 볼타 없는 중첩 반복에 안쪽 타이와 빠르기 변경을 넣어 960/1400px에서 검증했다. 12박 동안 타이는 네 차례 2박을 유지하고 반복 복귀 때 120 BPM으로 돌아왔다. MIDI·두 MusicXML 방식의 왕복·Native·A4 PDF를 확인했다. 최신 전체 검사는 7,374건 통과, 파일 선택기 경계 1건 시간 초과, 외부 opt-in 1건 건너뜀이다. 해당 경계 focused 6건과 Node-native 5건은 별도로 통과했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#중첩-반복에-타이와-빠르기를-함께-적용)
+
+## 2026-11-22 — 연속 마디 복사와 다중 보표 파트보 PDF
+
+같은 보표·성부의 연속 마디를 대상 첫 이벤트 또는 전체 범위에 붙여넣는다. 960/1400px에서 7/8 온마디 쉼표, 한 번의 실행 취소, Native 재열기와 실제 MIDI·MusicXML·PDF를 검증했다. 파트보 PDF는 모든 보표가 함께 쉬는 구간만 동일하게 묶고 아래 보표의 음표·글자·음자리표와 페이지 경계를 보존한다. 두 폭에서 A4 2페이지와 전후 MusicXML·MIDI 동등성을 확인했다. 타입·생산 빌드 및 Studio profile/fixed-canvas가 통과했다. [앱·PDF 검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md#연속-마디와-시작점-붙여넣기)
+
+## 2026-11-22 — alpha.42 후속 합본 검증
+
+최종 test:all은 Vitest 781파일·7,372검사 통과와 외부 opt-in 1건 건너뜀, Node-native 5검사 통과다. 종료 0, 입력 6,566개가 실행 전후 일치했다. 목격한 외부 앱 차이와 남은 설계 범위를 실행 큐에 기록했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md)
+
+## 2026-11-22 — 뒤 악보단 연습표
+
+뒤 악보단의 연습표가 자기 오선과 멀어 보이는 문제를 실제 PDF에서 재현했다. 기존 실제 잉크 검사로 음자리표·기호 충돌을 피하며 프레임을 가까이 배치한다. 기본/묶음 960/1400px PDF, Native·MIDI·MusicXML과 profile/fixed를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md)
+
+## 2026-11-22 — 명시적 중첩 반복 재생
+
+사용자 승인에 따라 볼타 없는 닫힌 중첩 반복에서 안쪽을 각 바깥 회차마다 재생한다. 39파일 469검사와 타입·빌드, 960/1400px 실제 앱 재생·Native·PDF·MIDI와 MusicXML 두 모드를 확인했다. 12마디 펼치기의 MuseScore 검증은 비정상 종료했다. [재생 계약과 검증](../releases/studio-post-alpha42-parity-20261122/handoff.md)
+
+## 2026-11-22 — 파트보 묶음 쉼표와 MusicXML 외부 비교
+
+단일 보표 파트보의 별도 PDF 출력에 묶음 쉼표를 추가했다. 960/1400px 실제 종이 출력과 Native·MusicXML·MIDI를 대조했다. MuseScore 4.7.5는 생성한 21개 비교 중 정상 9건을 디코딩했다. 중첩 반복과 중간 이조에서 차이를 확인했다. 실음 MusicXML의 파트보 설정 누락은 가져오기 경고로 안내한다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md)
+
+## 2026-11-22 — 연속 두 마디 복사
+
+같은 보표·성부의 두 마디 전체를 마디별 실제 길이가 같은 대상에 붙여넣는 명령을 검증했다. 기존 내부 클립보드와 이벤트 교체 명령을 사용한다. 3파일 19검사, 타입·빌드, 960/1400px 실제 메뉴와 Native·MusicXML·MIDI·PDF를 확인했다. [검증 인계](../releases/studio-post-alpha42-parity-20261122/handoff.md)
+
+## 2026-11-22 — alpha.42 이후 총보 박자표와 마디 내용 지우기
+
+총보의 같은 위치 한 마디에 박자표를 한 번에 적용하는 명령을 추가했다. 모든 보표에서 시작·실제 길이를 확인하고 보호할 음표나 표기가 있으면 전체를 유지한다. 7파일 40검사, 생산 빌드, 960/1400px 실제 조작과 Native·MusicXML·MIDI·PDF를 확인했다. 우클릭·편집 메뉴에서 선택 보표의 마디 내용을 비우는 명령을 추가했다. 구조 제거의 모든 보표 범위를 안내한다. 연결 기호와 잇단음표가 있는 대상은 보호한다. 6파일 49검사, 960/1400px 실제 앱과 Native·MusicXML·MIDI·PDF를 확인했다. [인계와 검증](../releases/studio-post-alpha42-parity-20261122/handoff.md)
+
 ## 2026-11-22 — alpha.41 이후 PNG 진단과 재출력
 
 같은 PNG 진단이 상태줄과 내보내기 설정 사이를 이동할 때 읽던 글자와 레이블·본문에 걸친 양방향 선택을 보존한다. 새 필드 초점과 진단 밖 수동 이동이 우선한다. 이전 문서의 진단이나 재시도로 끝난 진단은 다시 열리지 않는다. 격리 Electron·재출력 41경로와 전체 Vitest 775파일·7,347검사, Node-native 5검사를 통과했다. 외부 앱 opt-in 1검사는 건너뛰었다. 후속 실제 OS 파일 대화상자와 스크린리더 검증에는 별도 전면 입력 환경이 필요하다. [구현·검증 인계](../releases/studio-post-alpha41-20261122/handoff.md), [실행 큐](../releases/studio-post-alpha41-20261122/execution-queue.md)
@@ -1132,7 +1622,7 @@ CV1-X-WORKSPACE; existing bounds checks are not ergonomic completion evidence.
 | CV1-X-OBJECT-CLIPBOARD | 객체 clipboard 확장 | Editing Workflow | CV1-X-OBJECT-FILTERS | 음표와 별개 표기 재사용 불완전 | core/App/round-trip | 실전 편집 | Partial | Measure filters retain target-family replacement; single rehearsal/system/staff/expression/harmony snapshots append without replacing neighbors/music. Single expression aligns to the selected note/rest tick or selected-measure0, including cross-owner and cross-document same-ID isolation (142/144 native/XML-XSD/MIDI/PDF). Global untimed text keeps first-score-staff guard. Single harmony deeply preserves root/bass, uses the selected event tick and preserves occupied target neighbors (162). Effective-first individual dynamic snapshots use explicit target-measure replacement and selected-ID edits preserve neighbors (174). Approved329 stored dynamic snapshots retain explicit whole-target-measure replacement. Remaining: list/range ownership, lyric/span/mixed and external clipboard; timed/voice schema expansion is deferred. |
 | CV1-X-PART-LAYOUT | 독립 파트보 portable layout | Parts / Part View | Expanded V1 part contract | 기기 이동 시 파트 조판 손실 | App/native/export | PDF QA | Partial | Part title, page/system breaks and page settings support independent editing/history/native save. Reset removes independent title/break/page overrides and is undoable. 254 covers combined two-part/grand-staff deletion with exact independent anchors/settings/history/native and total/part PDF2/1/2 at960/1400. Remaining: unequal/conflicting structures, page-setting interchange and complete linked authoring verification |
 | CV1-X-ENGRAVING | 마디 밀도와 수동 조판 | PDF / Page Setup | Expanded V1 engraving contract | 출판용 페이지 조정 부족 | layout/visual/PDF render | human engraving | Todo | 폭/밀도/manual override 우선순위 구현 |
-| CV1-X-CONCERT-VIEW | 실음/기보음 표시 전환 | MusicXML Compatibility | Expanded V1 transpose contract | 이조악기 총보 검토 불편 | pitch/App/XML/MIDI | 청감 | Todo | 저장음과 표시음 분리 및 key/input semantics 고정 |
+| CV1-X-CONCERT-VIEW | 실음/기보음 표시 전환 | MusicXML Compatibility | Expanded V1 transpose contract | 이조악기 총보 검토 | pitch/App/XML/MIDI/PDF | 청감 | Partial | 고정 이조 단일 파트의 읽기 전용 보기 제공. 다중 파트·실음 편집·실음 출력 범위는 후속. |
 | CV1-X-MIDI-INPUT | MIDI step/chord input | Editing Workflow | MuseScore input-by-duration; Expanded V1 | 장치 기반 입력 부재 | simulated MIDI/App | physical device | Todo | permission/device adapter와 안전한 note-on/off 처리 |
 | CV1-X-PITCH-FIRST | pitch-first 입력 | Editing Workflow | MuseScore input-by-duration | 음높이 먼저 고르는 입력 부재 | state/App | keyboard ergonomics | Todo | pitch preview와 duration commit 상태 구현 |
 | CV1-X-TEMPLATES-STYLES | 사용자 template/style | Document Lifecycle | Expanded V1 customization contract | 반복 편성/서식 재사용 불가 | App/import/export | 사용자 작업 확인 | Todo | native/schema 이후 저장/재사용/교환/초기화 구현 |

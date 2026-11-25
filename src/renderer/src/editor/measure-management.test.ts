@@ -5,6 +5,7 @@ import { createNativeProject, encodeNativeProject, decodeNativeProject } from '.
 import { createPlaybackTimeline } from '../playback/timeline'
 
 import {
+  TICKS_PER_QUARTER,
   applyScoreCommand,
   createDuration,
   createFullMeasureRest,
@@ -17,6 +18,7 @@ import {
   validateMeasureRhythm
 } from '../../../score-core'
 import {
+  buildClearMeasureContents,
   buildInsertMeasureAfter,
   buildInsertMeasureBefore,
   buildRemoveMeasure,
@@ -319,3 +321,55 @@ function createVoltaEnsemble() {
     }))
   })] })) })
 }
+
+describe('clearing the contents of one staff measure', () => {
+  const source = () => {
+    const bar = createMeasure({ id: 'target', number: 13,
+      timing: { type: 'pickup', durationTicks: TICKS_PER_QUARTER },
+      voices: [createVoice({ events: [createNote({
+        id: 'note', pitch: { step: 'C', octave: 4 },
+        lyrics: [{ number: 1, syllabic: 'single', text: '가사' }]
+      })] })] })
+    return createScore({
+      parts: [createPart({ staves: [
+        createStaff({ id: 'upper', measures: [bar, createMeasure({ id: 'later', number: 14 })] }),
+        createStaff({ id: 'lower', measures: [createMeasure({ id: 'other', number: 13 })] })
+      ] })],
+      tempoEvents: [{ id: 'tempo', measureId: 'target', tick: 0, bpm: 86 }]
+    })
+  }
+
+  it('replaces note contents, preserves measure-addressed markings and keeps the exact undo', () => {
+    const original = source()
+    const result = buildClearMeasureContents(original, 'target', () => 'clear-rest')
+    expect(result.kind).toBe('change')
+    if (result.kind !== 'change') return
+    const { score, undo } = applyScoreCommand(original, result.command)
+    const before = original.parts[0].staves[0].measures[0]
+    const after = score.parts[0].staves[0].measures[0]
+    expect(after).toEqual({ ...before, voices: [{ ...before.voices[0], events: [
+      createFullMeasureRest({ id: 'clear-rest' })
+    ] }] })
+    expect(score.tempoEvents).toEqual(original.tempoEvents)
+    expect(score.parts[0].staves[1]).toBe(original.parts[0].staves[1])
+    expect(createPlaybackTimeline(score).totalBeats).toBe(createPlaybackTimeline(original).totalBeats)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(score))).score).toEqual(score)
+    expect(applyScoreCommand(score, undo).score).toEqual(original)
+    expect(buildClearMeasureContents(score, 'target', () => 'unused')).toEqual({ kind: 'empty' })
+  })
+
+  it.each(['tie', 'slur', 'hairpin', 'octave', 'tuplet'] as const)('protects the existing %s in the affected measure', kind => {
+    const score = source()
+    const voice = score.parts[0].staves[0].measures[0].voices[0]
+    const note = voice.events[0]
+    if (note.type !== 'note') throw Error('Fixture needs a note')
+    if (kind === 'tie') note.ties = { start: true }
+    if (kind === 'tuplet') note.duration = { ...note.duration, tuplet: { actualNotes: 3, normalNotes: 2 } }
+    if (kind === 'slur') score.slurs = [{ id: 'slur', startEventId: note.id, endEventId: 'other-full-measure-rest' }]
+    if (kind === 'hairpin') score.hairpins = [{ id: 'hairpin', type: 'crescendo', startEventId: note.id, endEventId: 'other-full-measure-rest' }]
+    if (kind === 'octave') score.octaveShifts = [{ id: 'octave', type: '8va', startEventId: note.id, endEventId: 'other-full-measure-rest' }]
+    const before = structuredClone(score)
+    expect(buildClearMeasureContents(score, 'target', () => 'unused')).toEqual({ kind: 'protected' })
+    expect(score).toEqual(before)
+  })
+})

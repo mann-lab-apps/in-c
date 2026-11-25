@@ -80,3 +80,19 @@ it('does not mutate score, native, XML, MIDI or selection',()=>{
   }
  }
 })
+
+it('does not map a score selection into a linear practice loop when D.C. changes playback order', () => {
+  const score = createPracticeLoopFixture()
+  const bars = score.parts[1].staves[0].measures
+  bars[bars.length - 1].navigation = [{ type: 'dacapo' }]
+  expect(createPracticeLoopPlan(score, selected(score))).toEqual({
+    unavailableReason: expect.stringContaining('재생 이동')
+  })
+  expect(createPlaybackTimeline(score).totalBeats).toBe(24)
+})
+
+it('keeps linear practice available when the score only has a navigation marker', () => {
+  const score = createPracticeLoopFixture()
+  score.parts[1].staves[0].measures[0].navigation = [{ type: 'segno', label: 'S' }]
+  expect(createPracticeLoopPlan(score, selected(score)).range).toMatchObject({ startBeat: 1, endBeat: 7 })
+})

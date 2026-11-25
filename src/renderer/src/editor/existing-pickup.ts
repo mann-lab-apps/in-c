@@ -1,5 +1,5 @@
 import { measureDurationTicks, timeSignatureDurationTicks, validateMeasureRhythm,
-  type Measure, type Score, type ScoreCommand } from '../../../score-core'
+  type HairpinTimeEnd, type Measure, type Score, type ScoreCommand } from '../../../score-core'
 
 export const firstMeasurePickupIssues = {
   missing: '모든 보표에 첫 마디가 있어야 합니다.',
@@ -28,7 +28,7 @@ export function inspectEmptyFirstMeasures(score: Score): { first?: Measure; issu
 }
 
 export function buildEmptyFirstMeasurePickupCommand(score: Score, durationTicks?: number): {
-  command?: ScoreCommand; issue?: Issue; unchanged?: true
+  command?: ScoreCommand; issue?: Issue; timeEnd?: HairpinTimeEnd; unchanged?: true
 } {
   const { first, issue } = inspectEmptyFirstMeasures(score)
   if (issue || !first) return { issue: issue ?? 'missing' }
@@ -44,6 +44,8 @@ export function buildEmptyFirstMeasurePickupCommand(score: Score, durationTicks?
     return [bar.id, `measure-${bar.number}`]
   })))
   const limit = durationTicks ?? nominal
+  const timeEnd = score.hairpins?.find(span => span.endTime && targetIds.has(span.endTime.measureId) && span.endTime.tick > limit)?.endTime
+  if (timeEnd) return { timeEnd }
   const tickAnchors = [...(score.tempoEvents ?? []), ...(score.harmonies ?? []),
     ...(score.expressionTexts ?? []), ...(score.pedalEvents ?? [])]
   if (tickAnchors.some(mark => targetIds.has(mark.measureId) && mark.tick > limit)) return { issue: 'anchor' }

@@ -5,33 +5,54 @@ export interface SlurNestingEntry {
   index: number
   automatic: boolean
   voiceKey?: string
+  crossVoiceKeys?: readonly [string, string]
   staffIndex?: number
   systemIndex?: number
+  endSystemIndex?: number
   startX?: number
   endX?: number
 }
 
-/** Strict endpoint ownership shared by automatic ordering and authored guards. */
+function endSystem(entry: SlurNestingEntry) {
+  return entry.endSystemIndex ?? entry.systemIndex
+}
+
+function containsSlurRange(outer: SlurNestingEntry, inner: SlurNestingEntry) {
+  const valid = (entry: SlurNestingEntry) => {
+    const last = endSystem(entry)
+    return Number.isInteger(entry.staffIndex) && entry.staffIndex! >= 0 &&
+      Number.isInteger(entry.systemIndex) && entry.systemIndex! >= 0 &&
+      Number.isInteger(last) && last! >= entry.systemIndex! &&
+      Number.isFinite(entry.startX) && Number.isFinite(entry.endX) &&
+      (last! > entry.systemIndex! || entry.endX! > entry.startX!)
+  }
+  if (!valid(outer) || !valid(inner) || outer.staffIndex !== inner.staffIndex) return false
+
+  // X coordinates restart after a system break. Use horizontal clearance
+  // only for the corresponding endpoints on the same system.
+  const startsBefore = outer.systemIndex! < inner.systemIndex! ||
+    (outer.systemIndex === inner.systemIndex && inner.startX! > outer.startX! + 8)
+  const endsAfter = endSystem(outer)! > endSystem(inner)! ||
+    (endSystem(outer) === endSystem(inner) && inner.endX! < outer.endX! - 8)
+  return startsBefore && endsAfter
+}
+
+/** Strict endpoint ownership for authored spans. */
 export function strictlyContainsSlur(outer:SlurNestingEntry,inner:SlurNestingEntry) {
-  const valid=(entry:SlurNestingEntry)=>Boolean(entry.voiceKey)&&
-    Number.isInteger(entry.staffIndex)&&entry.staffIndex!>=0&&
-    Number.isInteger(entry.systemIndex)&&entry.systemIndex!>=0&&
-    Number.isFinite(entry.startX)&&Number.isFinite(entry.endX)&&entry.endX!>entry.startX!
-  return valid(outer)&&valid(inner)&&outer.voiceKey===inner.voiceKey&&
-    outer.staffIndex===inner.staffIndex&&outer.systemIndex===inner.systemIndex&&
-    inner.startX!>outer.startX!+8&&inner.endX!<outer.endX!-8
+  return Boolean(outer.voiceKey && outer.voiceKey === inner.voiceKey) &&
+    outer.systemIndex === endSystem(outer) && inner.systemIndex === endSystem(inner) &&
+    containsSlurRange(outer, inner)
 }
 
 /** Compute inner geometry first, while leaving source and final DOM order alone. */
 export function planSlurNesting(entries: readonly SlurNestingEntry[]) {
-  const valid = (entry: SlurNestingEntry) => entry.automatic && Boolean(entry.voiceKey) &&
-    Number.isInteger(entry.staffIndex) && entry.staffIndex! >= 0 &&
-    Number.isInteger(entry.systemIndex) && entry.systemIndex! >= 0 &&
-    Number.isFinite(entry.startX) && Number.isFinite(entry.endX) && entry.endX! > entry.startX!
   const innerByIndex = new Map<number, number[]>()
   for (const outer of entries) {
-    if (!valid(outer)) continue
-    const inner = entries.filter(entry => valid(entry) && strictlyContainsSlur(outer,entry)).map(entry => entry.index)
+    if (!outer.automatic) continue
+    const inner = entries.filter(entry => entry.automatic && entry.voiceKey &&
+      (entry.voiceKey === outer.voiceKey || outer.crossVoiceKeys?.includes(entry.voiceKey)) &&
+      containsSlurRange(outer, entry)
+    ).map(entry => entry.index)
     if (inner.length) innerByIndex.set(outer.index, inner)
   }
   const remaining = new Set(entries.map(entry => entry.index)), order: number[] = []
@@ -80,7 +101,7 @@ export function readSlurCurveInk(path: SVGPathElement) {
         .map(([x,y]) => new DOMPoint(x,y).matrixTransform(transform))
       const x = Math.min(...points.map(point => point.x)), y = Math.min(...points.map(point => point.y))
       return { x,y,width:Math.max(...points.map(point => point.x))-x,
-        height:Math.max(...points.map(point => point.y))-y,collisionOnly:true as const }
+        height:Math.max(...points.map(point => point.y))-y,collisionOnly:true as const,nestedSlur:true as const }
     })
   } catch { return [] }
 }

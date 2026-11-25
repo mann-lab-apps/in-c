@@ -1,4 +1,4 @@
-import { applyScoreCommand, createRest, decomposeDurationTicks, durationToTicks, effectiveAlterAt, measureDurationTicks, sortVoiceEvents, validateMeasureRhythm, validateTieRelations, voiceEventDurationTicks, type Note, type Score, type ScoreCommand, type Staff, type VoiceEvent } from '../../../score-core'
+import { applyScoreCommand, createRest, decomposeDurationTicks, durationToTicks, effectiveAlterAt, measureDurationTicks, preserveFollowingPitchSounds, sortVoiceEvents, validateMeasureRhythm, validateTieRelations, voiceEventDurationTicks, type Note, type Score, type ScoreCommand, type Staff, type VoiceEvent } from '../../../score-core'
 import { collectSpanEndpointIds } from '../../../score-core/span-references'
 import { locateEvent, type EditorSelection, type EventLocation } from './editor-state'
 import { buildStaffContentCommand } from './staff-content-command'
@@ -28,19 +28,10 @@ export function buildEmptyVoiceMove(score: Score, location: EventLocation | unde
   const ids = new Set(score.parts.flatMap(p => p.staves.flatMap(s => s.measures.flatMap(m => m.voices.flatMap(v => v.events.map(e => e.id))))))
   const allocate = () => { const id = createId(); if (!id || ids.has(id)) throw Error('Duplicate event ID'); ids.add(id); return id }
   try {
-    const sourceEvents: VoiceEvent[] = sortVoiceEvents(source.events).map(event => event.id === note.id ? createRest({ id: allocate(), position: note.position, duration: note.duration }) : event)
-    // Moving an accidental must not change any surviving note's performed pitch.
-    for (let i = 0; i < sourceEvents.length; i++) {
-      const event = sourceEvents[i]
-      if (event.type !== 'note') continue
-      const pin = (pitch: Note['pitch']) => {
-        const args = { measure, step: pitch.step, octave: pitch.octave, tick: event.position.tick, override: pitch.alter }
-        const desired = effectiveAlterAt({ ...args, voice: source }), actual = effectiveAlterAt({ ...args, voice: { ...source, events: sourceEvents } })
-        return desired === actual ? pitch : { ...pitch, alter: desired }
-      }
-      const pitches = event.pitches?.map(pin)
-      sourceEvents[i] = { ...event, pitch: pitches?.[0] ?? pin(event.pitch), ...(pitches ? { pitches } : {}) }
-    }
+    const replacedSource = sortVoiceEvents(source.events).map(event => event.id === note.id
+      ? createRest({ id: allocate(), position: note.position, duration: note.duration })
+      : event)
+    const sourceEvents = preserveFollowingPitchSounds(measure, source, replacedSource, note.position.tick)
     const targetEvents: VoiceEvent[] = []
     let tick = 0
     for (const duration of before) { targetEvents.push(createRest({ id: allocate(), position: { tick }, duration })); tick += durationToTicks(duration) }
@@ -79,7 +70,15 @@ function changesHairpinVoiceScope(score: Score, staff: Staff, note: Note, source
   const selected = positions.get(note.id)
   if (!selected) return false
   return score.hairpins.some(span => {
-    const start = positions.get(span.startEventId), end = positions.get(span.endEventId)
+    const start = positions.get(span.startEventId)
+    const address = span.endTime
+    let beat = 0
+    const end = address ? staff.measures.find(measure => {
+      if (measure.id === address.measureId) return true
+      beat += measureDurationTicks(measure)
+      return false
+    }) && { voiceId: address.voiceId, end: beat + address.tick }
+      : positions.get(span.endEventId)
     // Match the existing playback scope: different endpoint voices apply to
     // the whole staff; equal endpoint voices apply only to that voice.
     if (!start || !end || start.voiceId !== end.voiceId) return false

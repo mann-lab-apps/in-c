@@ -1,10 +1,10 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { Button, Card, Text } from '@ddirori/ui'
-import { Plus, Repeat2, Trash2, Settings2 } from 'lucide-react'
+import { Eraser, Plus, Repeat2, Trash2, Settings2 } from 'lucide-react'
 import './studio-measure-context-menu.css'
 
 export type MeasureMenuAction = 'insert-before' | 'insert-after' | 'remove'
-  | 'properties' | 'time-signature'
+  | 'properties' | 'time-signature' | 'clear-contents'
   | 'toggle-repeat-start' | 'toggle-repeat-end' | 'toggle-volta-1' | 'toggle-volta-2'
 const commands: readonly { id: MeasureMenuAction; label: string }[] = [
   { id: 'insert-before', label: '앞에 마디 추가' },
@@ -15,6 +15,7 @@ const commands: readonly { id: MeasureMenuAction; label: string }[] = [
   { id: 'toggle-volta-2', label: '2번 볼타' },
   { id: 'properties', label: '마디 속성…' },
   { id: 'time-signature', label: '박자표 변경…' },
+  { id: 'clear-contents', label: '이 보표의 마디 내용 지우기' },
   { id: 'remove', label: '마디 제거' }
 ]
 
@@ -56,7 +57,7 @@ export function StudioMeasureContextMenu({ theme, x, y, scope, canRemove, onClos
   const close = () => { onClose(); restoreCanvas() }
   return <div className="studio-measure-context-layer ddirori" data-theme={theme} data-density="compact"
     role="presentation" onClick={close} onContextMenu={event => event.preventDefault()}>
-    <div ref={menu} className="studio-measure-context-menu" style={position} role="menu" aria-label="마디 작업" aria-describedby={scope ? scopeId : undefined}
+    <div ref={menu} className="studio-measure-context-menu" style={position} role="menu" aria-label="마디 작업" aria-describedby={scopeId}
       onClick={event => event.stopPropagation()}
       onPointerDownCapture={event => {
         // A disabled command cannot activate, but its native pointer default can
@@ -77,12 +78,18 @@ export function StudioMeasureContextMenu({ theme, x, y, scope, canRemove, onClos
           : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : -1
         if (next >= 0) { event.preventDefault(); items[next]?.focus({ preventScroll: true }); items[next]?.scrollIntoView?.({ block: 'nearest' }) }
       }}>
-      <Card>{scope ? <Text id={scopeId} as="p" variant="description">반복·볼타: {scope}</Text> : null}<div className="studio-measure-context-actions">
+      <Card>
+        <div id={scopeId}>
+          {scope ? <Text as="p" variant="description">반복·볼타: {scope}</Text> : null}
+          <Text as="p" variant="description">마디 제거는 같은 위치의 마디를 모든 보표에서 없앱니다.</Text>
+        </div>
+        <div className="studio-measure-context-actions">
         {commands.map(command => {
-          const Icon = command.id === 'remove' ? Trash2 : command.id === 'time-signature' || command.id === 'properties' ? Settings2 : command.id.startsWith('insert') ? Plus : Repeat2
+          const Icon = command.id === 'remove' ? Trash2 : command.id === 'clear-contents' ? Eraser : command.id === 'time-signature' || command.id === 'properties' ? Settings2 : command.id.startsWith('insert') ? Plus : Repeat2
           return <Button key={command.id} role="menuitem" tabIndex={-1}
             kind={command.id === 'remove' ? 'danger' : 'quiet'}
             disabled={command.id === 'remove' && !canRemove}
+            aria-keyshortcuts={command.id === 'remove' ? 'Meta+Delete Control+Delete Meta+Backspace Control+Backspace' : undefined}
             onClick={() => { onSelect(command.id); if(command.id!=='time-signature'&&command.id!=='properties') restoreCanvas() }}>
             <span className="studio-measure-context-action"><Icon size={18} strokeWidth={1.75} aria-hidden="true" /><span>{command.label}</span></span>
           </Button>

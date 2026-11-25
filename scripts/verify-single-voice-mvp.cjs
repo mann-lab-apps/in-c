@@ -504,30 +504,63 @@ async function verifyKeyboardRouting(window) {
     )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
-  await window.webContents.executeJavaScript(`
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', {
-        bubbles: true,
-        code: 'Digit6',
-        key: '6'
-      })
-    )
-  `)
-  await new Promise((resolve) => setTimeout(resolve, 150))
-
-  const durationShortcutFailure = await window.webContents.executeJavaScript(`
+  const requestDurationOverwrite = async () => {
+    await window.webContents.executeJavaScript(`
+      window.dispatchEvent(new KeyboardEvent('keydown', {
+        bubbles: true, code: 'Digit6', key: '6'
+      }))
+    `)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+  }
+  const readDurationOverwrite = () => window.webContents.executeJavaScript(`
     ({
       editCount: [...document.querySelectorAll('.editor-status span')]
         .find((span) => span.textContent?.endsWith('회 수정'))
         ?.textContent,
-      errorMessage: document.querySelector('.editor-status .is-error')
+      confirmation: document.querySelector('.studio-duration-overwrite dialog[open]')
         ?.textContent,
       eventCount: document.querySelectorAll('.notation-event').length,
+      selectedEvent: document.querySelector('.notation-event.is-selected')
+        ?.getAttribute('data-event-id'),
+      overwrittenNotePresent: Boolean(document.querySelector('.notation-event[data-event-id="m1-d4"]')),
+      nextNoteTick: document.querySelector('.notation-event[data-event-id="m1-e4"]')
+        ?.getAttribute('data-event-tick'),
       pressedDuration: document.querySelector(
         '.studio-note-toolbar [aria-label="음가"] button[aria-pressed="true"]'
       )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
+  const chooseDurationOverwrite = async (label) => {
+    await window.webContents.executeJavaScript(`
+      (() => {
+        const button = [...document.querySelectorAll('.studio-duration-overwrite dialog[open] button')]
+          .find((node) => node.textContent.trim() === ${JSON.stringify(label)})
+        if (!button || button.disabled) throw new Error('Expected duration overwrite action is unavailable.')
+        button.click()
+      })()
+    `)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+  }
+  await requestDurationOverwrite()
+  const durationOverwritePrompt = await readDurationOverwrite()
+  await chooseDurationOverwrite('취소')
+  const durationOverwriteCanceled = await readDurationOverwrite()
+  await requestDurationOverwrite()
+  await chooseDurationOverwrite('덮어쓰고 음가 늘리기')
+  const durationOverwriteCommitted = await readDurationOverwrite()
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true, code: 'KeyZ', key: 'z', ctrlKey: true
+    }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const durationOverwriteUndone = await readDurationOverwrite()
+  const durationShortcutOverwrite = {
+    prompt: durationOverwritePrompt,
+    canceled: durationOverwriteCanceled,
+    committed: durationOverwriteCommitted,
+    undone: durationOverwriteUndone
+  }
 
   await loadKeyboardFixture()
   await window.webContents.executeJavaScript(`
@@ -1042,11 +1075,28 @@ async function verifyKeyboardRouting(window) {
     durationShortcutCursor.hasInputCursor ||
     durationShortcutCursor.pressedDuration !== '2분음표' ||
     durationShortcutCursor.status !== '2분음표' ||
-    durationShortcutFailure.editCount !== '0회 수정' ||
-    durationShortcutFailure.eventCount !== initialEventCount ||
-    durationShortcutFailure.pressedDuration !== '4분음표' ||
-    durationShortcutFailure.errorMessage !==
-      '음표 m1-d4 때문에 음가를 늘릴 수 없습니다.' ||
+    durationOverwritePrompt.editCount !== '0회 수정' ||
+    durationOverwritePrompt.eventCount !== initialEventCount ||
+    durationOverwritePrompt.pressedDuration !== '4분음표' ||
+    durationOverwritePrompt.selectedEvent !== 'm1-c4' ||
+    !durationOverwritePrompt.confirmation?.includes('뒤 음표를 덮어쓸까요?') ||
+    !durationOverwritePrompt.confirmation?.includes('2분음표로 늘리면 같은 성부의 뒤 음표 1개') ||
+    !durationOverwritePrompt.overwrittenNotePresent ||
+    !durationOverwritePrompt.nextNoteTick ||
+    durationOverwriteCanceled.confirmation ||
+    durationOverwriteCanceled.editCount !== '0회 수정' ||
+    durationOverwriteCanceled.eventCount !== initialEventCount ||
+    !durationOverwriteCanceled.overwrittenNotePresent ||
+    durationOverwriteCanceled.nextNoteTick !== durationOverwritePrompt.nextNoteTick ||
+    durationOverwriteCommitted.confirmation ||
+    durationOverwriteCommitted.editCount !== '1회 수정' ||
+    durationOverwriteCommitted.eventCount !== initialEventCount - 1 ||
+    durationOverwriteCommitted.pressedDuration !== '2분음표' ||
+    durationOverwriteCommitted.overwrittenNotePresent ||
+    durationOverwriteCommitted.nextNoteTick !== durationOverwritePrompt.nextNoteTick ||
+    durationOverwriteUndone.eventCount !== initialEventCount ||
+    !durationOverwriteUndone.overwrittenNotePresent ||
+    durationOverwriteUndone.nextNoteTick !== durationOverwritePrompt.nextNoteTick ||
     durationShortcutConsumesRest.editCount !== '1회 수정' ||
     durationShortcutConsumesRest.eventCount !== initialEventCount ||
     durationShortcutConsumesRest.pressedDuration !== '4분음표' ||
@@ -1119,7 +1169,7 @@ async function verifyKeyboardRouting(window) {
         durationShortcutChange,
         durationShortcutConsumesRest,
         durationShortcutCursor,
-        durationShortcutFailure,
+        durationShortcutOverwrite,
         initialEventCount,
         koreanCursorRestInput,
         koreanRestShortcutConvertsSelection,
@@ -1156,7 +1206,7 @@ async function verifyKeyboardRouting(window) {
     durationShortcutChange,
     durationShortcutConsumesRest,
     durationShortcutCursor,
-    durationShortcutFailure,
+    durationShortcutOverwrite,
     fullRestToNote,
     koreanCursorRestInput,
     koreanRestShortcutConvertsSelection,
@@ -2208,7 +2258,8 @@ async function verifyPartViewHeadlessExportState(window) {
       exportVisible: exports?.checkVisibility(),
       exportButtons: [...exports.querySelectorAll('button')].filter(node => node.checkVisibility()).map(node => ({
         ariaLabel: node.getAttribute('aria-label'), title: node.getAttribute('title'),
-        text: node.textContent.trim(), common: node.classList.contains('dd-button')
+        text: node.textContent.trim(), role: node.getAttribute('role'),
+        common: node.classList.contains(node.getAttribute('role') === 'combobox' ? 'dd-select' : 'dd-button')
       })),
       page: {
         margin: page.getAttribute('data-pdf-page-margin-mm'), orientation: page.getAttribute('data-pdf-page-orientation'),
@@ -2225,7 +2276,10 @@ async function verifyPartViewHeadlessExportState(window) {
   }).toString() + ')()')
   fs.writeFileSync(path.join(mvpArtifacts, 'part-view.json'), JSON.stringify(result, null, 2))
   const exportAriaLabels = result.exportButtons.map(button => button.ariaLabel)
+  const exportControls = result.exportButtons.filter(button => button.role === 'combobox')
   if (!result.exportVisible || !result.exportButtons.every(button => button.common) ||
+      exportControls.map(control => control.text).join('|') !== '전체 페이지|300 dpi' ||
+      !result.exportButtons.some(button => button.role !== 'combobox' && button.text === '쉼표를 묶어 파트보 PDF 출력') ||
       result.page.viewMode !== 'part' || result.page.partId !== 'viola' || result.page.margin !== '6' ||
       result.page.staffSize !== '90' || result.page.systemSpacing !== '90' || result.partTitle.text !== 'Viola' ||
       result.partTitle.partId !== 'viola' || result.partIds.join('|') !== 'viola' ||
@@ -2539,13 +2593,23 @@ async function verifyGrandStaffPreview(window) {
         staffId: event.getAttribute('data-staff-id')
       }))
       const svg = document.querySelector('.notation-preview svg')
+      const measureIds = [...document.querySelectorAll('.notation-measure')]
+        .map((measure) => measure.getAttribute('data-measure-id'))
+      const events = [...document.querySelectorAll('.notation-event')]
+      const staffMeasures = ['staff-1', 'staff-2'].map((staffId) => [
+        ...new Set(events.filter((event) => event.getAttribute('data-staff-id') === staffId)
+          .map((event) => event.getAttribute('data-measure-id')))
+      ])
 
       return {
         title: document
           .querySelector('button[aria-label="악보 제목 수정"]')
           ?.textContent?.trim(),
-        measureCount: document.querySelectorAll('.notation-measure').length,
-        eventCount: document.querySelectorAll('.notation-event').length,
+        measureCount: measureIds.length,
+        distinctMeasures: new Set(measureIds).size,
+        staffMeasureCounts: staffMeasures.map((ids) => ids.length),
+        staffMeasuresHaveTargets: staffMeasures.flat().every((id) => id && measureIds.includes(id)),
+        eventCount: events.length,
         passiveEventCount: passiveEvents.length,
         lowerStaffEventCount: passiveEvents.filter(
           (event) => event.partId === 'part-1' && event.staffId === 'staff-2'
@@ -2566,14 +2630,15 @@ async function verifyGrandStaffPreview(window) {
 
   if (
     result.title !== 'Grand Staff Smoke' ||
-    result.measureCount !== 3 ||
+    result.measureCount !== 6 ||
+    result.distinctMeasures !== 6 ||
+    result.staffMeasureCounts.join('|') !== '3|3' ||
+    !result.staffMeasuresHaveTargets ||
     result.eventCount !== 6 ||
     result.passiveEventCount !== 3 ||
     result.lowerStaffEventCount !== 3 ||
-    !labelTexts.includes('Piano') ||
-    !labelTexts.includes('Staff 2') ||
-    !staffKeys.includes('part-1:staff-1') ||
-    !staffKeys.includes('part-1:staff-2') ||
+    labelTexts.join('|') !== 'Piano' ||
+    staffKeys.join('|') !== 'part-1:staff-1' ||
     result.svgHeight < 250 ||
     result.status !== '새 악보를 만들었습니다.'
   ) {
@@ -2820,7 +2885,7 @@ async function verifyMeasureDeletion(window) {
 
   await executeMetadataStep(
     window,
-    'delete selected measure with keyboard',
+    'select a measure for keyboard editing',
     `
     document
       .querySelector('.notation-measure[data-measure-id="measure-3"]')
@@ -2828,9 +2893,16 @@ async function verifyMeasureDeletion(window) {
   `
   )
   await new Promise((resolve) => setTimeout(resolve, 150))
+  const readMeasureState = () => window.webContents.executeJavaScript(`(() => ({
+    edits: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent.endsWith('회 수정'))?.textContent.trim(),
+    events: document.querySelectorAll('.notation-event').length,
+    measures: document.querySelectorAll('.notation-measure').length,
+    selected: document.querySelector('.notation-measure.is-selected')?.getAttribute('data-measure-id'),
+    eventsInClearedMeasure: document.querySelectorAll('.notation-event[data-measure-id="measure-3"]').length
+  }))()`)
   await executeMetadataStep(
     window,
-    'press backspace on selected measure',
+    'clear the selected measure with Backspace',
     `
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -2838,6 +2910,27 @@ async function verifyMeasureDeletion(window) {
         key: 'Backspace'
       })
     )
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 250))
+  const cleared = await readMeasureState()
+  await openStudioCommand(window, '편집', '실행 취소')
+  const restoredAfterClear = await readMeasureState()
+  if (
+    cleared.edits !== '1회 수정' || cleared.events !== 31 || cleared.measures !== 8 ||
+    cleared.selected !== 'measure-3' || cleared.eventsInClearedMeasure !== 1 ||
+    restoredAfterClear.edits !== '0회 수정' || restoredAfterClear.events !== 33 ||
+    restoredAfterClear.measures !== 8 || restoredAfterClear.selected !== 'measure-3' ||
+    restoredAfterClear.eventsInClearedMeasure !== 3
+  ) throw Error('Measure content clearing and undo failed: ' + JSON.stringify({ cleared, restoredAfterClear }))
+
+  await executeMetadataStep(
+    window,
+    'remove the selected measure with Command or Control and Backspace',
+    `
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true, key: 'Backspace', ctrlKey: true
+    }))
   `
   )
   await new Promise((resolve) => setTimeout(resolve, 250))
@@ -2870,12 +2963,7 @@ async function verifyMeasureDeletion(window) {
   const deletionHistory = []
   for (const command of ['실행 취소', '다시 실행']) {
     await openStudioCommand(window, '편집', command)
-    deletionHistory.push(await window.webContents.executeJavaScript(`(() => ({
-      edits: [...document.querySelectorAll('.editor-status span')].find(node => node.textContent.endsWith('회 수정'))?.textContent.trim(),
-      events: document.querySelectorAll('.notation-event').length,
-      measures: document.querySelectorAll('.notation-measure').length,
-      selected: document.querySelector('.notation-measure.is-selected')?.getAttribute('data-measure-id')
-    }))()`))
+    deletionHistory.push(await readMeasureState())
   }
   if (deletionHistory[0].edits !== '0회 수정' || deletionHistory[0].events !== 33 || deletionHistory[0].measures !== 8 ||
       deletionHistory[0].selected !== 'measure-3' || deletionHistory[1].edits !== '1회 수정' ||
@@ -2924,6 +3012,8 @@ async function verifyMeasureDeletion(window) {
   }
 
   return {
+    cleared,
+    restoredAfterClear,
     deleted,
     finalMeasure,
     deletionHistory

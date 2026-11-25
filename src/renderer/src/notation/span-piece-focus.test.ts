@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it} from 'vitest'
-import {isSameNotationFocus} from './focus-viewport'
+import {isSameNotationFocus,resolveSpanFocusTarget,restoreNotationFocus,setSpanPieceFocus} from './focus-viewport'
 function piece(kind:'slur'|'hairpin',system?:number,id='same'){
  const group=document.createElementNS('http://www.w3.org/2000/svg','g')
  group.classList.add('notation-span-target');group.dataset.spanId=id;group.dataset.spanKind=kind
@@ -37,4 +37,45 @@ it('uses the existing first-piece fallback after reflow removes a system or logi
  expect(resolveSpanFocusTarget(root,{kind:'hairpin',id:'same'},piece('hairpin',1,'other'))).toBe(first)
  expect(resolveSpanFocusTarget(root,{kind:'hairpin',id:'same'},null)).toBe(first)
  expect(resolveSpanFocusTarget(root,{kind:'slur',id:'missing'},piece('slur',1))).toBeUndefined()
+})
+
+it.each(['slur', 'hairpin'] as const)('keeps the focused %s on its measure when reflow changes the system number', kind => {
+ const root=document.createElementNS('http://www.w3.org/2000/svg','svg')
+ const first=piece(kind,0),middle=piece(kind,1),last=piece(kind,2),previous=piece(kind,1)
+ setSpanPieceFocus(first,{anchor:'m1',measures:new Set(['m1'])})
+ setSpanPieceFocus(middle,{anchor:'m2',measures:new Set(['m2'])})
+ setSpanPieceFocus(last,{anchor:'m4',measures:new Set(['m3','m4'])})
+ setSpanPieceFocus(previous,{anchor:'m4',measures:new Set(['m2','m3','m4'])})
+ root.append(first,middle,last)
+ expect(resolveSpanFocusTarget(root,{kind,id:'same'},previous)).toBe(last)
+ expect(isSameNotationFocus(previous,last)).toBe(true)
+ expect(isSameNotationFocus(previous,middle)).toBe(false)
+
+ const merged=piece(kind,1)
+ setSpanPieceFocus(merged,{anchor:'m4',measures:new Set(['m2','m3','m4'])})
+ root.replaceChildren(first,merged)
+ expect(resolveSpanFocusTarget(root,{kind,id:'same'},middle)).toBe(merged)
+ expect(resolveSpanFocusTarget(root,{kind,id:'other'},middle)).toBeUndefined()
+})
+
+it('retains the middle measure through a merge and split, and resets on fresh keyboard focus', () => {
+ const root=document.createElementNS('http://www.w3.org/2000/svg','svg')
+ const middle=piece('slur',1),last=piece('slur',2),merged=piece('slur',1)
+ merged.setAttribute('tabindex','0')
+ setSpanPieceFocus(middle,{anchor:'m2',measures:new Set(['m2'])})
+ setSpanPieceFocus(last,{anchor:'m3',measures:new Set(['m3'])})
+ setSpanPieceFocus(merged,{anchor:'m3',measures:new Set(['m2','m3'])})
+ root.append(merged)
+ document.body.append(root)
+ const ref={kind:'slur',id:'same'} as const
+ expect(resolveSpanFocusTarget(root,ref,middle)).toBe(merged)
+ restoreNotationFocus(merged,merged,new DOMRect(),null,false,true,middle)
+
+ root.replaceChildren(middle,last)
+ expect(resolveSpanFocusTarget(root,ref,merged)).toBe(middle)
+
+ root.replaceChildren(merged)
+ merged.focus()
+ root.replaceChildren(middle,last)
+ expect(resolveSpanFocusTarget(root,ref,merged)).toBe(last)
 })

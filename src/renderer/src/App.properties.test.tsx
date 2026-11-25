@@ -1225,6 +1225,38 @@ describe('App component shell', () => {
     }
   })
 
+  it.each([
+    { sign: 'G', line: 1, label: '높은음자리표' },
+    { sign: 'F', line: 5, label: '낮은음자리표' },
+    { sign: 'C', line: 2, label: '가온음자리표' }
+  ] as const)('studio.clef-palette identifies imported $sign on line $line in the editor', async ({ sign, line, label }) => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const { App } = await import('./App')
+    render(<App />)
+    const source = structuredClone(playbackMockState.lastScore!)
+    source.parts[0].staves[0].measures[0].clef = { sign, line }
+    vi.mocked(window.inC.project.open).mockResolvedValueOnce({
+      fileName: 'imported-clef.chromatics',
+      filePath: '/scores/imported-clef.chromatics',
+      contents: encodeNativeProject(createNativeProject(source))
+    })
+    openStudioWorkspace('파일')
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await waitFor(() => expect(playbackMockState.lastScore).toEqual(source))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    openNotationSettings('clef')
+    const current = `${label} · 아래에서 ${line}번째 줄`
+    const palette = within(screen.getByRole('region', { name: '음자리표 팔레트' }))
+    expect(palette.getByRole('status', { name: '음자리표 끌기 안내' })).toHaveTextContent(current)
+    expect(palette.getAllByRole('button').every(button => button.getAttribute('aria-pressed') === 'false')).toBe(true)
+    expect(screen.getByRole('combobox', { name: '선택 마디 음자리표' })).toHaveTextContent(current)
+    openStudioWorkspace('악보')
+    expect(screen.getByRole('combobox', { name: '현재 보표 음자리표' })).toHaveTextContent(current)
+    expect(playbackMockState.lastScore).toEqual(source)
+    expect(document.querySelector('.editor-status')).toHaveTextContent('0회 수정')
+  })
+
   it.each(['percussion','tab'] as const)('studio.clef-palette retains the unsupported %s state until one explicit measure conversion', async sign => {
     window.history.replaceState({},'', '/?fixture=release-test')
     const {createMidiWarningScore}=await import('../../testing/midi-warning-fixture')

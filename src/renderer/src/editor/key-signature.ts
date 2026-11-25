@@ -160,10 +160,16 @@ function preserveVoicePitches(
     // member and the compatibility pitch field identical,and let all members
     // contribute their explicit accidental memory to later events.
     const pitches = event.pitches?.length ? event.pitches.map(preservePitch) : undefined
+    const graceNotes = event.graceNotes?.map((grace) => {
+      if (grace.pitch.alter !== undefined) return grace
+      const pitch = preservePitch(grace.pitch)
+      return pitch.alter === undefined ? grace : { ...grace, pitch }
+    })
     const nextNote: Note = {
       ...event,
       pitch: pitches?.[0] ?? preservePitch(event.pitch),
-      ...(pitches ? { pitches } : {})
+      ...(pitches ? { pitches } : {}),
+      ...(graceNotes ? { graceNotes } : {})
     }
 
     nextEvents.push(nextNote)

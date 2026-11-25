@@ -24,8 +24,10 @@ vi.mock('./piano-sampler', () => ({ PianoSampler: class {
 } }))
 vi.mock('./piano-transport', () => ({ PianoTransport: class {
   start = vi.fn(() => 0)
+  reschedule = vi.fn((_timeline, _beat, _tempo, _mixer, _sustain, _loop, at: number) => at)
   stop = vi.fn()
   finish = vi.fn()
+  captureManualSustain = vi.fn()
   constructor() { state.transports.push(this) }
 } }))
 
@@ -89,6 +91,37 @@ it('piano.lifecycle stop invalidates pending load; pause/resume and sustain reus
   expect(result.current.activeEvent).toBeUndefined()
 })
 
+it.each([true, false])('piano.lifecycle retains only an eligible manual hold across a pending resume (%s)', async retain => {
+  const { result } = setup()
+  await ready(result)
+  const transport = state.transports[0]
+  const held = new Map([['0:0:0', { offsetSeconds: .37, velocity: 80 }]])
+  transport.captureManualSustain.mockReturnValue(held)
+  act(() => {
+    result.current.setSustain(true)
+    state.contexts[0].currentTime = .5
+    result.current.pause()
+  })
+  expect(transport.captureManualSustain).toHaveBeenCalledOnce()
+  let finish!: () => void
+  state.resumes.push(() => new Promise<void>(resolve => { finish = resolve }))
+  await act(async () => { result.current.play() })
+  if (retain) {
+    // The newer Play still owns the same paused position.
+    await act(async () => { result.current.play() })
+    await act(async () => { finish() })
+  } else {
+    act(() => {
+      result.current.setSustain(false)
+      result.current.setSustain(true)
+    })
+    await act(async () => { finish() })
+  }
+  expect(transport.start).toHaveBeenCalledTimes(2)
+  expect(transport.start.mock.calls.at(-1)?.slice(4)).toEqual([true, undefined, retain ? held : undefined])
+  expect(result.current.status).toBe('playing')
+})
+
 it('piano.lifecycle failed mixer restart stops the cursor and permits retry at the retained position', async () => {
   const { result, rerender, score } = setup()
   await ready(result)
@@ -101,6 +134,68 @@ it('piano.lifecycle failed mixer restart stops the cursor and permits retry at t
   await act(async () => { result.current.play() })
   expect(result.current.status).toBe('playing')
   expect(result.current.audioError).toBe('')
+})
+
+it('keeps the running audio clock while live tempo and mixer changes wait for audio', async () => {
+  const { result, rerender, score } = setup()
+  await ready(result)
+  const transport = state.transports[0], context = state.contexts[0]
+  const mix = { 'tie-part': { muted: false, solo: false, volume: .5 } }
+  let rejectOlder!: (error: Error) => void
+  let acceptLatest!: () => void
+  state.resumes.push(
+    () => new Promise<void>((_, reject) => { rejectOlder = reject }),
+    () => new Promise<void>(resolve => { acceptLatest = resolve })
+  )
+
+  context.currentTime = .5
+  await act(async () => { result.current.setTempo(180) })
+  await act(async () => { rerender({ value: score, mix }) })
+  expect(transport.stop).not.toHaveBeenCalled()
+  expect(transport.start).toHaveBeenCalledOnce()
+
+  context.currentTime = .75
+  await act(async () => { acceptLatest() })
+  expect(transport.reschedule).toHaveBeenCalledOnce()
+  expect(transport.reschedule.mock.calls[0].slice(1)).toEqual([1.5, 180, mix, false, undefined, .75])
+  await act(async () => { rejectOlder(new Error('stale tempo device failure')) })
+  expect(transport.reschedule).toHaveBeenCalledOnce()
+  expect(result.current.status).toBe('playing')
+  expect(result.current.audioError).toBe('')
+
+  act(() => { context.currentTime = 1; result.current.pause() })
+  expect(result.current.positionBeat).toBeCloseTo(2.25)
+})
+
+it('updates a live setting in the initial lookahead without advancing the first attack', async () => {
+  const { result } = setup()
+  await ready(result)
+  const transport = state.transports[0], context = state.contexts[0]
+  transport.start.mockReturnValue(.53)
+  context.currentTime = .5
+  await act(async () => { result.current.playFromEvent('missing-event') })
+  context.currentTime = .51
+  await act(async () => { result.current.setTempo(150) })
+  expect(transport.reschedule.mock.calls[0].slice(1)).toEqual([0, 150, {}, false, undefined, .53])
+})
+
+it('invalidates a live audio settings response when playback reaches the end', async () => {
+  const { result } = setup()
+  await ready(result)
+  let complete!: () => void
+  state.resumes.push(() => new Promise<void>(resolve => { complete = resolve }))
+  await act(async () => { result.current.setTempo(150) })
+  act(() => {
+    state.contexts[0].currentTime = result.current.totalBeats / 2 + .5
+    const pending = [...frames.values()]
+    frames.clear()
+    pending.forEach(callback => callback(0))
+  })
+  await act(async () => { complete() })
+  expect(state.transports[0].finish).toHaveBeenCalledOnce()
+  expect(state.transports[0].reschedule).not.toHaveBeenCalled()
+  expect(result.current.status).toBe('stopped')
+  expect(result.current.positionBeat).toBe(0)
 })
 
 it('piano.lifecycle document replacement clears a previous document audio failure', async () => {

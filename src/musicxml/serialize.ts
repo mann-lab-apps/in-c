@@ -1,8 +1,10 @@
-import { readMusicXmlVoiceNumber, sortScoreVoices } from './voice-order'
+import { hairpinEndTick } from '../score-core/span-references'
+import { hairpinEndMarkerPrefix } from './hairpin-end-marker'
+import { readScoreVoiceNumber, sortScoreVoices } from '../score-core/voice-order'
 import { inferHarmonyStructure, musicXmlHarmonyKinds } from './harmony-text'
 import { hasManualSpanEngraving } from '../project/span-engraving'
 import {createLayoutMeasureIndexResolver,resolveLayoutMeasureIndex as layoutMeasureIndex} from '../project/layout-measure-reference'
-import {musicXmlBarlineStaff} from './barline-scope'
+import { secondVoltaRepeatCounts, musicXmlBarlineStaff, musicXmlVoltaForExport } from './barline-scope'
 import { XMLBuilder } from 'fast-xml-parser'
 import { buildMusicXmlPageDefaults } from './page-layout'
 import { musicXmlPartIdentifiers } from './part-identifiers'
@@ -10,14 +12,18 @@ import { assertMusicXmlOutputCharacters } from './xml-output-characters'
 
 import {
   resolveNotePitch,
+  collectMeasureNavigation,
+  collectTiePairs,
   collectUnsupportedChordTieWarnings,
   convertOctaveShiftPitches,
+  measureDurationTicks,
   shouldDisplayAccidental,
   sortVoiceEvents,
   validateTieRelations,
   validateMeasureRhythm,
   validateVoiceTuplets,
   voiceEventDurationTicks,
+  voltaNumberText,
   type Measure,
   type Pitch,
   type RhythmFeelMarking,
@@ -41,8 +47,17 @@ const defaultRhythmFeelText = {
   eighth: '♫ = ³♩ ♪',
   '16th': '♬ = ³♪ 𝅘𝅥𝅯'
 } as const satisfies Record<RhythmFeelMarking['unit'], string>
-type SpanDirections = Map<Measure, Record<string, unknown>[]>
+type SpanDirection = Record<string, unknown>
+type SpanDirections = {
+  atMeasureStart: Map<Measure, SpanDirection[]>
+  beforeEvent: Map<string, SpanDirection[]>
+  afterEvent: Map<string, SpanDirection[]>
+}
 type PrintBreaks = { system: Set<number>; page: Set<number> }
+type NoteBoundaries = {
+  slurs: ReadonlyMap<string, { starts?: string[]; stops?: string[] }>
+  respelledTieStops: ReadonlySet<string>
+}
 
 function collectPrintBreaks(score: Score): PrintBreaks {
   const indexOf=createLayoutMeasureIndexResolver(score)
@@ -62,8 +77,12 @@ export function serializeMusicXml(score: Score): string {
   score = convertOctaveShiftPitches(score, 'performed')
   const tieErrors = validateTieRelations(score)
   const spanLocations = collectSpanLocations(score)
-  const slurBoundaries = createSlurBoundaries(score, spanLocations)
-  const spanDirections = createSpanDirections(score, spanLocations)
+  const noteBoundaries: NoteBoundaries = {
+    slurs: createSlurBoundaries(score, spanLocations.events),
+    respelledTieStops: new Set(collectTiePairs(score).filter(pair => pair.respellsPitch).map(pair => pair.toEventId))
+  }
+  const partIds = musicXmlPartIdentifiers(score.parts).ids
+  const spanDirections = createSpanDirections(score, spanLocations, partIds)
   const printBreaks = collectPrintBreaks(score)
 
   if (tieErrors.length > 0) {
@@ -75,7 +94,6 @@ export function serializeMusicXml(score: Score): string {
     part.staves.forEach((staff) => staff.measures.forEach(validateMeasure))
   })
 
-  const partIds = musicXmlPartIdentifiers(score.parts).ids
   const pageDefaults = buildMusicXmlPageDefaults(score.layout?.pageSetup)
   const document = [
     xmlElement('?xml', {
@@ -111,7 +129,7 @@ export function serializeMusicXml(score: Score): string {
       ...score.parts.map((part, index) =>
         xmlElement(
           'part',
-          buildPartMeasureElements(score, part, slurBoundaries, spanDirections, printBreaks),
+          buildPartMeasureElements(score, part, noteBoundaries, spanDirections, printBreaks),
           {
             '@_id': partIds[index]
           }
@@ -150,7 +168,8 @@ function validatePartStructure(part: Score['parts'][number]): void {
 }
 
 export interface MusicXmlExportWarning {
-  code: 'unsupported-layout' | 'unsupported-chord-tie' | 'converted-part-id'
+  code: 'unsupported-layout' | 'unsupported-chord-tie' | 'converted-part-id' | 'converted-volta-passes'
+    | 'trailing-grace-placement' | 'ambiguous-trailing-grace' | 'native-grace-playback'
   measureNumber?: number
   message: string
   path: string
@@ -170,7 +189,14 @@ export function serializeMusicXmlWithReport(score: Score): {
     report: {
       warnings: [
         ...collectUnsupportedMusicXmlExportWarnings(score),
+        ...(score.gracePlayback ? [{
+          code: 'native-grace-playback' as const,
+          path: 'score.gracePlayback',
+          message: 'The leading grace playback setting is saved only in the Studio project. MusicXML retains the notated grace notes.'
+        }] : []),
         ...collectUnsupportedChordTieWarnings(score),
+        ...collectTrailingGraceExportWarnings(score),
+        ...collectVoltaPassExportWarnings(score),
         ...musicXmlPartIdentifiers(score.parts).conversions.map(({ index, source, output }): MusicXmlExportWarning => ({
           code: 'converted-part-id', path: `part[${index + 1}].id`,
           message: `Converted part identifier (source=${JSON.stringify(source)}, output=${JSON.stringify(output)}). Native project identifiers are unchanged; only MusicXML transport references were mapped.`
@@ -178,6 +204,50 @@ export function serializeMusicXmlWithReport(score: Score): {
       ]
     }
   }
+}
+
+function collectTrailingGraceExportWarnings(score: Score): MusicXmlExportWarning[] {
+  const warnings: MusicXmlExportWarning[] = []
+  for (const [partIndex, part] of score.parts.entries()) {
+    for (const [staffIndex, staff] of part.staves.entries()) {
+      for (const measure of staff.measures) {
+        for (const [voiceIndex, voice] of measure.voices.entries()) {
+          const events = sortVoiceEvents(voice.events)
+          for (const [index, event] of events.entries()) {
+            if (event.type !== 'note' || !event.graceNotes?.some(grace => grace.after)) continue
+            const ambiguous = index < events.length - 1
+            const message = ambiguous
+              ? 'Ambiguous trailing grace placement before another event. MusicXML readers, including Studio, may attach these graces to the following note or reject the file.'
+              : 'Terminal trailing grace placement is inferred from MusicXML note order. Other readers may omit or move these graces.'
+            warnings.push({
+              code: ambiguous ? 'ambiguous-trailing-grace' : 'trailing-grace-placement',
+              measureNumber: measure.number, measureId: measure.id,
+              path: `part[${partIndex + 1}].staff[${staffIndex + 1}].measure[${measure.number}].voice[${voiceIndex + 1}].event[${index + 1}].graceNotes`,
+              message
+            })
+          }
+        }
+      }
+    }
+  }
+  return warnings
+}
+
+function collectVoltaPassExportWarnings(score: Score): MusicXmlExportWarning[] {
+  return score.parts.flatMap((part, partIndex) => {
+    const staff = musicXmlBarlineStaff(score, part)
+    return [...secondVoltaRepeatCounts(staff.measures)].flatMap(([measure, count]): MusicXmlExportWarning[] => {
+      if (!measure.volta?.start || measure.volta.number !== 2 || count <= 2) return []
+      const passes = musicXmlVoltaForExport(measure.volta, count)?.passes
+      return [{
+        code: 'converted-volta-passes',
+        measureId: measure.id,
+        measureNumber: measure.number,
+        path: `part[${partIndex + 1}].measure[${measure.number}].ending`,
+        message: `Converted legacy second ending ${JSON.stringify({ passes, repeatCount: count })} to explicit MusicXML passes. Project playback is preserved.`
+      }]
+    })
+  })
 }
 
 function collectUnsupportedMusicXmlExportWarnings(
@@ -234,7 +304,7 @@ function collectUnsupportedMusicXmlExportWarnings(
 function buildPartMeasureElements(
   score: Score,
   part: Score['parts'][number],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  noteBoundaries: NoteBoundaries,
   spanDirections: SpanDirections,
   printBreaks: PrintBreaks
 ) {
@@ -242,19 +312,21 @@ function buildPartMeasureElements(
   // MusicXML barlines belong to the part's measure,not an individual staff.
   // Preserve the existing aligned score's performed sequence if its owner is
   // this part's secondary staff;do not rewrite other parts or native owners.
-  const barlineStaff=musicXmlBarlineStaff(score,part)
+  const barlineStaff = musicXmlBarlineStaff(score, part)
+  const repeatCounts = secondVoltaRepeatCounts(barlineStaff.measures)
 
   return primaryStaff.measures.map((_measure, measureIndex) =>
     buildMeasureElement(
       score,
       part.staves.map((staff) => staff.measures[measureIndex]),
-      slurBoundaries,
+      noteBoundaries,
       part.staves.some((staff) => staff.measures.some((measure) => measure.transposition)),
       score.parts[0]?.id === part.id,
       spanDirections,
       { system: printBreaks.system.has(measureIndex), page: printBreaks.page.has(measureIndex) },
       measureIndex === 0,
-      barlineStaff.measures[measureIndex]
+      barlineStaff.measures[measureIndex],
+      repeatCounts.get(barlineStaff.measures[measureIndex])
     )
   )
 }
@@ -262,13 +334,14 @@ function buildPartMeasureElements(
 function buildMeasureElement(
   score: Score,
   measures: Measure[],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  noteBoundaries: NoteBoundaries,
   hasTransposition: boolean,
   primaryPart: boolean,
   spanDirections: SpanDirections,
   printBreak: { system: boolean; page: boolean },
   initialMeasure: boolean,
-  barlineMeasure:Measure = measures[0]
+  barlineMeasure: Measure = measures[0],
+  repeatCount?: number
 ) {
   const primaryMeasure = measures[0]
   const pedalOrder = new Map((score.pedalEvents ?? []).map((event, index) => [event, index]))
@@ -311,7 +384,7 @@ function buildMeasureElement(
   })
   // CC64 belongs to the instrument, not its visual staff. Preserve source
   // lift/retake order at a shared tick without moving other annotations.
-  // Every direction precedes playback elements, so offsets still start at 0.
+  // These annotations precede playback elements, so offsets still start at 0.
   const pedalSlots = new Map<number, number[]>()
   annotations.forEach(({ pedal }, index) => {
     if (!pedal) return
@@ -324,7 +397,13 @@ function buildMeasureElement(
       pedalOrder.get(a.pedal!)! - pedalOrder.get(b.pedal!)!)
     slots.forEach((index, order) => { annotations[index] = ordered[order] })
   }
-  const barlines = buildMeasureBarlines(barlineMeasure)
+  const volta = musicXmlVoltaForExport(barlineMeasure.volta, repeatCount)
+  const barlines = buildMeasureBarlines(barlineMeasure, volta)
+  const cursor = { currentCursorTicks: 0 }
+  const playback = buildStaffPlaybackElements(measures, noteBoundaries, spanDirections, cursor)
+  // Jump instructions are at the measure boundary even if the last serialized
+  // staff or voice ended earlier.
+  const endOffset = measureDurationTicks(primaryMeasure) - cursor.currentCursorTicks
 
   return xmlElement(
     'measure',
@@ -333,14 +412,17 @@ function buildMeasureElement(
         ...(printBreak.system ? { '@_new-system': 'yes' } : {}),
         ...(printBreak.page ? { '@_new-page': 'yes' } : {})
       })] : []),
+      ...barlines.filter(barline => barline['@_location'] === 'left').map(barline => xmlElement('barline', barline)),
       xmlElement('attributes', buildAttributes(measures, hasTransposition)),
       ...(initialMeasure && score.swingPlayback ? [xmlElement('sound', {
         swing: { first: score.swingPlayback.ratio === '2:1' ? 2 : 3, second: score.swingPlayback.ratio === '2:1' ? 1 : 2,
           'swing-type': score.swingPlayback.unit }
       })] : []),
+      ...buildNavigationElements(measures, 'start', 0),
       ...annotations.map(({ element }) => element),
-      ...buildStaffPlaybackElements(measures, slurBoundaries),
-      ...barlines.map((barline) => xmlElement('barline', barline))
+      ...playback,
+      ...buildNavigationElements(measures, 'end', endOffset),
+      ...barlines.filter(barline => barline['@_location'] === 'right').map(barline => xmlElement('barline', barline))
     ],
     {
       '@_number': primaryMeasure.number,
@@ -353,19 +435,46 @@ function buildMeasureElement(
   )
 }
 
+function buildNavigationElements(measures: Measure[], boundary: 'start' | 'end', offset: number) {
+  return collectMeasureNavigation(measures).flatMap(mark => {
+    const opening = mark.type === 'segno' || mark.type === 'coda'
+    if (opening !== (boundary === 'start')) return []
+    const attributes = {
+      [`@_${mark.type}`]: 'label' in mark ? mark.label : 'yes',
+      ...('passes' in mark && mark.passes?.length ? { '@_time-only': mark.passes.join(',') } : {})
+    }
+    if ('display' in mark && mark.display) {
+      return [xmlElement('direction', [
+        xmlElement('direction-type', [
+          xmlElement('words', mark.display.words),
+          ...(mark.display.coda ? [xmlElement('symbol', 'coda')] : [])
+        ]),
+        ...(offset ? [xmlElement('offset', offset, { '@_sound': 'yes' })] : []),
+        xmlElement('sound', attributes)
+      ], { '@_placement': 'above' })]
+    }
+    if (opening && mark.symbol) {
+      return [xmlElement('direction', [
+        xmlElement('direction-type', [xmlElement(mark.type, {})]),
+        xmlElement('sound', attributes)
+      ], { '@_placement': 'above' })]
+    }
+    return [xmlElement('sound', { ...attributes, ...(offset ? { offset } : {}) })]
+  })
+}
+
 function buildStaffPlaybackElements(
   measures: Measure[],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>
+  noteBoundaries: NoteBoundaries,
+  spanDirections: SpanDirections,
+  cursor: { currentCursorTicks: number }
 ) {
-  const cursor = {
-    currentCursorTicks: 0
-  }
-
   return measures.flatMap((measure, staffIndex) =>
     buildMeasurePlaybackElements(
       measure,
-      slurBoundaries,
+      noteBoundaries,
       measures.length > 1 ? staffIndex + 1 : undefined,
+      spanDirections,
       cursor
     )
   )
@@ -373,8 +482,9 @@ function buildStaffPlaybackElements(
 
 function buildMeasurePlaybackElements(
   measure: Measure,
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  noteBoundaries: NoteBoundaries,
   staffNumber: number | undefined,
+  spanDirections: SpanDirections,
   cursor: {
     currentCursorTicks: number
   }
@@ -383,19 +493,24 @@ function buildMeasurePlaybackElements(
     measure.voices.map((voice) => [voice.id, createTupletBoundaries(voice)])
   )
 
+  const staff = staffNumber === undefined ? {} : { staff: staffNumber }
+  const wrapDirection = (direction: SpanDirection) => xmlElement('direction', { ...direction, ...staff })
   return sortScoreVoices(measure.voices).flatMap((voice, voiceIndex) => {
     const voiceEvents = sortVoiceEvents(voice.events)
-    const voiceElements = voiceEvents.flatMap((event) =>
-      buildNoteElements(
+    const voiceElements = voiceEvents.flatMap((event) => [
+      ...(spanDirections.beforeEvent.get(event.id) ?? []).map(wrapDirection),
+      ...buildNoteElements(
         event,
         measure,
         voice,
-        readMusicXmlVoiceNumber(voice.id),
+        readScoreVoiceNumber(voice.id),
         staffNumber,
         tupletBoundariesByVoice.get(voice.id)?.get(event.id),
-        slurBoundaries.get(event.id)
-      ).map((noteElement) => xmlElement('note', noteElement))
-    )
+        noteBoundaries.slurs.get(event.id),
+        noteBoundaries.respelledTieStops.has(event.id)
+      ).map((noteElement) => xmlElement('note', noteElement)),
+      ...(spanDirections.afterEvent.get(event.id) ?? []).map(wrapDirection)
+    ])
     const voiceEndTick = readVoiceEndTick(measure, voice)
     const prefix =
       (voiceIndex > 0 || staffNumber !== undefined) &&
@@ -463,7 +578,7 @@ function buildMeasureDirections(score: Score, measure: Measure, spanDirections: 
   const tempoEventDirections = (score.tempoEvents ?? [])
     .filter((event) => matchesMeasureReference(event.measureId, measure))
     .map((event) => buildTempoDirection(event, event.tick))
-  const spans = spanDirections.get(measure) ?? []
+  const spans = spanDirections.atMeasureStart.get(measure) ?? []
 
   return [
     ...(initialMeasure && score.tempo
@@ -479,7 +594,6 @@ function buildMeasureDirections(score: Score, measure: Measure, spanDirections: 
       ...(event.tick > 0 ? { offset: { '#text': event.tick, '@_sound': 'yes' } } : {}),
       sound: { '@_damper-pedal': Number((event.value * 100 / 127).toFixed(6)) }
     })),
-    ...spans.filter(direction => 'octave-shift' in (direction['direction-type'] as object)),
     ...(score.rehearsalMarks ?? [])
       .filter((mark) => matchesMeasureReference(mark.measureId, measure))
       .map((mark) => buildRehearsalDirection(mark.text)),
@@ -495,7 +609,7 @@ function buildMeasureDirections(score: Score, measure: Measure, spanDirections: 
     ...(score.dynamics ?? [])
       .filter((dynamic) => matchesMeasureReference(dynamic.measureId, measure))
       .map((dynamic) => buildDynamicDirection(dynamic.value)),
-    ...spans.filter(direction => 'wedge' in (direction['direction-type'] as object))
+    ...spans
   ]
 }
 
@@ -641,16 +755,16 @@ function buildHairpinDirection(type: string) {
   }
 }
 
-function buildMeasureBarlines(measure: Measure) {
+function buildMeasureBarlines(measure: Measure, volta: Measure['volta']) {
   return [
-    ...(measure.repeat?.start || measure.volta?.start
+    ...(measure.repeat?.start || volta?.start
       ? [
           {
             '@_location': 'left',
-            ...(measure.volta?.start
+            ...(volta?.start
               ? {
                   ending: {
-                    '@_number': measure.volta.number,
+                    '@_number': voltaNumberText(volta),
                     '@_type': 'start'
                   }
                 }
@@ -665,14 +779,14 @@ function buildMeasureBarlines(measure: Measure) {
           }
         ]
       : []),
-    ...(measure.repeat?.end || measure.volta?.end
+    ...(measure.repeat?.end || volta?.end
       ? [
           {
             '@_location': 'right',
-            ...(measure.volta?.end
+            ...(volta?.end
               ? {
                   ending: {
-                    '@_number': measure.volta.number,
+                    '@_number': voltaNumberText(volta),
                     '@_type': 'stop'
                   }
                 }
@@ -681,6 +795,9 @@ function buildMeasureBarlines(measure: Measure) {
               ? {
                   repeat: {
                     '@_direction': 'backward',
+                    ...(measure.repeat.afterJump !== undefined ? {
+                      '@_after-jump': measure.repeat.afterJump ? 'yes' : 'no'
+                    } : {}),
                     ...(measure.repeat.times
                       ? {
                           '@_times': measure.repeat.times
@@ -696,54 +813,166 @@ function buildMeasureBarlines(measure: Measure) {
 }
 
 function collectSpanLocations(score: Score) {
-  return new Map(score.parts.flatMap((part, partIndex) => part.staves.flatMap((staff, staffIndex) =>
-    staff.measures.flatMap((measure, measureIndex) => measure.voices.flatMap(voice =>
-      voice.events.map(event => [event.id, { event, voice, measure, measureIndex, staffKey: `${partIndex}:${staffIndex}` }] as const))))))
+  type MeasureLocation = {
+    measure: Measure
+    measureIndex: number
+    partIndex: number
+    staffKey: string
+  }
+  type EventLocation = MeasureLocation & { event: VoiceEvent; voice: Voice; eventOrder: number }
+  const events = new Map<string, EventLocation>()
+  const measures = new Map<string, MeasureLocation>()
+  let eventOrder = 0
+  for (const [partIndex, part] of score.parts.entries()) {
+    const measureCount = Math.max(0, ...part.staves.map(staff => staff.measures.length))
+    // Match the writer's measure, staff, voice and event order, including
+    // backups in multi-voice parts. Grace and chord members stay with a host.
+    for (let measureIndex = 0; measureIndex < measureCount; measureIndex += 1) {
+      for (const [staffIndex, staff] of part.staves.entries()) {
+        const measure = staff.measures[measureIndex]
+        if (!measure) continue
+        const location = { measure, measureIndex, partIndex, staffKey: `${partIndex}:${staffIndex}` }
+        measures.set(measure.id, location)
+        for (const voice of sortScoreVoices(measure.voices)) {
+          for (const event of sortVoiceEvents(voice.events)) {
+            events.set(event.id, { ...location, event, voice, eventOrder: eventOrder++ })
+          }
+        }
+      }
+    }
+  }
+  return { events, measures }
 }
 
-function createSpanDirections(score: Score, locations: ReturnType<typeof collectSpanLocations>): SpanDirections {
-  const directions: SpanDirections = new Map()
+function createSpanDirections(score: Score, locations: ReturnType<typeof collectSpanLocations>, partIds: string[]): SpanDirections {
+  const directions: SpanDirections = { atMeasureStart: new Map(), beforeEvent: new Map(), afterEvent: new Map() }
+  const partIdSet = new Set(partIds)
+  let nextEndMarker = 1
+  const hairpinMarkers = new Map<SpanDirection, {
+    pair: { number?: number }
+    stop: boolean
+    wedge: Record<string, unknown>
+  }>()
   for (const kind of ['octaveShifts', 'hairpins'] as const) {
     const spans = (score[kind] ?? []).map(span => {
-      const start = locations.get(span.startEventId)
-      const end = locations.get(span.endEventId)
-      if (!start || !end || (kind !== 'hairpins' && (start.event.type !== 'note' || end.event.type !== 'note')) || start.staffKey !== end.staffKey ||
-        (kind !== 'hairpins' && (start.measureIndex > end.measureIndex || (start.measureIndex === end.measureIndex && start.event.position.tick > end.event.position.tick)))) {
-        throw new Error('MusicXML span endpoint는 같은 보표의 시간순 이벤트여야 하며 옥타브선은 note가 필요합니다.')
+      const start = locations.events.get(span.startEventId)
+      const endEvent = span.endEventId === undefined ? undefined : locations.events.get(span.endEventId)
+      const endTime = 'endTime' in span ? span.endTime : undefined
+      const end = endTime ? locations.measures.get(endTime.measureId) : endEvent
+      const endVoice = endTime ? end?.measure.voices.find(voice => voice.id === endTime.voiceId) : endEvent?.voice
+      if (!start || !end || !endVoice || start.staffKey !== end.staffKey ||
+        (endTime && (!Number.isSafeInteger(endTime.tick) || endTime.tick < 0 || endTime.tick > measureDurationTicks(end.measure)))) {
+        throw new Error(endTime ? 'MusicXML 헤어핀 시간 끝점은 시작점과 같은 보표의 유효한 위치여야 합니다.'
+          : 'MusicXML span endpoint는 같은 보표의 시간순 이벤트여야 하며 옥타브선은 note가 필요합니다.')
       }
-      // A one-note octave shift includes the ending note's duration. A
-      // hairpin instead ends at the event onset and must have positive length.
-      if (kind === 'hairpins' && (start.measureIndex > end.measureIndex ||
-        (start.measureIndex === end.measureIndex && start.event.position.tick >= end.event.position.tick))) {
+      const sameMeasure = start.measureIndex === end.measureIndex
+      if (kind === 'octaveShifts') {
+        if (!endEvent || start.event.type !== 'note' || endEvent.event.type !== 'note' ||
+            start.measureIndex > end.measureIndex || (sameMeasure && start.event.position.tick > endEvent.event.position.tick)) {
+          throw new Error('MusicXML span endpoint는 같은 보표의 시간순 이벤트여야 하며 옥타브선은 note가 필요합니다.')
+        }
+        const startOrder = 2 * start.eventOrder
+        const stopOrder = 2 * endEvent.eventOrder + 1
+        // An earlier voice can write a stop before a later voice's start.
+        return {
+          span, start, end, endEvent, endVoice, endTick: endEvent.event.position.tick, group: String(start.partIndex),
+          first: Math.min(startOrder, stopOrder), last: Math.max(startOrder, stopOrder)
+        }
+      }
+      const endTick = endTime?.tick ?? hairpinEndTick('endAnchor' in span ? span.endAnchor : undefined,
+        { ...start, voiceId: start.voice.id }, { ...endEvent!, voiceId: endVoice.id })
+      if (start.measureIndex > end.measureIndex || (sameMeasure && start.event.position.tick >= endTick)) {
         throw new Error('헤어핀 끝점은 시작점보다 뒤에 있어야 합니다. 속성에서 범위를 수정하거나 표기를 삭제한 뒤 다시 내보내세요.')
       }
-      return { span, start, end }
-    }).sort((a, b) => a.start.measureIndex - b.start.measureIndex)
-    const activeByStaff = new Map<string, Map<number, number>>()
-    for (const { span, start, end } of spans) {
-      const active = activeByStaff.get(start.staffKey) ?? new Map<number, number>()
-      // Directions precede notes in each exported measure. Reuse numbers only
-      // after the whole ending measure, preserving their document-order identity.
-      for (const [number, endMeasure] of active) if (endMeasure < start.measureIndex) active.delete(number)
-      const number = Array.from({ length: 16 }, (_, i) => i + 1).find(candidate => !active.has(candidate))
-      if (!number) throw new Error('MusicXML 한 마디의 span number 범위(16)를 초과했습니다.')
-      active.set(number, end.measureIndex)
-      activeByStaff.set(start.staffKey, active)
+      // Hairpin directions are written together at each measure's beginning.
+      return { span, start, end, endEvent, endVoice, endTick, group: String(start.partIndex), first: start.measureIndex, last: end.measureIndex }
+    }).sort((a, b) => a.first - b.first)
+    const activeByGroup = new Map<string, Map<number, number>>()
+    for (const { span, start, end, endEvent, endVoice, endTick, group, first, last } of spans) {
+      let number: number | undefined
+      if (kind === 'octaveShifts') {
+        const active = activeByGroup.get(group) ?? new Map<number, number>()
+        number = claimSpanNumber(active, first, last)
+        if (!number) throw new Error('MusicXML 한 파트의 동시 옥타브선 번호 범위(16)를 초과했습니다.')
+        activeByGroup.set(group, active)
+      }
+      const pair: { number?: number } = {}
       for (const [anchor, stop] of [[start, false], [end, true]] as const) {
         const direction = kind === 'hairpins'
           ? buildHairpinDirection(stop ? 'stop' : span.type)
           : buildOctaveShiftDirection(span.type as NonNullable<Score['octaveShifts']>[number]['type'], stop ? 'stop' : 'start')
         const marker = Object.values(direction['direction-type'])[0] as Record<string, unknown>
-        if (number !== 1) marker['@_number'] = number
-        directions.set(anchor.measure, [...(directions.get(anchor.measure) ?? []), {
-          ...direction,
-          offset: anchor.event.position.tick + (kind === 'octaveShifts' && stop ? voiceEventDurationTicks(anchor.event, anchor.measure) : 0),
-          voice: readMusicXmlVoiceNumber(anchor.voice.id)
-        }])
+        if (number !== undefined && number !== 1) marker['@_number'] = number
+        const voice = readScoreVoiceNumber(stop ? endVoice.id : start.voice.id)
+        if (kind === 'octaveShifts') {
+          // Some consumers read octave changes from the current cursor. Keep
+          // the start before any grace notes and the stop after the full chord.
+          appendSpanDirection(stop ? directions.afterEvent : directions.beforeEvent, (stop ? endEvent! : start).event.id, { ...direction, voice })
+        } else {
+          const endAnchor = 'endAnchor' in span ? span.endAnchor : undefined
+          const losesRole = endEvent && endAnchor && (endEvent.event.type === 'rest' ||
+            (endAnchor === 'onset' ? start.voice.id === endVoice.id :
+              endVoice.events.some(event => event.position.tick === endTick) ||
+              endTick === hairpinEndTick(undefined, { ...start, voiceId: start.voice.id }, { ...endEvent, voiceId: endVoice.id })))
+          // A standard offset identifies a free ending until an edit creates
+          // an onset or release at the same position.
+          const timeNeedsRole = !endEvent && endVoice.events.some(event =>
+            event.position.tick === endTick ||
+            event.position.tick + durationToTicks(event.duration) === endTick)
+          const role = timeNeedsRole ? 'time' : losesRole ? endAnchor : undefined
+          if (stop && role) {
+            let id: string
+            do {
+              id = `${hairpinEndMarkerPrefix}${role}-${nextEndMarker++}`
+            } while (partIdSet.has(id))
+            marker['@_id'] = id
+          }
+          const placed = { ...direction, offset: stop ? endTick : start.event.position.tick, voice }
+          appendSpanDirection(directions.atMeasureStart, anchor.measure, placed)
+          hairpinMarkers.set(placed, { pair, stop, wedge: marker })
+        }
+      }
+    }
+  }
+  if (hairpinMarkers.size > 0) {
+    for (const part of score.parts) {
+      const active = new Set<number>()
+      // The writer emits all measure-start marks in staff order. A number
+      // stays reserved until its stop is written, including across staves.
+      for (const [measureIndex] of part.staves[0].measures.entries()) {
+        for (const staff of part.staves) {
+          for (const direction of directions.atMeasureStart.get(staff.measures[measureIndex]) ?? []) {
+            const marker = hairpinMarkers.get(direction)!
+            const number = marker.stop ? marker.pair.number
+              : Array.from({ length: 16 }, (_, index) => index + 1).find(candidate => !active.has(candidate))
+            if (number === undefined) throw new Error('MusicXML 한 파트의 동시 헤어핀 번호 범위(16)를 초과했습니다.')
+            if (number !== 1) marker.wedge['@_number'] = number
+            if (marker.stop) active.delete(number)
+            else {
+              marker.pair.number = number
+              active.add(number)
+            }
+          }
+        }
       }
     }
   }
   return directions
+}
+
+function claimSpanNumber(active: Map<number, number>, first: number, last: number, preferred?: number): number | undefined {
+  for (const [number, lastMarker] of active) if (lastMarker < first) active.delete(number)
+  const number = preferred !== undefined && Number.isInteger(preferred) && preferred >= 1 && preferred <= 16 && !active.has(preferred)
+    ? preferred
+    : Array.from({ length: 16 }, (_, i) => i + 1).find(candidate => !active.has(candidate))
+  if (number !== undefined) active.set(number, last)
+  return number
+}
+
+function appendSpanDirection<K>(map: Map<K, SpanDirection[]>, anchor: K, direction: SpanDirection): void {
+  const existing = map.get(anchor)
+  if (existing) existing.push(direction)
+  else map.set(anchor, [direction])
 }
 
 function buildAttributes(measures: Measure[], hasTransposition: boolean) {
@@ -818,7 +1047,8 @@ function buildNoteElements(
   slurBoundary?: {
     starts?: string[]
     stops?: string[]
-  }
+  },
+  respelledTieStop = false
 ): unknown[] {
   if (event.type === 'note') {
     const notePitches = event.pitches?.length
@@ -838,9 +1068,18 @@ function buildNoteElements(
         throw new Error(`MusicXML ${measure.number}마디의 음높이가 지원 범위(옥타브 0–9)를 벗어납니다. 음높이 또는 옥타브 표시를 수정한 뒤 다시 내보내세요. 프로젝트 파일은 저장할 수 있습니다.`)
       }
     }
-    const graceNotes = (event.graceNotes ?? []).map((graceNote) =>
-      buildGraceNote(graceNote, voiceNumber, staffNumber)
-    )
+    const before: ReturnType<typeof buildGraceNote>[] = []
+    const after: ReturnType<typeof buildGraceNote>[] = []
+    for (const [index, graceNote] of (event.graceNotes ?? []).entries()) {
+      const graceEvent = { ...event, pitch: graceNote.pitch }
+      const resolved = resolveNotePitch(measure, voice, graceEvent)
+      const pitch = graceNote.pitch.alter === undefined && resolved.alter === 0 ? graceNote.pitch : resolved
+      const accidental = shouldDisplayAccidental(measure, voice, event, index)
+        ? toMusicXmlAccidental(resolved.alter!)
+        : undefined
+      const group = graceNote.after ? after : before
+      group.push(buildGraceNote({ ...graceNote, pitch }, voiceNumber, staffNumber, accidental))
+    }
     const mainNote = buildNote(
       event,
       measure,
@@ -850,13 +1089,14 @@ function buildNoteElements(
       staffNumber,
       false,
       tupletBoundary,
-      slurBoundary
+      slurBoundary,
+      respelledTieStop
     )
     const chordNotes = notePitches.slice(1).map((pitch) =>
       buildNote(event, measure, voice, pitch, voiceNumber, staffNumber, true)
     )
 
-    return [...graceNotes, mainNote, ...chordNotes]
+    return [...before, mainNote, ...chordNotes, ...after]
   }
 
   return [
@@ -884,13 +1124,19 @@ function readVoiceEndTick(measure: Measure, voice: Voice): number {
   )
 }
 
-function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number], voiceNumber: number, staffNumber?: number) {
+function buildGraceNote(
+  graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number],
+  voiceNumber: number,
+  staffNumber: number | undefined,
+  accidental: string | undefined
+) {
   return {
     grace: graceNote.slash
       ? {
           '@_slash': 'yes'
         }
       : '',
+    ...(graceNote.chord ? { chord: '' } : {}),
     pitch: {
       step: graceNote.pitch.step,
       ...(graceNote.pitch.alter !== undefined
@@ -902,6 +1148,7 @@ function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note
     },
     voice: voiceNumber,
     type: 'eighth',
+    ...(accidental !== undefined ? { accidental } : {}),
     ...(staffNumber !== undefined ? { staff: staffNumber } : {})
   }
 }
@@ -921,14 +1168,15 @@ function buildNote(
   slurBoundary?: {
     starts?: string[]
     stops?: string[]
-  }
+  },
+  respelledTieStop = false
 ) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
   const isFullMeasureRest = event.type === 'rest' && event.fullMeasure
   const displaysAccidental =
     event.type === 'note' &&
-    !event.ties?.stop &&
-    shouldDisplayAccidental(measure, voice, event)
+    (!event.ties?.stop || respelledTieStop) &&
+    shouldDisplayAccidental(measure, voice, { ...event, pitch: pitch! })
   const tieTypes =
     event.type === 'note'
       ? [
@@ -1006,6 +1254,7 @@ function buildNote(
             step: pitch!.step,
             ...(pitch!.alter !== 0 ||
             event.pitch.alter === 0 ||
+            event.pitches?.length ||
             displaysAccidental
               ? {
                   alter: pitch!.alter
@@ -1131,17 +1380,32 @@ function createTupletBoundaries(
 
 function createSlurBoundaries(
   score: Score,
-  locations: ReturnType<typeof collectSpanLocations>
+  locations: ReturnType<typeof collectSpanLocations>['events']
 ): Map<string, { starts?: string[]; stops?: string[] }> {
   const boundaries = new Map<string, { starts?: string[]; stops?: string[] }>()
 
-  ;(score.slurs ?? []).forEach((slur, index) => {
+  const spans = (score.slurs ?? []).map((slur, index) => {
     const start = locations.get(slur.startEventId), end = locations.get(slur.endEventId)
     if (!start || !end || start.event.type !== 'note' || end.event.type !== 'note' || start.staffKey !== end.staffKey ||
       start.measureIndex > end.measureIndex || (start.measureIndex === end.measureIndex && start.event.position.tick >= end.event.position.tick)) {
       throw new Error('슬러 끝점은 같은 보표의 시작점보다 뒤에 있는 음표여야 합니다. 속성에서 범위를 수정하거나 표기를 삭제한 뒤 다시 내보내세요.')
     }
-    const number = String(slur.number ?? index + 1)
+    return { slur, index, partIndex: start.partIndex,
+      first: Math.min(start.eventOrder, end.eventOrder), last: Math.max(start.eventOrder, end.eventOrder) }
+  })
+  const activeByPart = new Map<number, Map<number, number>>()
+  const assignedNumbers: number[] = []
+  // Parts write one voice at a time, so collisions depend on file order.
+  for (const { slur, index, partIndex, first, last } of [...spans].sort((a, b) => a.first - b.first)) {
+    const active = activeByPart.get(partIndex) ?? new Map<number, number>()
+    const number = claimSpanNumber(active, first, last, slur.number ?? index + 1)
+    if (number === undefined) throw new Error('MusicXML 한 파트의 동시 슬러 번호 범위(16)를 초과했습니다.')
+    assignedNumbers[index] = number
+    activeByPart.set(partIndex, active)
+  }
+
+  for (const { slur, index } of spans) {
+    const number = String(assignedNumbers[index])
     const startBoundary = boundaries.get(slur.startEventId)
     const stopBoundary = boundaries.get(slur.endEventId)
 
@@ -1153,7 +1417,7 @@ function createSlurBoundaries(
       ...stopBoundary,
       stops: [...(stopBoundary?.stops ?? []), number]
     })
-  })
+  }
 
   return boundaries
 }

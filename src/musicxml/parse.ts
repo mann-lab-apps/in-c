@@ -1,26 +1,35 @@
+import { hairpinEndTick } from '../score-core/span-references'
+import { readHairpinEndMarker } from './hairpin-end-marker'
 import { resolveHarmonyDisplayText, musicXmlHarmonyKinds } from './harmony-text'
 import { createMusicXmlParser } from './xml-parser'
 import { assertMusicXmlInputCharacters } from './xml-input-characters'
 import { collectUnresolvedXmlReferences } from './xml-unresolved-references'
 import { readMusicXmlPageDefaults } from './page-layout'
+import { secondVoltaRepeatCounts } from './barline-scope'
 
 import {
   TICKS_PER_QUARTER,
+  inspectAlternativeEndingRepeats,
   createFullMeasureRest,
   createMeasure,
   createNote,
   createPart,
   createRest,
   createScore,
+  createScoreRepeatPlaybackPlan,
   createStaff,
   createTimePosition,
   createVoice,
   globalSwingPlaybackUnavailableReason,
   convertOctaveShiftPitches,
   durationToTicks,
+  keySignatureAlter,
   measureDurationTicks,
+  timeSignatureDurationTicks,
   voiceEventDurationTicks,
   sortVoiceEvents,
+  sameVoltaPasses,
+  scoreRepeatSource,
   validateTieRelations,
   validateMeasureRhythm,
   validateVoiceTuplets,
@@ -34,17 +43,21 @@ import {
   type HairpinType,
   type KeySignature,
   type Measure,
+  type NavigationMark,
+  type Note,
   type Pitch,
   type Score,
   type TimeSignature,
   type TremoloMark,
   type TupletGroup,
+  type VoltaMark,
   type VoiceEvent
 } from '../score-core'
 import {
   isDurationValue,
   isKeyMode,
   isPitchStep,
+  supportedDurationValues,
   toArray
 } from './shared'
 
@@ -54,7 +67,6 @@ interface XmlNode {
 
 interface MeasureState {
   clef: Clef
-  divisions: number
   keySignature: KeySignature
   timeSignature: TimeSignature
 }
@@ -64,7 +76,6 @@ interface PartMeasureState {
   transpositions: Map<number, NonNullable<Measure['transposition']>>
   keySignatures: Map<number, KeySignature>
   timeSignatures: Map<number, TimeSignature>
-  divisions: number
   keySignature: KeySignature
   staffCount: number
   timeSignature: TimeSignature
@@ -100,9 +111,34 @@ const sourceBarlineAttributes = new WeakMap<XmlNode, XmlNode>()
 const sourceMidiFacts = new WeakMap<XmlNode, Partial<Record<'midi-name' | 'midi-device', (XmlNode | string)[]>>>()
 const directionTicks = new WeakMap<XmlNode, number>()
 const soundTicks = new WeakMap<XmlNode, number>()
-const fullMeasureRestSourceTicks = new WeakMap<XmlNode, number>()
+const unrepresentedHairpinStops = new WeakMap<XmlNode, {
+  staff: number; voice: string; sourceTick: number; retainedTick: number
+}>()
+const importedNavigationSounds = new WeakSet<XmlNode>()
+const importedClosingTranspositions = new WeakSet<XmlNode>()
+const relocatedLeadingRestTranspositions = new WeakSet<XmlNode>()
+const importedClosingKeys = new WeakSet<XmlNode>()
+const importedClosingMeters = new WeakSet<XmlNode>()
+const unsupportedKeyFifths = new WeakMap<KeySignature, string>()
+interface NavigationAppearance {
+  node: XmlNode
+  fields: readonly string[]
+  appearanceChanged: boolean
+}
+const importedNavigationAppearance = new WeakMap<XmlNode, NavigationAppearance>()
+const navigationSoundAttributes = ['dacapo', 'dalsegno', 'segno', 'coda', 'tocoda', 'fine', 'forward-repeat'] as const
+const sourceNoteDurationTicks = new WeakMap<XmlNode, number>()
+const sourceChordMemberDurations = new WeakMap<XmlNode, {
+  duration: string
+  divisions: string
+  sourceTicks: number | null
+  appliedTicks?: number
+}>()
+const sourcePitchedNoteTicks = new WeakMap<XmlNode, number>()
+const sourceForwardPickupTicks = new WeakMap<XmlNode, number>()
 const measureChildOrder = new WeakMap<XmlNode, number>()
 const sourceMeasureNumbers = new WeakMap<XmlNode, number>()
+const sourceStaffVoiceNumbers = new WeakMap<XmlNode, ReadonlyMap<string, number>>()
 type SourceMeasureIdentity = { sourceMeasure: number; originalNumber: string | null; internalNumber: number }
 const normalizedPartMeasureNumbers = new WeakMap<XmlNode, SourceMeasureIdentity[]>()
 
@@ -132,7 +168,6 @@ const defaultMeasureState: MeasureState = {
     sign: 'G',
     line: 2
   },
-  divisions: TICKS_PER_QUARTER,
   keySignature: {
     fifths: 0,
     mode: 'major'
@@ -244,11 +279,13 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
   const parts = toArray(readNode(document, 'score-partwise').part as XmlNode | XmlNode[] | undefined)
   orderedRoot.filter(node => 'part' in node).forEach((orderedPart, partIndex) => {
     const measures = toArray(parts[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
-    let divisions = TICKS_PER_QUARTER
+    let divisions: XmlDecimal = { text: String(TICKS_PER_QUARTER), units: BigInt(TICKS_PER_QUARTER), scale: 1n }
     ;(orderedPart.part as XmlNode[]).filter(node => 'measure' in node).forEach((orderedMeasure, measureIndex) => {
       const measure = measures[measureIndex]
       if (!measure) return
+      const hasPickupForward = 'forward' in measure && readOptionalString(measure, '@_implicit') === 'yes'
       let cursor = 0
+      let furthestTick = 0
       const indices = new Map<string, number>()
       for (const [order, child] of (orderedMeasure.measure as XmlNode[]).entries()) {
         const key = Object.keys(child).find(name => name !== ':@')
@@ -260,6 +297,17 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
         if (key === 'note') {
           indexSourceLyricText(node, child.note as XmlNode[])
           indexSourceNotationFacts(node, child.note as XmlNode[])
+          if ('pitch' in node && !('chord' in node)) sourcePitchedNoteTicks.set(node, cursor)
+          if ('chord' in node && !('grace' in node)) {
+            const duration = readOptionalString(node, 'duration')
+            const value = duration === undefined ? undefined : readXmlDecimal(duration)
+            if (value && value.units > 0n) {
+              sourceChordMemberDurations.set(node, {
+                duration: value.text, divisions: divisions.text,
+                sourceTicks: exactMusicXmlTicks(value, divisions) ?? null
+              })
+            }
+          }
         }
         if (key === 'barline') {
           sourceNotationFacts.set(node, {
@@ -274,35 +322,33 @@ function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
         if (key === 'direction' || key === 'sound') measureChildOrder.set(node, order)
         if (key === 'attributes') { directionTicks.set(node, cursor); divisions = readDivisions(node, divisions) }
         if (key === 'direction' || key === 'harmony') {
-          const offset = Number(readOptionalString(node, 'offset') ?? 0) * TICKS_PER_QUARTER / divisions
-          const tick = cursor + offset
-          if (!Number.isSafeInteger(tick) || tick < 0) throw new Error(`MusicXML ${key} offset을 유효한 tick으로 변환할 수 없습니다.`)
+          const offset = readOptionalString(node, 'offset')
+          const tick = readMusicXmlOffsetTick(cursor, offset, divisions, `MusicXML ${key} offset을 유효한 tick으로 변환할 수 없습니다.`)
           directionTicks.set(node, tick)
           const sound = readOptionalNode(node, 'sound')
           if (sound) {
             indexSourceMidiFacts(sound, ((child[key] as XmlNode[]).find(value => 'sound' in value)?.sound ?? []) as XmlNode[])
-            const soundOffset = readOptionalNumber(sound, 'offset') ??
-              (readOptionalString(readOptionalNode(node, 'offset') ?? {}, '@_sound') === 'yes'
-                ? readOptionalNumber(node, 'offset') ?? 0 : 0)
-            const soundTick = cursor + soundOffset * TICKS_PER_QUARTER / divisions
-            if (!Number.isSafeInteger(soundTick) || soundTick < 0) throw new Error('MusicXML pedal sound offset이 유효하지 않습니다.')
+            const soundOffset = readOptionalString(sound, 'offset') ??
+              (readOptionalString(readOptionalNode(node, 'offset') ?? {}, '@_sound') === 'yes' ? offset : undefined)
+            const soundTick = readMusicXmlOffsetTick(cursor, soundOffset, divisions, 'MusicXML pedal sound offset이 유효하지 않습니다.')
             soundTicks.set(sound, soundTick)
           }
         }
         if (key === 'sound') {
           indexSourceMidiFacts(node, child.sound as XmlNode[])
-          const tick = cursor + (readOptionalNumber(node, 'offset') ?? 0) * TICKS_PER_QUARTER / divisions
-          if (!Number.isSafeInteger(tick) || tick < 0) throw new Error('MusicXML sound offset이 유효하지 않습니다.')
+          const tick = readMusicXmlOffsetTick(cursor, readOptionalString(node, 'offset'), divisions, 'MusicXML sound offset이 유효하지 않습니다.')
           soundTicks.set(node, tick)
         }
         if (key === 'backup' || key === 'forward') {
           cursor += readMusicXmlDurationTicks(node, divisions) * (key === 'backup' ? -1 : 1)
         } else if (key === 'note' && !('chord' in node) && !('grace' in node)) {
           const ticks = readMusicXmlDurationTicks(node, divisions)
-          if (readOptionalNode(node, 'rest')?.['@_measure'] === 'yes') fullMeasureRestSourceTicks.set(node, ticks)
+          sourceNoteDurationTicks.set(node, ticks)
           cursor += ticks
         }
+        if (hasPickupForward) furthestTick = Math.max(furthestTick, cursor)
       }
+      if (hasPickupForward) sourceForwardPickupTicks.set(measure, furthestTick)
     })
   })
 }
@@ -376,17 +422,46 @@ function midiFactText(value: XmlNode | string): string {
   return typeof value === 'string' ? value : value['#text'] === undefined ? '' : String(value['#text'])
 }
 
-function directionAnchor(direction: XmlNode, measure: Measure | undefined, stop: boolean, preferredVoice?: string, allowRest = false) {
+type HairpinEndSource = {
+  partNumber: number
+  partId: string
+  measureIndex: number
+  measureLabel?: string
+  sourceVoice?: string
+}
+
+export class MusicXmlHairpinEndAnchorError extends Error {
+  constructor(source: HairpinEndSource, staff: number, voiceId: string | undefined, tick: number) {
+    const voice = source.sourceVoice ?? voiceId?.replace(/^voice-/, '') ?? '지정 없음'
+    const measure = `파일의 ${source.measureIndex + 1}번째 마디${source.measureLabel ? ` (번호 ${source.measureLabel})` : ''}`
+    super(`헤어핀 끝에 연결할 음표나 쉼표가 없습니다. 파트 ${source.partNumber} (${source.partId}) · 보표 ${staff} · 성부 ${voice} · ${measure} · ${tick} tick (마디 시작 기준 ${tick / TICKS_PER_QUARTER}박, 4분음표 단위)`)
+    this.name = 'MusicXmlHairpinEndAnchorError'
+  }
+}
+
+function directionVoiceId(direction: XmlNode, preferredVoice?: string) {
   const staff = readOptionalInteger(direction, 'staff') ?? 1
-  const voiceId = readOptionalString(direction, 'voice') === undefined
-    ? preferredVoice : readVoiceId(direction, staff, staff)
+  return readOptionalString(direction, 'voice') === undefined ? preferredVoice : readVoiceId(direction, staff)
+}
+
+function findDirectionAnchor(direction: XmlNode, measure: Measure | undefined, stop: boolean, preferredVoice?: string,
+  allowRest = false, endMarker?: 'onset' | 'release') {
+  const voiceId = directionVoiceId(direction, preferredVoice)
   const voices = (measure?.voices ?? []).filter(voice => !voiceId || voice.id === voiceId)
   const tick = directionTicks.get(direction) ?? 0
   const candidates = voices.flatMap(voice => voice.events.filter(event => allowRest || event.type === 'note')
     .map(event => ({ event, voiceId: voice.id })))
-  const anchor = candidates.find(({ event }) => event.position.tick === tick) ??
+  const onset = candidates.find(({ event }) => event.position.tick === tick)
+  const marked = endMarker === 'onset' ? onset : endMarker === 'release' && measure
+    ? candidates.find(({ event }) => event.position.tick + voiceEventDurationTicks(event, measure) === tick) : undefined
+  const anchor = marked ?? onset ??
     (stop ? candidates.find(({ event }) => event.position.tick + durationToTicks(event.duration) === tick) : undefined)
-  if (!anchor) throw new Error(`MusicXML span의 tick ${tick}에 연결할 note가 없습니다 (${voiceId ?? 'staff'}).`)
+  return anchor && { ...anchor, endAnchor: marked ? endMarker : undefined }
+}
+
+function directionAnchor(direction: XmlNode, measure: Measure | undefined, allowRest = false) {
+  const anchor = findDirectionAnchor(direction, measure, false, undefined, allowRest)
+  if (!anchor) throw new Error(`MusicXML span의 tick ${directionTicks.get(direction) ?? 0}에 연결할 note가 없습니다 (${directionVoiceId(direction) ?? 'staff'}).`)
   return anchor
 }
 
@@ -419,6 +494,20 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   const swing = readGlobalSwingPlayback(parts)
   const rhythmFeel = readRhythmFeelMarking(primaryMeasureNodes, swing.hasFormal)
   const rehearsalMarks = readRehearsalMarks(primaryMeasureNodes)
+  for (const part of parsedParts) for (const staff of part.staves) {
+    const exactSecondMarkers = new Set<Measure>()
+    for (const group of inspectAlternativeEndingRepeats(staff.measures).groups.values()) {
+      group.legacySecondMarkers.forEach(measure => exactSecondMarkers.add(measure))
+    }
+    for (const [measure, count] of secondVoltaRepeatCounts(staff.measures)) {
+      if (count > 2 && measure.volta?.number === 2) exactSecondMarkers.add(measure)
+    }
+    for (const measure of exactSecondMarkers) {
+      const { start, end } = measure.volta!
+      measure.volta = { start, end, passes: [2] }
+    }
+  }
+  importPlaybackNavigation(parts, parsedParts)
   const systemTexts = readSystemTexts(primaryMeasureNodes)
   const markings = readPartStaffMarkings(parts, parsedParts)
   const physicalPageSetup = readMusicXmlPageDefaults(root).pageSetup
@@ -462,6 +551,93 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   return score
 }
 
+function importPlaybackNavigation(parts: XmlNode[], parsedParts: Score['parts']): void {
+  const pending: { measure: Measure; sound: XmlNode; mark: NavigationMark; appearance?: NavigationAppearance }[] = []
+  const counts = new Map<Measure, number>()
+  for (const [partIndex, part] of parts.entries()) {
+    const measures = parsedParts[partIndex].staves[0].measures
+    for (const [index, node] of toArray(part.measure as XmlNode | XmlNode[] | undefined).entries()) {
+      const measure = measures[index]
+      const sounds: { sound: XmlNode; direction?: XmlNode }[] = [
+        ...toArray(node.sound as XmlNode | XmlNode[] | undefined).map(sound => ({ sound })),
+        ...toArray(node.direction as XmlNode | XmlNode[] | undefined).flatMap(direction => {
+          const sound = readOptionalNode(direction, 'sound')
+          return sound ? [{ sound, direction }] : []
+        })
+      ]
+      for (const { sound, direction } of sounds) {
+        for (const type of navigationSoundAttributes) {
+          const value = readOptionalString(sound, `@_${type}`)
+          if (!value || ((type === 'dacapo' || type === 'forward-repeat') && value === 'no')) continue
+          if (type === 'forward-repeat') return
+          const text = readOptionalString(sound, '@_time-only')
+          if (text !== undefined && !/^[1-9]\d*(?:, *[1-9]\d*)*$/.test(text)) return
+          const passes = text === undefined ? undefined : text.split(',').map(Number)
+          if (passes && (passes.length > 100 || !passes.every(Number.isSafeInteger))) return
+          const marker = type === 'segno' || type === 'coda'
+          const tick = marker ? 0 : measureDurationTicks(measure)
+          if (soundTicks.get(sound) !== tick) return
+          if ((marker && passes) || ((type === 'fine' || type === 'dacapo') && value !== 'yes')) return
+          const visualDirection = direction && directionTicks.get(direction) === tick ? direction : undefined
+          const graphic = marker && visualDirection ? readNavigationSymbolDirection(visualDirection, type) : undefined
+          const words = !marker && visualDirection ? readNavigationEndDirection(visualDirection, type) : undefined
+          const actionFields = { ...(passes ? { passes } : {}), ...(words ? { display: words.display } : {}) }
+          const mark: NavigationMark =
+            type === 'dacapo' || type === 'fine' ? { type, ...actionFields } :
+            type === 'dalsegno' || type === 'tocoda' ? { type, label: value, ...actionFields } :
+            { type, label: value, ...(graphic ? { symbol: true } : {}) }
+          if ('label' in mark && mark.label.length > 1024) return
+          const count = (counts.get(measure) ?? 0) + 1
+          if (count > 100) return
+          counts.set(measure, count)
+          pending.push({ measure, sound, mark, appearance: graphic ?? words })
+        }
+      }
+    }
+  }
+  if (!pending.length) return
+  for (const { measure, mark } of pending) (measure.navigation ??= []).push(mark)
+  const plan = createScoreRepeatPlaybackPlan({ parts: parsedParts })
+  if (!plan || plan.navigationIssue) {
+    for (const { measure } of pending) delete measure.navigation
+    return
+  }
+  for (const { sound, appearance } of pending) {
+    importedNavigationSounds.add(sound)
+    if (appearance) importedNavigationAppearance.set(appearance.node, appearance)
+  }
+}
+
+function readNavigationSymbolDirection(direction: XmlNode, kind: 'segno' | 'coda'): NavigationAppearance | undefined {
+  const types = readDirectionTypes(direction).filter(node => Object.hasOwn(node, kind))
+  if (types.length !== 1 || Array.isArray(types[0][kind])) return undefined
+  const [node] = types
+  const content = readOptionalNode(node, kind)
+  const placement = readOptionalString(direction, '@_placement')
+  return {
+    node,
+    fields: [kind],
+    appearanceChanged: Boolean((placement && placement !== 'above') ||
+      Object.keys(content ?? {}).some(key => key.startsWith('@_') && key !== '@_id' &&
+        !(key === '@_smufl' && readOptionalString(content!, key) === kind)))
+  }
+}
+
+function readNavigationEndDirection(direction: XmlNode, kind: 'dacapo' | 'dalsegno' | 'fine' | 'tocoda') {
+  const [node, ...others] = readDirectionTypes(direction)
+  if (!node || others.length || Array.isArray(node.words) || Array.isArray(node.symbol)) return undefined
+  if (Object.keys(node).some(key => !key.startsWith('@_') && key !== 'words' && key !== 'symbol')) return undefined
+  const words = readOptionalString(node, 'words')
+  const symbol = readOptionalString(node, 'symbol')
+  if (!words || words.length > 1024 || (symbol !== undefined && (kind !== 'tocoda' || symbol !== 'coda'))) return undefined
+
+  const fields = symbol === 'coda' ? ['words', 'symbol'] : ['words']
+  const placement = readOptionalString(direction, '@_placement')
+  const appearanceChanged = Boolean((placement && placement !== 'above') ||
+    fields.some(field => Object.keys(readOptionalNode(node, field) ?? {}).some(key => key.startsWith('@_') && key !== '@_id')))
+  return { node, fields, appearanceChanged, display: { words, ...(symbol === 'coda' ? { coda: true as const } : {}) } }
+}
+
 function readLayoutBreaks(nodes: XmlNode[], measures: Measure[]): Score['layout'] {
   const system: string[] = []
   const page: string[] = []
@@ -503,7 +679,7 @@ function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
         staffTexts: anchor(readStaffTexts(staffNodes)),
         expressionTexts: anchor(readExpressionTexts(staffNodes)),
         dynamics: anchor(readDynamics(staffNodes)),
-        hairpins: identify(readHairpins(staffNodes, staff.measures)),
+        hairpins: identify(readHairpins(staffNodes, staff.measures, { partNumber: partIndex + 1, partId: part.id })),
         slurs: identify(readSlurs(staffNodes, staff.measures)),
         octaveShifts: identify(readOctaveShifts(staffNodes, staff.measures))
       }
@@ -605,15 +781,33 @@ function parseMusicXmlPart(
     throw new Error('MusicXML에 measure가 없습니다.')
   }
 
+  indexStaffVoiceNumbers(measureNodes)
   let state = createPartMeasureState()
   let eventCounter = 0
   const measuresByStaff = new Map<number, Measure[]>()
 
   measureNodes.forEach((measureNode, measureIndex) => {
-    const attributes = readOptionalNode(measureNode, 'attributes')
+    const attributeBlocks = toArray(measureNode.attributes as XmlNode | XmlNode[] | undefined)
+    const inheritedState = state
+    const inheritedClefs = state.clefs
+    // A staff's boundary settings can follow a backup to tick zero.
+    // Keep the single-block projection for other attributes.
+    const boundaryBlocks = attributeBlocks.length > 1
+      ? attributeBlocks.filter(attributes => (directionTicks.get(attributes) ?? 0) === 0)
+      : attributeBlocks
+    const staffCount = boundaryBlocks.reduce((count, attributes) => readStaffCount(attributes, count), state.staffCount)
+    for (const attributes of boundaryBlocks) {
+      state = readPartMeasureState(attributes, state, staffCount)
+    }
 
-    if (attributes) {
-      state = readPartMeasureState(attributes, state)
+    // A single positioned block was projected onto the start of this bar.
+    // Restore the opening clef for the staves whose pitched clef we can carry.
+    const openingClefs = attributeBlocks.length === 1 ? inheritedClefs : state.clefs
+    const deferredClefs = readDeferredPitchedClefs(attributeBlocks, openingClefs, staffCount)
+    if (attributeBlocks.length === 1) {
+      for (const staffNumber of deferredClefs.keys()) {
+        state.clefs.set(staffNumber, openingClefs.get(staffNumber) ?? defaultMeasureState.clef)
+      }
     }
 
     const noteNodes = toArray(measureNode.note as XmlNode | XmlNode[] | undefined)
@@ -621,19 +815,25 @@ function parseMusicXmlPart(
     const eventsByVoice = new Map<string, VoiceEvent[]>()
     const rhythmicNoteNodesByVoice = new Map<string, XmlNode[]>()
     const pendingGraceNotesByVoice = new Map<string, GraceNote[]>()
+    let previousGraceVoiceKey: string | undefined
 
     for (const noteNode of noteNodes) {
       const staffNumber = readStaffNumber(noteNode, state.staffCount)
-      const voiceId = readVoiceId(noteNode, staffNumber, state.staffCount)
+      const voiceId = readVoiceId(noteNode, staffNumber)
       const voiceKey = musicXmlVoiceKey(staffNumber, voiceId)
 
       if ('grace' in noteNode) {
+        if ('chord' in noteNode && previousGraceVoiceKey !== voiceKey) {
+          throw new Error('MusicXML 꾸밈음 화음의 구성음은 같은 보표·성부의 앞 꾸밈음에 연결되어야 합니다.')
+        }
         pendingGraceNotesByVoice.set(voiceKey, [
           ...(pendingGraceNotesByVoice.get(voiceKey) ?? []),
           readGraceNote(noteNode)
         ])
+        previousGraceVoiceKey = voiceKey
         continue
       }
+      previousGraceVoiceKey = undefined
 
       if ('chord' in noteNode) {
         const previousEvent = eventsByVoice.get(voiceKey)?.at(-1)
@@ -644,23 +844,28 @@ function parseMusicXmlPart(
 
         const pitch = readPitch(noteNode)
         previousEvent.pitches = [...(previousEvent.pitches ?? [previousEvent.pitch]), pitch]
+        const source = sourceChordMemberDurations.get(noteNode)
+        if (source) {
+          const appliedTicks = durationToTicks(previousEvent.duration)
+          if (source.sourceTicks !== appliedTicks) source.appliedTicks = appliedTicks
+        }
         continue
       }
 
       eventCounter += 1
       const positionTick = positionTicksByVoice.get(voiceKey) ?? 0
+      const xmlDurationTicks = sourceNoteDurationTicks.get(noteNode)
+      if (xmlDurationTicks === undefined) {
+        throw new Error(`MusicXML event ${eventCounter}의 duration을 확인할 수 없습니다.`)
+      }
       const event = withImportedEventId(
-        readVoiceEvent(noteNode, eventCounter, positionTick),
+        readVoiceEvent(noteNode, eventCounter, positionTick, xmlDurationTicks),
         createImportedEventId(
           partId,
           staffNumber,
           eventCounter,
           options.preserveLegacyIds && state.staffCount === 1
         )
-      )
-      const xmlDurationTicks = readMusicXmlDurationTicks(
-        noteNode,
-        state.divisions
       )
       const pendingGraceNotes = pendingGraceNotesByVoice.get(voiceKey) ?? []
 
@@ -689,8 +894,17 @@ function parseMusicXmlPart(
       ])
     }
 
-    if ([...pendingGraceNotesByVoice.values()].some((notes) => notes.length > 0)) {
-      throw new Error('MusicXML grace note를 연결할 실제 note가 없습니다.')
+    for (const [voiceKey, pending] of pendingGraceNotesByVoice) {
+      const host = eventsByVoice.get(voiceKey)?.at(-1)
+      if (!host || host.type !== 'note') throw new Error('MusicXML grace note를 연결할 실제 note가 없습니다.')
+      // A grace at the end of this voice in the measure has no following host.
+      // Preserve its notation after the last note without inferring playback.
+      host.graceNotes = [
+        ...(host.graceNotes ?? []),
+        ...pending.map((note): GraceNote => ({
+          ...note, after: true, pitch: { ...note.pitch, alter: note.pitch.alter ?? 0 }
+        }))
+      ]
     }
 
     const measureNumber =
@@ -700,6 +914,33 @@ function parseMusicXmlPart(
 
     if (isPickup && actualDurationTicks === 0) {
       throw new Error('MusicXML 못갖춘마디의 duration은 0보다 커야 합니다.')
+    }
+
+    const pickupDuration = isPickup ? actualDurationTicks : undefined
+    const hasNextMeasure = measureIndex + 1 < measureNodes.length
+    const singlePositionedBlock = attributeBlocks.length === 1 && (directionTicks.get(attributeBlocks[0]) ?? 0) > 0
+      ? attributeBlocks[0] : undefined
+    // The meter in a closing block cannot define the preceding bar's end.
+    const openingMeter = singlePositionedBlock ? {
+      ...state, timeSignature: inheritedState.timeSignature, timeSignatures: inheritedState.timeSignatures
+    } : state
+    const closingMeters = readClosingStaffSettings(attributeBlocks, openingMeter, pickupDuration, 'time', node =>
+      timeSignatureDurationTicks(readTimeSignature(node)))
+    const closingKeys = readClosingStaffSettings(attributeBlocks, openingMeter, pickupDuration, 'key', readKeySignature)
+    const openingTranspositions = singlePositionedBlock ? inheritedState.transpositions : state.transpositions
+    const positionedTranspositions = readPositionedTranspositions(attributeBlocks, openingMeter, pickupDuration)
+    const leadingRestTranspositions = readLeadingRestTranspositions(positionedTranspositions, measureNode, openingMeter, pickupDuration)
+    state.transpositions = new Map([...openingTranspositions, ...leadingRestTranspositions])
+
+    // Keep the existing single-block approximation for attributes that do
+    // not belong at the next downbeat.
+    if (singlePositionedBlock && closingMeters.size) {
+      const times = toArray(singlePositionedBlock.time as XmlNode | XmlNode[] | undefined)
+      state = { ...state, ...readPartMeters(times.filter(time => !closingMeters.has(time)), inheritedState, staffCount) }
+    }
+    if (singlePositionedBlock && closingKeys.size) {
+      const keys = toArray(singlePositionedBlock.key as XmlNode | XmlNode[] | undefined)
+      state = { ...state, ...readPartKeys(keys.filter(key => !closingKeys.has(key)), inheritedState, staffCount) }
     }
 
     for (let staffNumber = 1; staffNumber <= state.staffCount; staffNumber += 1) {
@@ -727,10 +968,17 @@ function parseMusicXmlPart(
         ])
       }
 
+      const activeKey = state.keySignatures.get(staffNumber) ?? state.keySignature
+      const outsideRange = unsupportedKeyFifths.get(activeKey)
+      if (outsideRange !== undefined) {
+        throw new Error(`현재 가져오기에서 지원하지 않는 조표 범위입니다: fifths=${outsideRange} (지원 범위: -7~7). 적용 위치: ${partId} ${measureNumber}마디 ${staffNumber}보표`)
+      }
+      const keySignature = { ...activeKey }
       const voices = voiceEntries
         .sort(([left], [right]) => compareVoiceIds(left, right))
         .map(([voiceId, events]) => {
           const normalizedEvents = sortVoiceEvents(events)
+          preserveImportedNaturals(normalizedEvents, keySignature)
           const voiceKey = musicXmlVoiceKey(staffNumber, voiceId)
 
           return createVoice({
@@ -757,7 +1005,7 @@ function parseMusicXmlPart(
             },
         clef: { ...(state.clefs.get(staffNumber) ?? defaultMeasureState.clef) },
         transposition: state.transpositions.get(staffNumber),
-        keySignature: { ...(state.keySignatures.get(staffNumber) ?? state.keySignature) },
+        keySignature,
         timeSignature: { ...(state.timeSignatures.get(staffNumber) ?? state.timeSignature) },
         repeat: readRepeatMark(measureNode),
         volta: readVoltaMark(measureNode),
@@ -769,6 +1017,17 @@ function parseMusicXmlPart(
       )
 
       if (!rhythm.isExact) {
+        if (rhythm.status === 'gap' && 'forward' in measureNode) {
+          const forward = toArray(measureNode.forward as XmlNode | XmlNode[] | undefined).map(node => ({
+            duration: readOptionalString(node, 'duration'),
+            voice: readOptionalString(node, 'voice'),
+            staff: readOptionalString(node, 'staff')
+          }))
+          const source = { staff: staffNumber, forward }
+          throw new Error(
+            `MusicXML forward가 있는 마디의 성부 길이를 맞출 수 없습니다: part[${options.partIndex + 1}].measure[${measureNumber}].forward ${JSON.stringify(source)}`
+          )
+        }
         throw new Error(
           `MusicXML measure ${measureNumber}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
         )
@@ -784,6 +1043,22 @@ function parseMusicXmlPart(
         ...(measuresByStaff.get(staffNumber) ?? []),
         measure
       ])
+    }
+
+    for (const [staffNumber, clef] of deferredClefs) state.clefs.set(staffNumber, clef)
+    if (positionedTranspositions.length) {
+      state.transpositions = validatePositionedTranspositions({
+        changes: positionedTranspositions, noteNodes, state, openingTranspositions,
+        partId, partName, measureNumber, hasNextMeasure
+      })
+    }
+    if (hasNextMeasure && closingKeys.size) {
+      state = { ...state, ...readPartKeys([...closingKeys], state, staffCount) }
+      for (const key of closingKeys) importedClosingKeys.add(key)
+    }
+    if (hasNextMeasure && closingMeters.size) {
+      state = { ...state, ...readPartMeters([...closingMeters], state, staffCount) }
+      for (const time of closingMeters) importedClosingMeters.add(time)
     }
   })
 
@@ -1174,6 +1449,7 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
         directionTypes.find(type => Boolean(readOptionalNode(type, 'metronome'))))
 
       return directionTypes.flatMap((directionType, typeIndex) => {
+        if (importedNavigationAppearance.get(directionType)?.fields.includes('words')) return []
         if (directionType === tempoWordsType || readOptionalNode(directionType, 'metronome')) {
           return []
         }
@@ -1220,6 +1496,7 @@ function readSystemTexts(measureNodes: XmlNode[]): Score['systemTexts'] {
       const directionTypes = readDirectionTypes(direction)
 
       return directionTypes.flatMap((directionType, typeIndex) => {
+        if (importedNavigationAppearance.get(directionType)?.fields.includes('words')) return []
         const words = readOptionalString(directionType, 'words')
 
         if (!words || parseRhythmFeelText(words)) {
@@ -1255,6 +1532,7 @@ function readExpressionTexts(
       const directionTypes = readDirectionTypes(direction)
 
       return directionTypes.flatMap((directionType, typeIndex) => {
+        if (importedNavigationAppearance.get(directionType)?.fields.includes('words')) return []
         const words = readOptionalString(directionType, 'words')
 
         if (
@@ -1364,7 +1642,7 @@ function readHarmonyPitch(
     throw new Error(`지원하지 않는 harmony ${role} step입니다: ${stepValue}`)
   }
 
-  const alter = readOptionalInteger(node, `${role}-alter`)
+  const alter = readOptionalIntegralSemitones(node, `${role}-alter`)
 
   if (alter !== undefined && ![-2, -1, 0, 1, 2].includes(alter)) {
     throw new Error(`지원하지 않는 harmony ${role} alter 값입니다: ${alter}`)
@@ -1432,14 +1710,18 @@ function readDynamics(measureNodes: XmlNode[]): Score['dynamics'] {
 
 function readHairpins(
   measureNodes: XmlNode[],
-  measures: Score['parts'][number]['staves'][number]['measures']
+  measures: Score['parts'][number]['staves'][number]['measures'],
+  sourcePart: Pick<HairpinEndSource, 'partNumber' | 'partId'>
 ): Score['hairpins'] {
-  const activeHairpins = new Map<
-    string,
-    { startEventId: string; type: HairpinType; voiceId: string }
-  >()
+  type Marker = {
+    direction: XmlNode
+    wedge: XmlNode
+    type: HairpinType | 'stop'
+    measureIndex: number
+    directionIndex: number
+  }
+  const pending = new Map<string | number, Marker>()
   const hairpins = measureNodes.flatMap((measureNode, measureIndex) => {
-    const measure = measures[measureIndex]
     const directions = toArray(
       measureNode.direction as XmlNode | XmlNode[] | undefined
     )
@@ -1451,43 +1733,86 @@ function readHairpins(
       )
 
       wedges.forEach((wedge) => {
-        const wedgeType = readOptionalString(wedge, '@_type')
-        const number = readOptionalString(wedge, '@_number') ?? '1'
+        const type = readOptionalString(wedge, '@_type')
+        if (type !== 'crescendo' && type !== 'diminuendo' && type !== 'stop') return
+        const sourceNumber = readOptionalString(wedge, '@_number') ?? '1'
+        const level = Number(sourceNumber)
+        const number = /^\+?\d+$/.test(sourceNumber) && level >= 1 && level <= 16 ? level : sourceNumber
+        const marker: Marker = { direction, wedge, type, measureIndex, directionIndex }
+        const previous = pending.get(number)
 
-        if (wedgeType === 'crescendo' || wedgeType === 'diminuendo') {
-          const anchor = directionAnchor(direction, measure, false, undefined, true)
-          if (activeHairpins.has(number)) throw new Error('MusicXML hairpin number가 중복되었습니다.')
-          activeHairpins.set(number, { startEventId: anchor.event.id, voiceId: anchor.voiceId, type: wedgeType })
+        // A backup in a polyphonic measure can place a later stop before
+        // its earlier start in the file. Resolve the pair before anchoring.
+        if (!previous) {
+          pending.set(number, marker)
           return
         }
+        const start = type === 'stop' ? previous : marker
+        const stop = type === 'stop' ? marker : previous
+        if (start.type === 'stop' || stop.type !== 'stop') {
+          throw new Error('MusicXML hairpin number가 중복되었습니다.')
+        }
+        if (stop.measureIndex < start.measureIndex || (stop.measureIndex === start.measureIndex &&
+            (directionTicks.get(stop.direction) ?? 0) <= (directionTicks.get(start.direction) ?? 0))) {
+          throw new Error('MusicXML 헤어핀 끝점은 시작점보다 뒤에 있어야 합니다.')
+        }
 
-        if (wedgeType !== 'stop') {
+        const startMeasure = measures[start.measureIndex]
+        const anchor = { ...directionAnchor(start.direction, startMeasure, true), measure: startMeasure }
+        const stopMeasure = measures[stop.measureIndex]
+        const endMarker = readHairpinEndMarker(readOptionalString(stop.wedge, '@_id'))
+        const endSource = {
+          ...sourcePart,
+          measureIndex: stop.measureIndex,
+          measureLabel: readOptionalString(measureNodes[stop.measureIndex], '@_number'),
+          sourceVoice: readOptionalString(stop.direction, 'voice') ?? readOptionalString(start.direction, 'voice')
+        }
+        const sourceTick = directionTicks.get(stop.direction) ?? 0
+        const endEvent = endMarker === 'time' ? undefined
+          : findDirectionAnchor(stop.direction, stopMeasure, true, anchor.voiceId, true, endMarker)
+        const span = {
+          id: `hairpin-${completed.length + 1}-${stop.measureIndex + 1}-${stop.directionIndex + 1}`,
+          startEventId: anchor.event.id,
+          type: start.type
+        }
+        pending.delete(number)
+        if (!endEvent) {
+          const voiceId = directionVoiceId(stop.direction, anchor.voiceId)
+          if (!stopMeasure || voiceId === undefined || !stopMeasure.voices.some(voice => voice.id === voiceId) ||
+              sourceTick > measureDurationTicks(stopMeasure) || (endMarker && endMarker !== 'time')) {
+            throw new MusicXmlHairpinEndAnchorError(endSource, readOptionalInteger(stop.direction, 'staff') ?? 1, voiceId, sourceTick)
+          }
+          completed.push({ ...span, endTime: { measureId: stopMeasure.id, voiceId, tick: sourceTick } })
           return
         }
-
-        const activeHairpin = activeHairpins.get(number)
-
-        if (!activeHairpin) {
-          throw new Error('MusicXML hairpin stop에 대응하는 시작 표식이 없습니다.')
+        const end = { ...endEvent, measure: stopMeasure }
+        const legacyTick = hairpinEndTick(undefined, anchor, end)
+        // A chosen note release is unambiguous after onset lookup fails. For
+        // onsets, opt in the cross-voice case where the two ends are authored
+        // independently, retaining same-voice interchange for existing scores.
+        let endAnchor = end.endAnchor
+        if (!endAnchor && end.event.type === 'note') {
+          if (sourceTick === end.event.position.tick && anchor.voiceId !== end.voiceId) endAnchor = 'onset'
+          else if (sourceTick !== legacyTick && sourceTick === hairpinEndTick('release', anchor, end)) endAnchor = 'release'
         }
-
-        const endEventId = directionAnchor(direction, measure, true, activeHairpin.voiceId, true).event.id
-
-        completed.push({
-          id: `hairpin-${completed.length + 1}-${measureIndex + 1}-${directionIndex + 1}`,
-          startEventId: activeHairpin.startEventId,
-          endEventId,
-          type: activeHairpin.type
-        })
-        activeHairpins.delete(number)
+        const retainedTick = hairpinEndTick(endAnchor, anchor, end)
+        if (retainedTick !== sourceTick) {
+          unrepresentedHairpinStops.set(stop.wedge, {
+            staff: readOptionalInteger(stop.direction, 'staff') ?? 1,
+            voice: end.voiceId, sourceTick, retainedTick
+          })
+        }
+        completed.push({ ...span, endEventId: end.event.id, ...(endAnchor ? { endAnchor } : {}) })
       })
     })
 
     return completed
   })
 
-  if (activeHairpins.size > 0) {
-    throw new Error('MusicXML hairpin의 종료 표식이 없습니다.')
+  if (pending.size > 0) {
+    throw new Error([...pending.values()].some(marker => marker.type === 'stop')
+      ? 'MusicXML hairpin stop에 대응하는 시작 표식이 없습니다.'
+      : 'MusicXML hairpin의 종료 표식이 없습니다.')
   }
 
   return hairpins.length > 0 ? hairpins : undefined
@@ -1497,7 +1822,8 @@ function readSlurs(
   measureNodes: XmlNode[],
   measures: Score['parts'][number]['staves'][number]['measures']
 ): Score['slurs'] {
-  const activeSlurs = new Map<string, string>()
+  type Endpoint = { type: 'start' | 'stop'; event: Note; measureIndex: number }
+  const activeSlurs = new Map<string, Endpoint>()
   const slurs: NonNullable<Score['slurs']> = []
 
   measureNodes.forEach((measureNode, measureIndex) => {
@@ -1508,7 +1834,7 @@ function readSlurs(
     noteNodes.forEach((noteNode) => {
       if ('grace' in noteNode) return
       const staffNumber = readOptionalInteger(noteNode, 'staff') ?? 1
-      const voiceNumber = readVoiceIdNumber(readVoiceId(noteNode, staffNumber, staffNumber))
+      const voiceNumber = readVoiceIdNumber(readVoiceId(noteNode, staffNumber))
       const voice = voices.find(candidate => readVoiceIdNumber(candidate.id) === voiceNumber)
       const index = nextIndex.get(voiceNumber) ?? 0
       const event = voice?.events['chord' in noteNode ? index - 1 : index]
@@ -1523,36 +1849,44 @@ function readSlurs(
 
       slurNodes.forEach((slurNode) => {
         const type = readOptionalString(slurNode, '@_type')
-        const number = readOptionalString(slurNode, '@_number') ?? '1'
+        if (type !== 'start' && type !== 'stop') return
+        const sourceNumber = readOptionalString(slurNode, '@_number') ?? '1'
+        const number = parseSlurNumber(sourceNumber)
+        const key = number === undefined ? sourceNumber : String(number)
+        const marker: Endpoint = { type, event, measureIndex }
+        const previous = activeSlurs.get(key)
 
-        if (type === 'start') {
-          activeSlurs.set(number, event.id)
+        // A backup can put the ending note of one voice before the starting
+        // note of another voice in the file, even on the same staff.
+        if (!previous) {
+          activeSlurs.set(key, marker)
           return
         }
-
-        if (type !== 'stop') {
-          return
+        if (previous.type === type) {
+          throw new Error(`MusicXML에서 같은 slur 번호 ${sourceNumber}의 ${type} 표식이 중복되었습니다.`)
         }
-
-        const startEventId = activeSlurs.get(number)
-
-        if (!startEventId) {
-          throw new Error('MusicXML slur stop에 대응하는 시작 표식이 없습니다.')
+        const start = type === 'start' ? marker : previous
+        const stop = type === 'stop' ? marker : previous
+        if (start.measureIndex > stop.measureIndex || (start.measureIndex === stop.measureIndex &&
+            start.event.position.tick >= stop.event.position.tick)) {
+          throw new Error('MusicXML 슬러 끝점은 시작점보다 뒤에 있어야 합니다.')
         }
 
         slurs.push({
           id: `slur-${slurs.length + 1}`,
-          startEventId,
-          endEventId: event.id,
-          number: parseSlurNumber(number)
+          startEventId: start.event.id,
+          endEventId: stop.event.id,
+          number
         })
-        activeSlurs.delete(number)
+        activeSlurs.delete(key)
       })
     })
   })
 
   if (activeSlurs.size > 0) {
-    throw new Error('MusicXML slur의 종료 표식이 없습니다.')
+    throw new Error([...activeSlurs.values()].some(marker => marker.type === 'stop')
+      ? 'MusicXML slur stop에 대응하는 시작 표식이 없습니다.'
+      : 'MusicXML slur의 종료 표식이 없습니다.')
   }
 
   return slurs.length > 0 ? slurs : undefined
@@ -1563,6 +1897,7 @@ function readRepeatMark(measureNode: XmlNode): Score['parts'][number]['staves'][
   let start = false
   let end = false
   let times: number | undefined
+  let afterJump: boolean | undefined
 
   for (const barline of barlines) {
     const repeat = readOptionalNode(barline, 'repeat')
@@ -1578,6 +1913,8 @@ function readRepeatMark(measureNode: XmlNode): Score['parts'][number]['staves'][
     } else if (direction === 'backward') {
       end = true
       times = readOptionalInteger(repeat, '@_times') ?? times
+      const flag = readOptionalString(repeat, '@_after-jump')
+      if (flag === 'yes' || flag === 'no') afterJump = flag === 'yes'
     }
   }
 
@@ -1585,123 +1922,116 @@ function readRepeatMark(measureNode: XmlNode): Score['parts'][number]['staves'][
     ? {
         start: start || undefined,
         end: end || undefined,
-        times
+        times,
+        ...(afterJump !== undefined ? { afterJump } : {})
       }
     : undefined
 }
 
-function readVoltaMark(measureNode: XmlNode): Score['parts'][number]['staves'][number]['measures'][number]['volta'] {
+function readVoltaMark(measureNode: XmlNode): VoltaMark | undefined {
+  let volta: VoltaMark | undefined
   const barlines = toArray(measureNode.barline as XmlNode | XmlNode[] | undefined)
-  let number: 1 | 2 | undefined
-  let start = false
-  let end = false
-
   for (const barline of barlines) {
     const ending = readOptionalNode(barline, 'ending')
-
-    if (!ending) {
-      continue
-    }
-
-    const endingNumber = normalizeVoltaNumber(
-      readOptionalInteger(ending, '@_number')
-    )
+    if (!ending) continue
+    const number = readOptionalString(ending, '@_number')
     const type = readOptionalString(ending, '@_type')
+    if (number === undefined || (type !== 'start' && type !== 'stop' && type !== 'discontinue')) continue
 
-    number = endingNumber ?? number
+    if (number && !/^[1-9]\d*(?:, *[1-9]\d*)*$/.test(number)) {
+      throw new Error('MusicXML 볼타의 회차 목록이 올바르지 않습니다.')
+    }
+    const passes = number ? number.split(',').map(Number) : []
+    if (!passes.every(Number.isSafeInteger)) throw new Error('MusicXML 볼타의 회차 번호가 너무 큽니다.')
+    const [first] = passes
+    const next: VoltaMark = passes.length === 1 && (first === 1 || first === 2)
+      ? { number: first }
+      : { passes }
 
-    if (type === 'start') {
-      start = true
-    } else if (type === 'stop' || type === 'discontinue') {
-      end = true
+    // A measure can retain one ending. Preserve old single 1st/2nd behavior;
+    // an imported pass list cannot be combined with a different endpoint.
+    if (volta && (volta.passes || next.passes) && !sameVoltaPasses(volta, next)) {
+      throw new Error('같은 마디에 서로 다른 볼타 회차의 시작과 끝이 있습니다.')
+    }
+    volta = {
+      ...next,
+      start: volta?.start || type === 'start' || undefined,
+      end: volta?.end || type !== 'start' || undefined
     }
   }
-
-  return number && (start || end)
-    ? {
-        number,
-        start: start || undefined,
-        end: end || undefined
-      }
-    : undefined
-}
-
-function normalizeVoltaNumber(number: number | undefined): 1 | 2 | undefined {
-  if (number === 1 || number === 2) {
-    return number
-  }
-
-  return undefined
+  return volta
 }
 
 function readOctaveShifts(
   measureNodes: XmlNode[],
   measures: Score['parts'][number]['staves'][number]['measures']
 ): Score['octaveShifts'] {
-  const activeShifts = new Map<
-    string,
-    {
-      startEventId: string
-      type: NonNullable<Score['octaveShifts']>[number]['type']
-      voiceId: string
-    }
-  >()
+  type OctaveMarker = {
+    direction: XmlNode
+    directionIndex: number
+    measureIndex: number
+    tick: number
+    shift?: NonNullable<Score['octaveShifts']>[number]['type']
+  }
+  const pending = new Map<string, OctaveMarker>()
   const shifts: NonNullable<Score['octaveShifts']> = []
+  let measureStart = 0
 
   measureNodes.forEach((measureNode, measureIndex) => {
-    const measure = measures[measureIndex]
     const directions = toArray(
       measureNode.direction as XmlNode | XmlNode[] | undefined
     )
 
     directions.forEach((direction, directionIndex) => {
       const octaveShiftNodes = readDirectionTypes(direction).flatMap((directionType) =>
-        toArray(
-          directionType['octave-shift'] as XmlNode | XmlNode[] | undefined
-        )
+        toArray(directionType['octave-shift'] as XmlNode | XmlNode[] | undefined)
       )
 
-      octaveShiftNodes.forEach((octaveShiftNode) => {
-        const markerType = readOptionalString(octaveShiftNode, '@_type')
-        const number = readOptionalString(octaveShiftNode, '@_number') ?? '1'
-        const size = readOptionalInteger(octaveShiftNode, '@_size') ?? 8
+      octaveShiftNodes.forEach((node) => {
+        const markerType = readOptionalString(node, '@_type')
+        if (markerType !== 'up' && markerType !== 'down' && markerType !== 'stop') return
 
-        if (markerType === 'up' || markerType === 'down') {
-          const anchor = directionAnchor(direction, measure, false)
-          if (activeShifts.has(number)) throw new Error('MusicXML octave-shift number가 중복되었습니다.')
-          activeShifts.set(number, {
-            startEventId: anchor.event.id, voiceId: anchor.voiceId,
-            type: toOctaveShiftType(markerType, size)
-          })
+        const number = readOptionalString(node, '@_number') ?? '1'
+        const shift = markerType === 'stop' ? undefined
+          : toOctaveShiftType(markerType, readOptionalInteger(node, '@_size') ?? 8)
+        const marker: OctaveMarker = {
+          direction, directionIndex, measureIndex, shift,
+          tick: measureStart + (directionTicks.get(direction) ?? 0)
+        }
+
+        // Numbers are reusable once a pair closes in document order. A
+        // backup may put a stop before its own start in that same order.
+        const previous = pending.get(number)
+        if (!previous) {
+          pending.set(number, marker)
           return
         }
+        const type = shift ?? previous.shift
+        if (!type || (shift && previous.shift)) throw new Error('MusicXML octave-shift number가 중복되었습니다.')
 
-        if (markerType !== 'stop') {
-          return
+        const start = shift ? marker : previous
+        const stop = shift ? previous : marker
+        if (stop.tick <= start.tick) {
+          throw new Error('MusicXML octave-shift의 종료 위치는 시작 위치보다 뒤에 있어야 합니다.')
         }
-
-        const activeShift = activeShifts.get(number)
-
-        if (!activeShift) {
-          throw new Error('MusicXML octave-shift stop에 대응하는 시작 표식이 없습니다.')
-        }
-
-        const endEventId = octaveStopEventId(direction, measureIndex, measures, activeShift.voiceId)
-
+        const anchor = directionAnchor(start.direction, measures[start.measureIndex])
+        const endEventId = octaveStopEventId(stop.direction, measures, stop.tick, anchor.voiceId)
         shifts.push({
-          id: `octave-shift-${shifts.length + 1}-${measureIndex + 1}-${directionIndex + 1}`,
-          startEventId: activeShift.startEventId,
-          endEventId,
-          type: activeShift.type
+          id: `octave-shift-${shifts.length + 1}-${stop.measureIndex + 1}-${stop.directionIndex + 1}`,
+          startEventId: anchor.event.id, endEventId, type
         })
-        activeShifts.delete(number)
+        pending.delete(number)
       })
     })
+
+    const measure = measures[measureIndex]
+    if (measure) measureStart += measureDurationTicks(measure)
   })
 
-  if (activeShifts.size > 0) {
-    throw new Error('MusicXML octave-shift의 종료 표식이 없습니다.')
+  if ([...pending.values()].some(marker => !marker.shift)) {
+    throw new Error('MusicXML octave-shift stop에 대응하는 시작 표식이 없습니다.')
   }
+  if (pending.size > 0) throw new Error('MusicXML octave-shift의 종료 표식이 없습니다.')
 
   return shifts.length > 0 ? shifts : undefined
 }
@@ -1715,15 +2045,24 @@ function toOctaveShiftType(
   return size === 15 ? '15mb' : '8vb'
 }
 
-function octaveStopEventId(direction: XmlNode, index: number, measures: Measure[], voiceId: string): string {
-  const target = measures.slice(0, index).reduce((ticks, measure) => ticks + measureDurationTicks(measure), 0) + (directionTicks.get(direction) ?? 0)
+function octaveStopEventId(direction: XmlNode, measures: Measure[], target: number, startVoiceId: string): string {
+  const staff = readOptionalInteger(direction, 'staff') ?? 1
+  const stopVoiceId = readOptionalString(direction, 'voice') === undefined
+    ? startVoiceId : readVoiceId(direction, staff)
   let measureStart = 0
   for (const measure of measures) {
-    const voice = measure.voices.find(voice => voice.id === voiceId)
-    const event = voice?.events.find(event => event.type === 'note' &&
-      measureStart + event.position.tick + voiceEventDurationTicks(event, measure) === target)
-    if (event) return event.id
-    measureStart += measureDurationTicks(measure)
+    const end = measureStart + measureDurationTicks(measure)
+    if (target > measureStart && target <= end) {
+      const eventEndingHere = (voiceId: string) => measure.voices.find(voice => voice.id === voiceId)?.events.find(event =>
+        event.type === 'note' && measureStart + event.position.tick + voiceEventDurationTicks(event, measure) === target)
+      // Older files can give the direction a voice without an endpoint in
+      // that voice. Retain the start voice fallback at the same exact time.
+      const event = eventEndingHere(stopVoiceId) ??
+        (stopVoiceId !== startVoiceId ? eventEndingHere(startVoiceId) : undefined)
+      if (event) return event.id
+      break
+    }
+    measureStart = end
   }
   throw new Error(`MusicXML octave-shift stop tick ${target} is not a supported note-end anchor.`)
 }
@@ -1761,17 +2100,18 @@ function parseSlurNumber(value: string): number | undefined {
 function readVoiceEvent(
   node: XmlNode,
   eventIndex: number,
-  positionTick: number
+  positionTick: number,
+  xmlDurationTicks: number
 ): VoiceEvent {
   // Unsupported pitch representation must not be disguised as a missing
   // optional graphic type. Keep ordinary note/rest validation order intact.
   assertSupportedNotePitch(node)
   // A complete measure rest need not have a graphic <type>. Its duration is
   // the owning measure's actual length (including pickup), as in the existing
-  // fullMeasure model. Keep ordinary notes/rests and explicit types strict.
+  // fullMeasure model.
   const untypedMeasureRest = 'rest' in node &&
     readOptionalNode(node, 'rest')?.['@_measure'] === 'yes' && !('type' in node)
-  const duration: Duration = untypedMeasureRest ? { value: 'whole', dots: 0 } : readDuration(node)
+  const duration: Duration = untypedMeasureRest ? { value: 'whole', dots: 0 } : readDuration(node, xmlDurationTicks)
   const id = `event-${eventIndex}`
 
   if ('rest' in node) {
@@ -1804,24 +2144,74 @@ function readVoiceEvent(
   })
 }
 
-function readVoiceId(
-  node: XmlNode,
-  staffNumber = 1,
-  staffCount = 1
-): string {
-  const voice = readOptionalString(node, 'voice') ?? '1'
+function readSourceVoiceLabel(node: XmlNode): string {
+  const label = readOptionalString(node, 'voice') ?? '1'
+  if (!label) throw new Error('MusicXML의 voice 값이 비어 있습니다.')
+  return label
+}
 
-  if (!/^\d+$/.test(voice) || Number(voice) <= 0) {
-    throw new Error(`지원하지 않는 voice 값입니다: ${voice}`)
+function readNumericVoiceLabel(label: string): number | undefined {
+  const number = Number(label)
+  return /^\d+$/.test(label) && Number.isSafeInteger(number) && number > 0 ? number : undefined
+}
+
+function preferredStaffVoiceNumber(voice: number, staffNumber: number): number {
+  return staffNumber > 1 && voice > 4 ? ((voice - 1) % 4) + 1 : voice
+}
+
+function indexStaffVoiceNumbers(measures: XmlNode[]): void {
+  const staves = new Map<number, { nodes: XmlNode[]; noteVoices: Set<string> }>()
+  for (const measure of measures) {
+    const notes = toArray(measure.note as XmlNode | XmlNode[] | undefined)
+    const directions = toArray(measure.direction as XmlNode | XmlNode[] | undefined)
+    for (const [nodes, areNotes] of [[notes, true], [directions, false]] as const) {
+      for (const node of nodes) {
+        const staffNumber = readOptionalInteger(node, 'staff') ?? 1
+        if (!areNotes && readOptionalString(node, 'voice') === undefined) continue
+        let staff = staves.get(staffNumber)
+        if (!staff) {
+          staff = { nodes: [], noteVoices: new Set() }
+          staves.set(staffNumber, staff)
+        }
+        staff.nodes.push(node)
+        if (areNotes) staff.noteVoices.add(readSourceVoiceLabel(node))
+      }
+    }
   }
 
-  const voiceNumber = Number(voice)
-  const staffLocalVoiceNumber =
-    staffCount > 1 && staffNumber > 1 && voiceNumber > 4
-      ? ((voiceNumber - 1) % 4) + 1
-      : voiceNumber
+  for (const [staffNumber, { nodes, noteVoices }] of staves) {
+    const voices = [...noteVoices].sort().map(label => ({ label, number: readNumericVoiceLabel(label) }))
+      .sort((left, right) => (left.number ?? Infinity) - (right.number ?? Infinity) ||
+        (left.number === undefined ? 0 : left.label.length - right.label.length))
+    const assigned = new Map<string, number>()
+    const occupied = new Set<number>()
+    // Reserve the usual staff-local slots before filling gaps. A voice must
+    // keep its identity even in measures where the other voice is absent.
+    for (const { label, number } of voices) {
+      if (number === undefined) continue
+      const preferred = preferredStaffVoiceNumber(number, staffNumber)
+      if (occupied.has(preferred)) continue
+      assigned.set(label, preferred)
+      occupied.add(preferred)
+    }
+    if (assigned.size === voices.length) continue
+    let next = 1
+    for (const { label } of voices) {
+      if (assigned.has(label)) continue
+      while (occupied.has(next)) next++
+      assigned.set(label, next++)
+    }
+    for (const node of nodes) sourceStaffVoiceNumbers.set(node, assigned)
+  }
+}
 
-  return `voice-${staffLocalVoiceNumber}`
+function readVoiceId(node: XmlNode, staffNumber: number): string {
+  const label = readSourceVoiceLabel(node)
+  const mapped = sourceStaffVoiceNumbers.get(node)?.get(label)
+  if (mapped !== undefined) return `voice-${mapped}`
+  const number = readNumericVoiceLabel(label)
+  if (number === undefined) throw new Error(`MusicXML에서 voice 참조와 일치하는 성부가 없습니다: ${label}`)
+  return `voice-${preferredStaffVoiceNumber(number, staffNumber)}`
 }
 
 function compareVoiceIds(left: string, right: string): number {
@@ -1850,7 +2240,8 @@ function readPitch(node: XmlNode): Pitch {
     throw new Error(`지원하지 않는 pitch step입니다: ${step}`)
   }
 
-  const alter = readOptionalInteger(pitchNode, 'alter')
+  const sourceAlter = readOptionalIntegralSemitones(pitchNode, 'alter')
+  const alter = sourceAlter ?? (readOptionalString(node, 'accidental') === 'natural' ? 0 : undefined)
 
   if (
     alter !== undefined &&
@@ -1866,12 +2257,37 @@ function readPitch(node: XmlNode): Pitch {
   }
 }
 
+// A missing MusicXML alteration means natural. An undefined Studio alteration
+// inherits from the voice, so pin a natural only when that would sound different.
+function preserveImportedNaturals(events: VoiceEvent[], keySignature: KeySignature): void {
+  const priorAlterations = new Map<string, NonNullable<Pitch['alter']>>()
+  const preserveNatural = (pitch: Pitch): Pitch => {
+    if (pitch.alter !== undefined) return pitch
+    const inherited = priorAlterations.get(pitch.step + pitch.octave) ?? keySignatureAlter(keySignature, pitch.step)
+    return inherited === 0 ? pitch : { ...pitch, alter: 0 }
+  }
+
+  for (const event of events) {
+    if (event.type !== 'note') continue
+    event.pitch = preserveNatural(event.pitch)
+    event.pitches = event.pitches?.map(preserveNatural)
+    event.graceNotes = event.graceNotes?.map(note => ({ ...note, pitch: preserveNatural(note.pitch) }))
+
+    // Members of one event, including graces, all use the preceding context.
+    // Only the main note or chord contributes accidentals to later events.
+    for (const pitch of event.pitches ?? [event.pitch]) {
+      if (pitch.alter !== undefined) priorAlterations.set(pitch.step + pitch.octave, pitch.alter)
+    }
+  }
+}
+
 function readGraceNote(node: XmlNode): GraceNote {
   const grace = readOptionalNode(node, 'grace')
 
   return {
     pitch: readPitch(node),
-    slash: grace ? readOptionalString(grace, '@_slash') === 'yes' : undefined
+    slash: grace ? readOptionalString(grace, '@_slash') === 'yes' : undefined,
+    ...('chord' in node ? { chord: true } : {})
   }
 }
 
@@ -2111,27 +2527,25 @@ function readTieFlags(node: XmlNode) {
     : undefined
 }
 
-function readDuration(node: XmlNode): Duration {
-  const type = readString(node, 'type')
-
-  if (!isDurationValue(type)) {
+function readDuration(node: XmlNode, ticks: number): Duration {
+  const type = 'type' in node ? readString(node, 'type') : undefined
+  if (type !== undefined && !isDurationValue(type)) {
     throw new Error(`지원하지 않는 note type입니다: ${type}`)
   }
 
+  const dots = toArray(node.dot as XmlNode | XmlNode[] | undefined).length
   const timeModification = readOptionalNode(node, 'time-modification')
+  const tuplet = timeModification ? {
+    actualNotes: readInteger(timeModification, 'actual-notes'),
+    normalNotes: readInteger(timeModification, 'normal-notes')
+  } : undefined
 
-  return {
-    value: type,
-    dots: toArray(node.dot as XmlNode | XmlNode[] | undefined).length,
-    ...(timeModification
-      ? {
-          tuplet: {
-            actualNotes: readInteger(timeModification, 'actual-notes'),
-            normalNotes: readInteger(timeModification, 'normal-notes')
-          }
-        }
-      : {})
+  const unscaledTicks = tuplet ? ticks * tuplet.actualNotes / tuplet.normalNotes : ticks
+  const value = type ?? supportedDurationValues.find(value => durationToTicks({ value, dots }) === unscaledTicks)
+  if (value === undefined) {
+    throw new Error(`MusicXML type이 생략된 duration을 지원하는 음가로 표현할 수 없습니다: ${ticks} tick, 점 ${dots}개`)
   }
+  return { value, dots, ...(tuplet ? { tuplet } : {}) }
 }
 
 function readTupletGroups(
@@ -2212,7 +2626,6 @@ function createPartMeasureState(): PartMeasureState {
     transpositions: new Map(),
     keySignatures: new Map(),
     timeSignatures: new Map(),
-    divisions: defaultMeasureState.divisions,
     keySignature: { ...defaultMeasureState.keySignature },
     staffCount: 1,
     timeSignature: { ...defaultMeasureState.timeSignature }
@@ -2221,59 +2634,24 @@ function createPartMeasureState(): PartMeasureState {
 
 function readPartMeasureState(
   attributes: XmlNode,
-  previous: PartMeasureState
+  previous: PartMeasureState,
+  staffCount: number
 ): PartMeasureState {
-  const staffCount = readStaffCount(attributes, previous.staffCount)
-  const clefNodes = toArray(attributes.clef as XmlNode | XmlNode[] | undefined)
   const clefs = new Map(previous.clefs)
   const transpositions = new Map(previous.transpositions)
-  const keySignatures = new Map(previous.keySignatures)
-  const timeSignatures = new Map(previous.timeSignatures)
-  // Unnumbered attributes apply to every staff,including the default for a
-  // staff introduced later. Numbered changes must not alter that default.
-  let keySignature = previous.keySignature
-  let timeSignature = previous.timeSignature
-  for (const node of toArray(attributes.key as XmlNode | XmlNode[] | undefined)) {
-    const number = readOptionalInteger(node, '@_number')
-    if (number !== undefined) validateStaffNumber(number, staffCount)
-    const value = readKeySignature(node)
-    if (number === undefined) keySignature = value
-    for (let staff = 1; staff <= staffCount; staff += 1) {
-      if (number === undefined || number === staff) keySignatures.set(staff, value)
-    }
-  }
-  for (const node of toArray(attributes.time as XmlNode | XmlNode[] | undefined)) {
-    const number = readOptionalInteger(node, '@_number')
-    if (number !== undefined) validateStaffNumber(number, staffCount)
-    const value = readTimeSignature(node)
-    if (number === undefined) timeSignature = value
-    for (let staff = 1; staff <= staffCount; staff += 1) {
-      if (number === undefined || number === staff) timeSignatures.set(staff, value)
-    }
-  }
+  const keys = readPartKeys(toArray(attributes.key as XmlNode | XmlNode[] | undefined), previous, staffCount)
+  const meters = readPartMeters(toArray(attributes.time as XmlNode | XmlNode[] | undefined), previous, staffCount)
   for (const node of toArray(attributes.transpose as XmlNode | XmlNode[] | undefined)) {
-    const chromatic = readOptionalInteger(node, 'chromatic')
-    if (chromatic === undefined || 'double' in node) {
-      throw new Error('MusicXML transpose: chromatic is required; doubled instruments are not supported.')
-    }
-    const transposition = {
-      chromatic,
-      diatonic: readOptionalInteger(node, 'diatonic'),
-      octaveChange: readOptionalInteger(node, 'octave-change')
-    }
-    const number = readOptionalInteger(node, '@_number')
-    if (number !== undefined) validateStaffNumber(number, staffCount)
-    for (let staff = 1; staff <= staffCount; staff += 1) {
-      if (number === undefined || number === staff) transpositions.set(staff, transposition)
+    const transposition = readInstrumentTransposition(node)
+    for (const staff of scopedAttributeStaves(node, staffCount)) {
+      transpositions.set(staff, transposition)
     }
   }
 
-  clefNodes.forEach((clefNode, index) => {
-    const staffNumber =
-      readOptionalInteger(clefNode, '@_number') ?? (clefNodes.length > 1 ? index + 1 : 1)
+  for (const { node, staffNumber } of readNumberedClefNodes(attributes)) {
     validateStaffNumber(staffNumber, staffCount)
-    clefs.set(staffNumber, readClef(clefNode))
-  })
+    clefs.set(staffNumber, readClef(node))
+  }
 
   for (let staffNumber = 1; staffNumber <= staffCount; staffNumber += 1) {
     if (!clefs.has(staffNumber)) {
@@ -2284,52 +2662,313 @@ function readPartMeasureState(
   return {
     clefs,
     transpositions,
-    keySignatures,
-    timeSignatures,
-    divisions: readDivisions(attributes, previous.divisions),
-    staffCount,
-    keySignature,
-    timeSignature
+    ...keys,
+    ...meters,
+    staffCount
   }
 }
 
-function readDivisions(attributes: XmlNode, previous: number): number {
-  const value = readOptionalInteger(attributes, 'divisions') ?? previous
+type PartKeyState = Pick<PartMeasureState, 'keySignature' | 'keySignatures'>
 
-  if (value <= 0) {
-    throw new Error(`MusicXML divisions는 0보다 커야 합니다: ${value}`)
+function readPartKeys(keys: XmlNode[], previous: PartKeyState, staffCount: number): PartKeyState {
+  const keySignatures = new Map(previous.keySignatures)
+  let keySignature = previous.keySignature
+  for (const key of keys) {
+    const staves = scopedAttributeStaves(key, staffCount)
+    const value = readKeySignature(key)
+    // The unnumbered key is also the default for a staff introduced later.
+    if (readOptionalInteger(key, '@_number') === undefined) keySignature = value
+    for (const staff of staves) keySignatures.set(staff, value)
+  }
+  return { keySignature, keySignatures }
+}
+
+type PartMeterState = Pick<PartMeasureState, 'timeSignature' | 'timeSignatures'>
+
+function readPartMeters(times: XmlNode[], previous: PartMeterState, staffCount: number): PartMeterState {
+  const timeSignatures = new Map(previous.timeSignatures)
+  let timeSignature = previous.timeSignature
+  for (const time of times) {
+    const staves = scopedAttributeStaves(time, staffCount)
+    const value = readTimeSignature(time)
+    if (readOptionalInteger(time, '@_number') === undefined) timeSignature = value
+    for (const staff of staves) timeSignatures.set(staff, value)
+  }
+  return { timeSignature, timeSignatures }
+}
+
+function readInstrumentTransposition(node: XmlNode): NonNullable<Measure['transposition']> {
+  const chromatic = readOptionalIntegralSemitones(node, 'chromatic')
+  if (chromatic === undefined || 'double' in node) {
+    throw new Error('MusicXML transpose: chromatic is required; doubled instruments are not supported.')
+  }
+  return {
+    chromatic,
+    diatonic: readOptionalInteger(node, 'diatonic'),
+    octaveChange: readOptionalInteger(node, 'octave-change')
+  }
+}
+
+function scopedAttributeStaves(node: XmlNode, staffCount: number): number[] {
+  const number = readOptionalInteger(node, '@_number')
+  if (number === undefined) return Array.from({ length: staffCount }, (_, index) => index + 1)
+  validateStaffNumber(number, staffCount)
+  return [number]
+}
+
+function isClosingStaffAttribute(
+  staves: number[], state: PartMeasureState, tick: number, pickupDuration: number | undefined
+): boolean {
+  // A shared update must be at the boundary on every staff it addresses.
+  return staves.every(staff => tick === (pickupDuration ??
+    timeSignatureDurationTicks(state.timeSignatures.get(staff) ?? state.timeSignature)))
+}
+
+function readClosingStaffSettings(
+  blocks: XmlNode[], state: PartMeasureState, pickupDuration: number | undefined,
+  element: 'key' | 'time', validate: (node: XmlNode) => unknown
+): Set<XmlNode> {
+  const closing = new Set<XmlNode>()
+  for (const attributes of blocks) {
+    const tick = directionTicks.get(attributes) ?? 0
+    if (tick <= 0) continue
+    for (const node of toArray(attributes[element] as XmlNode | XmlNode[] | undefined)) {
+      try {
+        const staves = scopedAttributeStaves(node, state.staffCount)
+        if (!isClosingStaffAttribute(staves, state, tick, pickupDuration)) continue
+        validate(node)
+        closing.add(node)
+      } catch {
+        // Unsupported positioned settings remain visible in the import report.
+      }
+    }
+  }
+  return closing
+}
+
+type PositionedTransposition = {
+  node: XmlNode
+  tick: number
+  staves: number[]
+  value: NonNullable<Measure['transposition']>
+  closing: boolean
+}
+
+function readPositionedTranspositions(
+  blocks: XmlNode[], state: PartMeasureState, pickupDuration: number | undefined
+): PositionedTransposition[] {
+  const changes: PositionedTransposition[] = []
+  for (const attributes of blocks) {
+    const tick = directionTicks.get(attributes) ?? 0
+    if (tick <= 0) continue
+    for (const node of toArray(attributes.transpose as XmlNode | XmlNode[] | undefined)) {
+      const staves = scopedAttributeStaves(node, state.staffCount)
+      changes.push({
+        node, tick, staves,
+        value: readInstrumentTransposition(node),
+        closing: isClosingStaffAttribute(staves, state, tick, pickupDuration)
+      })
+    }
+  }
+  return changes.sort((left, right) => left.tick - right.tick)
+}
+
+export const inexactPositionedTranspositionPrefix = '마디 안 이조를 정확히 보존할 수 없습니다: '
+
+function validatePositionedTranspositions({
+  changes, noteNodes, state, openingTranspositions, partId, partName, measureNumber, hasNextMeasure
+}: {
+  changes: PositionedTransposition[]
+  noteNodes: XmlNode[]
+  state: PartMeasureState
+  openingTranspositions: PartMeasureState['transpositions']
+  partId: string
+  partName: string
+  measureNumber: number
+  hasNextMeasure: boolean
+}): PartMeasureState['transpositions'] {
+  const following = new Map(state.transpositions)
+  const semitones = (value: Measure['transposition']) =>
+    (value?.chromatic ?? 0) + 12 * (value?.octaveChange ?? 0)
+
+  for (let staff = 1; staff <= state.staffCount; staff++) {
+    const staffChanges = changes.filter(change => change.staves.includes(staff))
+    if (!staffChanges.length) continue
+    const pitches = noteNodes.flatMap(note => {
+      const tick = sourcePitchedNoteTicks.get(note)
+      return tick !== undefined && readStaffNumber(note, state.staffCount) === staff ? [tick] : []
+    }).sort((left, right) => left - right)
+    const importedShift = semitones(state.transpositions.get(staff))
+    let cursor = 0
+    let active = openingTranspositions.get(staff)
+    let previousShift = semitones(active)
+    for (const tick of pitches) {
+      while (cursor < staffChanges.length && staffChanges[cursor].tick <= tick) {
+        previousShift = semitones(active)
+        active = staffChanges[cursor++].value
+      }
+      if (semitones(active) === importedShift) continue
+
+      const change = staffChanges[Math.max(0, cursor - 1)]
+      const before = cursor === 0 ? semitones(active) : previousShift
+      const beats = change.tick / TICKS_PER_QUARTER
+      throw new Error(inexactPositionedTranspositionPrefix +
+        `${partName} (${partId}), ${measureNumber}마디 ${staff}보표, ${beats}박 경과, 이조 ${before} → ${semitones(change.value)}반음`)
+    }
+    following.set(staff, staffChanges[staffChanges.length - 1].value)
+  }
+  if (hasNextMeasure) {
+    for (const change of changes) {
+      if (change.closing) importedClosingTranspositions.add(change.node)
+    }
+  }
+  return following
+}
+
+function readLeadingRestTranspositions(
+  changes: PositionedTransposition[], measure: XmlNode, state: PartMeasureState, pickupDuration: number | undefined
+): PartMeasureState['transpositions'] {
+  const result: PartMeasureState['transpositions'] = new Map()
+  // This projection relies on explicit rests. A forward gap is not imported
+  // as a rest at that position by the current voice reader.
+  if ('forward' in measure) return result
+
+  const positioned = changes.filter(change => !change.closing)
+  if (!positioned.length) return result
+  const changesPerStaff = new Map<number, number>()
+  for (const { staves } of positioned) {
+    for (const staff of staves) changesPerStaff.set(staff, (changesPerStaff.get(staff) ?? 0) + 1)
   }
 
+  const firstPitchByStaff = new Map<number, number>()
+  for (const note of toArray(measure.note as XmlNode | XmlNode[] | undefined)) {
+    const tick = sourcePitchedNoteTicks.get(note)
+    if (tick === undefined) continue
+    const staff = readStaffNumber(note, state.staffCount)
+    firstPitchByStaff.set(staff, Math.min(tick, firstPitchByStaff.get(staff) ?? Infinity))
+  }
+  // The current harmony model stores chords at measure level, without staff ownership.
+  const firstHarmonyTick = toArray(measure.harmony as XmlNode | XmlNode[] | undefined)
+    .reduce((first, node) => Math.min(first, directionTicks.get(node) ?? -1), Infinity)
+  for (const { node, tick, staves, value } of positioned) {
+    if (firstHarmonyTick < tick || !staves.every(staff =>
+      changesPerStaff.get(staff) === 1 &&
+      (firstPitchByStaff.get(staff) ?? -1) >= tick &&
+      tick < (pickupDuration ?? timeSignatureDurationTicks(state.timeSignatures.get(staff) ?? state.timeSignature))
+    )) continue
+
+    for (const staff of staves) result.set(staff, value)
+    relocatedLeadingRestTranspositions.add(node)
+  }
+  return result
+}
+
+function readNumberedClefNodes(attributes: XmlNode): { node: XmlNode; staffNumber: number }[] {
+  const nodes = toArray(attributes.clef as XmlNode | XmlNode[] | undefined)
+  return nodes.map((node, index) => ({
+    node,
+    staffNumber: readOptionalInteger(node, '@_number') ?? (nodes.length > 1 ? index + 1 : 1)
+  }))
+}
+
+const pitchedClefSigns = new Set(['G', 'F', 'C'])
+
+function readDeferredPitchedClefs(
+  blocks: XmlNode[],
+  openingClefs: ReadonlyMap<number, Clef>,
+  staffCount: number
+): Map<number, Clef> {
+  const changes = new Map<number, { tick: number; node: XmlNode }>()
+  for (const attributes of blocks) {
+    const tick = directionTicks.get(attributes) ?? 0
+    if (tick <= 0) continue
+    for (const { node, staffNumber } of readNumberedClefNodes(attributes)) {
+      // A backup can make source order differ from musical order.
+      if (staffNumber >= 1 && staffNumber <= staffCount && tick >= (changes.get(staffNumber)?.tick ?? 0)) {
+        changes.set(staffNumber, { tick, node })
+      }
+    }
+  }
+
+  const deferred = new Map<number, Clef>()
+  for (const [staffNumber, { node }] of changes) {
+    const opening = openingClefs.get(staffNumber) ?? defaultMeasureState.clef
+    // Regular pitched clefs do not switch a staff into or out of MIDI export.
+    const sign = readOptionalString(node, 'sign')
+    if (sign && pitchedClefSigns.has(opening.sign) && pitchedClefSigns.has(sign)) {
+      deferred.set(staffNumber, readClef(node))
+    }
+  }
+  return deferred
+}
+
+type XmlDecimal = { text: string; units: bigint; scale: bigint }
+
+function readXmlDecimal(text: string): XmlDecimal | undefined {
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text)) return undefined
+  const [whole, fractional = ''] = text.split('.')
+  const digits = fractional.replace(/0+$/, '')
+  return {
+    text,
+    units: BigInt(whole + digits),
+    scale: 10n ** BigInt(digits.length)
+  }
+}
+
+function readDivisions(attributes: XmlNode, previous: XmlDecimal): XmlDecimal {
+  const text = readOptionalString(attributes, 'divisions')
+  if (text === undefined) return previous
+  const value = readXmlDecimal(text)
+  if (!value) throw new Error('MusicXML 소수 값이 올바르지 않습니다: divisions')
+  if (value.units <= 0n) throw new Error(`MusicXML divisions는 0보다 커야 합니다: ${text}`)
   return value
 }
 
-function readMusicXmlDurationTicks(node: XmlNode, divisions: number): number {
-  const xmlDuration = readInteger(node, 'duration')
-  const ticks = (xmlDuration * TICKS_PER_QUARTER) / divisions
+function exactMusicXmlTicks(value: XmlDecimal, divisions: XmlDecimal): number | undefined {
+  // Work in source decimal units. A rounded Number can both invent and hide fractional ticks.
+  const numerator = value.units * divisions.scale * BigInt(TICKS_PER_QUARTER)
+  const denominator = value.scale * divisions.units
+  if (numerator % denominator !== 0n) return undefined
+  const ticks = Number(numerator / denominator)
+  return Number.isSafeInteger(ticks) ? ticks : undefined
+}
 
-  if (!Number.isSafeInteger(ticks) || ticks <= 0) {
+function readMusicXmlDurationTicks(node: XmlNode, divisions: XmlDecimal): number {
+  const text = readString(node, 'duration')
+  const value = readXmlDecimal(text)
+  if (!value) throw new Error('MusicXML 소수 값이 올바르지 않습니다: duration')
+  const ticks = exactMusicXmlTicks(value, divisions)
+  if (ticks === undefined || ticks <= 0) {
     throw new Error(
-      `MusicXML duration을 정수 tick으로 변환할 수 없습니다: ${xmlDuration}/${divisions}`
+      `MusicXML duration을 정수 tick으로 변환할 수 없습니다: ${text}/${divisions.text}`
     )
   }
-
   return ticks
 }
 
-function readClef(node: XmlNode): Clef {
-  const sign = readString(node, 'sign')
+function readMusicXmlOffsetTick(cursor: number, text: string | undefined, divisions: XmlDecimal, message: string): number {
+  const value = text === undefined ? undefined : readXmlDecimal(text)
+  const offset = text === undefined ? 0 : value && exactMusicXmlTicks(value, divisions)
+  if (offset === undefined) throw new Error(message)
+  const tick = cursor + offset
+  if (!Number.isSafeInteger(tick) || tick < 0) throw new Error(message)
+  return tick
+}
 
-  if (!['G', 'F', 'C', 'percussion'].includes(sign)) {
+const defaultClefLines = { G: 2, F: 4, C: 3, percussion: 2 } as const
+
+function readClef(node: XmlNode): Clef {
+  const sign = readString(node, 'sign') as keyof typeof defaultClefLines
+  if (!Object.hasOwn(defaultClefLines, sign)) {
     throw new Error(`지원하지 않는 clef sign입니다: ${sign}`)
   }
 
   return {
     sign,
-    // MusicXML only needs line for pitched clefs. Keep the existing internal
-    // percussion position when omitted; never replace an explicit invalid line.
-    line: sign === 'percussion' && !('line' in node) ? 2 : readInteger(node, 'line'),
+    // MusicXML permits omission. Use the standard line for the clef family.
+    line: 'line' in node ? readInteger(node, 'line') : defaultClefLines[sign],
     octaveChange: readOptionalInteger(node, 'clef-octave-change')
-  } as Clef
+  }
 }
 
 function readKeySignature(node: XmlNode): KeySignature {
@@ -2342,13 +2981,26 @@ function readKeySignature(node: XmlNode): KeySignature {
     throw new Error(`지원하지 않는 key mode입니다: ${mode}`)
   }
 
-  return {
+  const key: KeySignature = {
     fifths: readInteger(node, 'fifths'),
     mode: mode && isKeyMode(mode) ? mode : undefined
   }
+  // Resolve a closing key's owner before checking the editor's range. A key
+  // placed after the final measure is reported as a position loss as usual.
+  if (Math.abs(key.fifths) > 7) unsupportedKeyFifths.set(key, readString(node, 'fifths'))
+  return key
 }
 
 function readTimeSignature(node: XmlNode): TimeSignature {
+  const beats = node.beats
+  const beatType = node['beat-type']
+  const hasDistinctPairs = Array.isArray(beats) && Array.isArray(beatType) &&
+    beats.length > 1 && beats.length === beatType.length
+  const hasGroupedNumerator = /^\d+(?:\s*\+\s*\d+)+$/.test(readOptionalString(node, 'beats') ?? '')
+  if (hasDistinctPairs || hasGroupedNumerator) {
+    throw new Error(`현재 가져오기에서 지원하지 않는 묶음 박자표입니다: ${JSON.stringify({ beats, beatType })}`)
+  }
+
   return {
     beats: readInteger(node, 'beats'),
     beatType: readInteger(node, 'beat-type')
@@ -2506,7 +3158,7 @@ function readOptionalInteger(node: XmlNode, key: string): number | undefined {
     return undefined
   }
 
-  if (!/^-?\d+$/.test(value)) {
+  if (!/^[+-]?\d+$/.test(value)) {
     throw new Error(`MusicXML 정수 값이 올바르지 않습니다: ${key}`)
   }
 
@@ -2517,6 +3169,26 @@ function readOptionalInteger(node: XmlNode, key: string): number | undefined {
   }
 
   return number
+}
+
+// MusicXML uses xs:decimal for semitones. Check the source digits before
+// conversion so a value just below or above an integer is never rounded in.
+function readOptionalIntegralSemitones(node: XmlNode, key: string): number | undefined {
+  const value = readOptionalString(node, key)
+  if (value === undefined) return undefined
+
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
+    throw new Error(`MusicXML 정수 값이 올바르지 않습니다: ${key}`)
+  }
+  const fractionalDigits = value.split('.')[1]
+  if (fractionalDigits && /[1-9]/.test(fractionalDigits)) {
+    throw new Error(`현재 가져오기에서 지원하지 않는 미분음입니다: ${key}=${value}`)
+  }
+  const number = Number(value)
+  if (!Number.isSafeInteger(number)) {
+    throw new Error(`MusicXML 정수 값이 올바르지 않습니다: ${key}`)
+  }
+  return number === 0 ? 0 : number
 }
 
 function readOptionalNumber(node: XmlNode, key: string): number | undefined {
@@ -2599,6 +3271,17 @@ function collectUnsupportedMusicXmlWarnings(
   const parts = toArray(root.part as XmlNode | XmlNode[] | undefined)
   const partList = readOptionalNode(root, 'part-list')
   const scoreParts = toArray(partList?.['score-part'] as XmlNode | XmlNode[] | undefined)
+  const repeatStaff = scoreRepeatSource(score)
+  const unresolvedEnds = repeatStaff ? inspectAlternativeEndingRepeats(repeatStaff.measures).unresolvedEnds : undefined
+  const repeatStarts = repeatStaff?.measures.filter(measure => measure.repeat?.start) ?? []
+  const repeatEnds = repeatStaff?.measures.filter(measure => measure.repeat?.end) ?? []
+  const repeatStartIndex = repeatStaff && repeatStarts.length ? repeatStaff.measures.indexOf(repeatStarts[0]) : 0
+  const repeatEndIndex = repeatStaff?.measures.indexOf(repeatEnds[0]) ?? -1
+  // A single closed repeat owns the passes from its start onward. Other
+  // layouts can have more than one owner for an ending.
+  const simpleRepeatCount = repeatStarts.length <= 1 && repeatEnds.length === 1 && repeatEndIndex >= repeatStartIndex
+    ? Math.max(2, repeatEnds[0].repeat?.times ?? 2)
+    : undefined
 
   // The score model retains parts/staves, not source grouping. One start
   // describes one lost group; stop children are ignored by MusicXML and must
@@ -2634,6 +3317,8 @@ function collectUnsupportedMusicXmlWarnings(
       partNode.measure as XmlNode | XmlNode[] | undefined
     )
 
+    const ownsRepeats = repeatStaff !== undefined && score.parts[partIndex]?.staves.includes(repeatStaff)
+    const repeatCount = ownsRepeats ? simpleRepeatCount : undefined
     let sourceStaffCount = 1
     measureNodes.forEach((measureNode, measureIndex) => {
       const firstWarning = warnings.length
@@ -2645,6 +3330,18 @@ function collectUnsupportedMusicXmlWarnings(
       const directions = toArray(
         measureNode.direction as XmlNode | XmlNode[] | undefined
       )
+
+      const sourcePickupTicks = sourceForwardPickupTicks.get(measureNode)
+      const importedTiming = score.parts[partIndex]?.staves[0]?.measures[measureIndex]?.timing
+      if (sourcePickupTicks !== undefined && importedTiming?.type === 'pickup' &&
+          sourcePickupTicks > importedTiming.durationTicks) {
+        const source = { sourceTicks: sourcePickupTicks, importedTicks: importedTiming.durationTicks }
+        warnings.push({
+          code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
+          path: `part[${partIndex + 1}].measure[${measureNumber}].forward`,
+          message: `Unrepresented pickup forward duration ${JSON.stringify(source)}. The imported pickup is shorter. Keep the original MusicXML and compare playback timing and re-export.`
+        })
+      }
 
       warnings.push(...collectFiguredBassWarnings(measureNode, partIndex + 1, measureNumber))
       warnings.push(...collectMeasureNumberAppearanceWarnings(measureNode, partIndex + 1, measureNumber))
@@ -2699,6 +3396,51 @@ function collectUnsupportedMusicXmlWarnings(
         warnings.push(...collectEditorialWarnings(barline, 'barline',
           `part[${partIndex + 1}].measure[${measureNumber}].barline[${barlineIndex + 1}]`,
           { partNumber: partIndex + 1, measureNumber }))
+        if (ownsRepeats && unresolvedEnds?.has(measureIndex) &&
+            readOptionalString(barline, 'repeat', '@_direction') === 'backward') {
+          warnings.push({
+            code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
+            path: `part[${partIndex + 1}].measure[${measureNumber}].barline[${barlineIndex + 1}].repeat`,
+            message: 'Multiple repeat ends with unresolved ending passes. Brackets and repeat marks are retained, but the performed sequence may differ.'
+          })
+        }
+        const ending = readOptionalNode(barline, 'ending')
+        if (ending) {
+          const path = `part[${partIndex + 1}].measure[${measureNumber}].barline[${barlineIndex + 1}].ending`
+          const location = { code: 'unsupported-notation' as const, partNumber: partIndex + 1, measureNumber, path }
+          const number = readOptionalString(ending, '@_number')
+          if (number === '') {
+            warnings.push({
+              ...location,
+              message: 'Volta with unspecified repeat passes: the bracket is retained, but it does not restrict which passes are played.'
+            })
+          }
+          const label = readOptionalString(ending, '#text')
+          const labelNumbers = label?.split(',').map(pass => pass.trim().replace(/\.$/, '')).join(',')
+          const printObject = readOptionalString(ending, '@_print-object')
+          const type = readOptionalString(ending, '@_type')
+          if (type === 'start' && repeatCount !== undefined && measureIndex >= repeatStartIndex) {
+            const passes = repeatStaff?.measures[measureIndex]?.volta?.passes
+            const unreachablePasses = [...new Set(passes?.filter(pass => pass > repeatCount))]
+            if (unreachablePasses.length) {
+              warnings.push({
+                ...location,
+                message: `Volta passes outside the repeat count: ${JSON.stringify({ passes: unreachablePasses, repeatCount })}. Keep the original MusicXML and compare playback.`
+              })
+            }
+          }
+          const appearance = {
+            label: label && labelNumbers !== number?.replaceAll(' ', '') ? label : undefined,
+            printObject: printObject === 'no' ? printObject : undefined,
+            end: type === 'discontinue' ? type : undefined
+          }
+          if (appearance.label || appearance.printObject || appearance.end) {
+            warnings.push({
+              ...location,
+              message: `Unrepresented volta appearance ${JSON.stringify(appearance)} is not retained. Studio uses its standard numbered, visible brackets with a closing hook. Keep the original MusicXML and compare the score and re-export.`
+            })
+          }
+        }
         // A marker child and its optional target label belong to this barline.
         // Label attributes without the corresponding child are inert in MusicXML.
         const attributes = sourceBarlineAttributes.get(barline) ?? barline
@@ -2736,6 +3478,13 @@ function collectUnsupportedMusicXmlWarnings(
       // Use the ordered musical cursor: source order after a backup can be tick0.
       toArray(measureNode.attributes as XmlNode | XmlNode[] | undefined).forEach((attributes, attributeIndex) => {
         warnings.push(...collectMeasureStyleWarnings(attributes, partIndex + 1, measureNumber, attributeIndex + 1))
+        toArray(attributes['for-part'] as XmlNode | XmlNode[] | undefined).forEach((settings, index) => {
+          warnings.push({
+            code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
+            path: `part[${partIndex + 1}].measure[${measureNumber}].attributes[${attributeIndex + 1}].for-part[${index + 1}]`,
+            message: `Unrepresented concert-score part settings ${JSON.stringify(settings)} are not retained for written part extraction. Source note pitches and ordinary transpose elements are handled separately. Keep the original MusicXML and compare written parts and re-export.`
+          })
+        })
         // Individual staff appearance has no model fields. Keep redundant
         // five-line/100% defaults quiet and report explicit differences.
         toArray(attributes['staff-details'] as XmlNode | XmlNode[] | undefined).forEach((details, detailsIndex) => {
@@ -2783,7 +3532,50 @@ function collectUnsupportedMusicXmlWarnings(
             path: 'part[' + (partIndex + 1) + '].measure[' + measureNumber + '].attributes[' + (attributeIndex + 1) + '].part-symbol',
             message: 'Unrepresented part-symbol ' + JSON.stringify(source) + ' is not retained by the current parts/staves model. Keep the original MusicXML and compare the staff grouping and common barlines in re-export. This notice does not restore the original symbol or range.' })
         }
-        if ((directionTicks.get(attributes) ?? 0) <= 0) return
+        warnings.push(...collectSignatureDisplayWarnings(attributes, partIndex + 1, measureNumber, attributeIndex + 1))
+        const tick = directionTicks.get(attributes) ?? 0
+        if (tick <= 0) return
+        toArray(attributes.key as XmlNode | XmlNode[] | undefined).forEach((key, keyIndex) => {
+          if (importedClosingKeys.has(key)) return
+          const source = {
+            tick, staff: readOptionalString(key, '@_number'),
+            fifths: readOptionalString(key, 'fifths'), mode: readOptionalString(key, 'mode')
+          }
+          warnings.push({
+            code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
+            path: `part[${partIndex + 1}].measure[${measureNumber}].attributes[${attributeIndex + 1}].key[${keyIndex + 1}]`,
+            message: `Unrepresented positioned key signature ${JSON.stringify(source)}. Studio stores a key signature at the beginning of each measure and staff. Keep the source MusicXML and compare notation and re-export.`
+          })
+        })
+        toArray(attributes.time as XmlNode | XmlNode[] | undefined).forEach((time, timeIndex) => {
+          if (importedClosingMeters.has(time)) return
+          const source = {
+            tick, staff: readOptionalString(time, '@_number'),
+            beats: readOptionalString(time, 'beats'), beatType: readOptionalString(time, 'beat-type')
+          }
+          warnings.push({
+            code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
+            path: `part[${partIndex + 1}].measure[${measureNumber}].attributes[${attributeIndex + 1}].time[${timeIndex + 1}]`,
+            message: `Unrepresented positioned time signature ${JSON.stringify(source)}. Studio stores a time signature at the beginning of each measure and staff. Keep the source MusicXML and compare measure lengths and re-export.`
+          })
+        })
+        toArray(attributes.transpose as XmlNode | XmlNode[] | undefined).forEach((transpose, transposeIndex) => {
+          if (importedClosingTranspositions.has(transpose)) return
+          const source = {
+            tick,
+            staff: readOptionalString(transpose, '@_number'),
+            diatonic: readOptionalString(transpose, 'diatonic'),
+            chromatic: readOptionalString(transpose, 'chromatic'),
+            octaveChange: readOptionalString(transpose, 'octave-change')
+          }
+          warnings.push({
+            code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
+            path: `part[${partIndex + 1}].measure[${measureNumber}].attributes[${attributeIndex + 1}].transpose[${transposeIndex + 1}]`,
+            message: relocatedLeadingRestTranspositions.has(transpose)
+              ? `Moved transposition before first pitched content ${JSON.stringify(source)}. Studio applied this setting at the start of the measure and retained the sounding pitches.`
+              : `Unrepresented in-measure transposition ${JSON.stringify(source)}. Studio stores transposition per measure and staff. Keep the original MusicXML and compare playback and re-export.`
+          })
+        })
         toArray(attributes.clef as XmlNode | XmlNode[] | undefined).forEach((_clef, clefIndex) => {
           warnings.push({code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber,
             path: `part[${partIndex + 1}].measure[${measureNumber}].attributes[${attributeIndex + 1}].clef[${clefIndex + 1}]`,
@@ -2794,7 +3586,19 @@ function collectUnsupportedMusicXmlWarnings(
       warnings.push(...collectChordMemberTieWarnings(noteNodes, partIndex + 1, measureNumber))
 
       noteNodes.forEach((noteNode, noteIndex) => {
-        const sourceRestTicks = fullMeasureRestSourceTicks.get(noteNode)
+        const chordDuration = sourceChordMemberDurations.get(noteNode)
+        if (chordDuration?.appliedTicks !== undefined) {
+          const { sourceTicks, appliedTicks, duration, divisions } = chordDuration
+          const source = { sourceTicks, appliedTicks, duration, divisions }
+          warnings.push({
+            code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber, eventIndex: noteIndex + 1,
+            path: `part[${partIndex + 1}].measure[${measureNumber}].note[${noteIndex + 1}].duration`,
+            message: `Unrepresented chord member duration ${JSON.stringify(source)}. The chord uses a shared duration. Keep the original MusicXML and compare playback and re-export.`
+          })
+        }
+        const sourceRestTicks = readOptionalString(noteNode, 'rest', '@_measure') === 'yes'
+          ? sourceNoteDurationTicks.get(noteNode)
+          : undefined
         if (sourceRestTicks !== undefined) {
           const staffNumber = readStaffNumber(noteNode, score.parts[partIndex].staves.length)
           const representedMeasure = score.parts[partIndex].staves[staffNumber - 1]?.measures[measureIndex]
@@ -2803,6 +3607,18 @@ function collectUnsupportedMusicXmlWarnings(
             warnings.push({ code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber, eventIndex: noteIndex + 1,
               path: `part[${partIndex + 1}].measure[${measureNumber}].note[${noteIndex + 1}].duration`,
               message: `Full-measure rest duration ${sourceRestTicks} ticks is represented as ${representedTicks} ticks by the current measure timing. Keep the source MusicXML and compare actual bar lengths and playback.` })
+          }
+        }
+        const rest = readOptionalNode(noteNode, 'rest')
+        if (rest) {
+          const displayStep = readOptionalString(rest, 'display-step')
+          const displayOctave = readOptionalString(rest, 'display-octave')
+          if (displayStep !== undefined || displayOctave !== undefined) {
+            const source = { displayStep, displayOctave, staff: readOptionalString(noteNode, 'staff') ?? '1',
+              voice: readOptionalString(noteNode, 'voice') ?? '1' }
+            warnings.push({ code: 'unsupported-notation', partNumber: partIndex + 1, measureNumber, eventIndex: noteIndex + 1,
+              path: `part[${partIndex + 1}].measure[${measureNumber}].note[${noteIndex + 1}].rest`,
+              message: `Unrepresented rest staff placement ${JSON.stringify(source)}. Studio uses its automatic rest position. Keep the source MusicXML and compare notation and re-export.` })
           }
         }
         // Display visibility is not part of the note/rest model. Diagnose its
@@ -3026,6 +3842,63 @@ function collectNotePerformanceWarnings(node: XmlNode, partNumber: number, measu
       message: `Unrepresented note performance ${attribute}="${value}" in divisions. The current note model does not preserve this performance time adjustment. Keep the original MusicXML and compare playback timing and re-export.`
     }]
   })
+}
+
+function collectSignatureDisplayWarnings(
+  attributes: XmlNode, partNumber: number, measureNumber: number, attributeNumber: number
+): MusicXmlImportWarning[] {
+  const warnings: MusicXmlImportWarning[] = []
+  const path = `part[${partNumber}].measure[${measureNumber}].attributes[${attributeNumber}]`
+
+  toArray(attributes.key as XmlNode | XmlNode[] | undefined).forEach((key, index) => {
+    const hidden = readOptionalString(key, '@_print-object') === 'no'
+    const octaves = toArray(key['key-octave'] as XmlNode | XmlNode[] | undefined).map(octave => ({
+      number: readOptionalString(octave, '@_number'),
+      octave: readOptionalString(octave, '#text'),
+      cancel: readOptionalString(octave, '@_cancel')
+    }))
+    const cancelledFifths = readOptionalString(key, 'cancel')
+    const location = readOptionalString(key, 'cancel', '@_location') ?? 'left'
+    // Only the standard cancellation to a neutral key is reproduced by
+    // Studio's engraving. A nonzero new key or a different placement loses
+    // source appearance even when the imported notes still sound the same.
+    const cancellation = cancelledFifths !== undefined && Number(cancelledFifths) !== 0 &&
+      (Number(readOptionalString(key, 'fifths')) !== 0 || location !== 'left')
+      ? { fifths: cancelledFifths, location }
+      : undefined
+    if (!hidden && !octaves.length && !cancellation) return
+
+    const appearance = {
+      staff: readOptionalString(key, '@_number'),
+      cancellation,
+      printObject: hidden ? 'no' : undefined,
+      octaves: octaves.length ? octaves : undefined
+    }
+    warnings.push({
+      code: 'unsupported-notation', partNumber, measureNumber,
+      path: `${path}.key[${index + 1}]`,
+      message: `Unrepresented key signature appearance ${JSON.stringify(appearance)}. Studio uses standard visible key signatures. Keep the source MusicXML and compare notation and re-export.`
+    })
+  })
+
+  toArray(attributes.time as XmlNode | XmlNode[] | undefined).forEach((time, index) => {
+    const hidden = readOptionalString(time, '@_print-object') === 'no'
+    const symbol = readOptionalString(time, '@_symbol')
+    if (!hidden && (symbol === undefined || symbol === 'normal')) return
+
+    const appearance = {
+      staff: readOptionalString(time, '@_number'),
+      printObject: hidden ? 'no' : undefined,
+      symbol
+    }
+    warnings.push({
+      code: 'unsupported-notation', partNumber, measureNumber,
+      path: `${path}.time[${index + 1}]`,
+      message: `Unrepresented time signature appearance ${JSON.stringify(appearance)}. Studio uses visible numeric time signatures. Keep the source MusicXML and compare notation and re-export.`
+    })
+  })
+
+  return warnings
 }
 
 function collectConditionalNoteWarnings(node: XmlNode, partNumber: number, measureNumber: number, eventIndex: number): MusicXmlImportWarning[] {
@@ -3355,21 +4228,35 @@ function collectAdditionalNotationWarnings(note: XmlNode, partNumber: number, me
   )
 }
 
+const standardAccidentals = new Map([
+  ['flat-flat', { glyph: 'accidentalDoubleFlat', alter: -2 }],
+  ['flat', { glyph: 'accidentalFlat', alter: -1 }],
+  ['natural', { glyph: 'accidentalNatural', alter: 0 }],
+  ['sharp', { glyph: 'accidentalSharp', alter: 1 }],
+  ['double-sharp', { glyph: 'accidentalDoubleSharp', alter: 2 }]
+])
+
 function collectAccidentalAppearanceWarnings(note: XmlNode, partNumber: number, measureNumber: number, eventIndex: number): MusicXmlImportWarning[] {
-  const accidental = readOptionalNode(note, 'accidental')
-  if (!accidental) return []
-  const facts = { value: readOptionalString(note, 'accidental'),
+  const value = readOptionalString(note, 'accidental')
+  if (value === undefined) return []
+  const accidental = readOptionalNode(note, 'accidental') ?? {}
+  const standard = standardAccidentals.get(value)
+  const pitch = readOptionalNode(note, 'pitch')
+  const conflictingPitch = pitch && standard && (readOptionalIntegralSemitones(pitch, 'alter') ?? 0) !== standard.alter
+  const facts = { value, smufl: readOptionalString(accidental, '@_smufl'),
+    ...(conflictingPitch ? { pitchAlter: readOptionalString(pitch, 'alter') ?? null } : {}),
     parentheses: readOptionalString(accidental, '@_parentheses'), bracket: readOptionalString(accidental, '@_bracket'),
     editorial: readOptionalString(accidental, '@_editorial'), cautionary: readOptionalString(accidental, '@_cautionary'),
     size: readOptionalString(accidental, '@_size') }
-  // Display/editorial metadata is separate from pitch/alter. Do not warn every
-  // ordinary accidental or rewrite its pitch to simulate forced display.
-  const nonDefault = [facts.parentheses, facts.bracket, facts.editorial, facts.cautionary].some(value => value === 'yes') ||
+  // Display/editorial metadata is separate from pitch/alter.
+  const customGlyph = standard === undefined || (facts.smufl !== undefined && facts.smufl !== standard.glyph)
+  const nonDefault = conflictingPitch || customGlyph ||
+    [facts.parentheses, facts.bracket, facts.editorial, facts.cautionary].some(value => value === 'yes') ||
     (facts.size !== undefined && facts.size !== 'full')
   if (!nonDefault) return []
   return [{ code: 'unsupported-notation', partNumber, measureNumber, eventIndex,
     path: `part[${partNumber}].measure[${measureNumber}].note[${eventIndex}].accidental`,
-    message: `Unrepresented accidental appearance ${JSON.stringify(facts)} is not retained by the current note model. Original parentheses, size and cautionary/editorial indications may differ in Studio and re-export. Keep the original MusicXML and compare notation and output.` }]
+    message: `Unrepresented accidental appearance ${JSON.stringify(facts)} is not retained by the current note model. Original glyph, parentheses, size and cautionary/editorial indications may differ in Studio and re-export. Keep the original MusicXML and compare notation and output.` }]
 }
 
 function collectNoteheadWarnings(note: XmlNode, partNumber: number, measureNumber: number, eventIndex: number): MusicXmlImportWarning[] {
@@ -3673,17 +4560,45 @@ function collectUnsupportedDirectionWarnings(
 
   const warnings: MusicXmlImportWarning[]=readDirectionTypes(direction).flatMap((directionType, typeIndex) =>
     Object.keys(directionType)
-      .filter((key) => !key.startsWith('@_') && !supportedDirectionTypes.has(key))
-      .map((key) => ({
-        code: 'unsupported-direction' as const,
-        message: `${key} direction is not imported yet.`,
-        measureNumber,
-        path: `measure[${measureNumber}].direction[${directionIndex}].direction-type[${
-          typeIndex + 1
-        }].${key}`
-      }))
+      .filter(key => !key.startsWith('@_'))
+      .flatMap(key => {
+        const appearance = importedNavigationAppearance.get(directionType)
+        const imported = appearance?.fields.includes(key) ? appearance : undefined
+        if (imported ? !imported.appearanceChanged || key !== imported.fields[0] : supportedDirectionTypes.has(key)) return []
+        return [{
+          code: 'unsupported-direction' as const,
+          message: imported
+            ? `Navigation appearance "${key}" uses Studio's automatic position and standard styling. Source styling and coordinates are not retained.`
+            : `${key} direction is not imported yet.`,
+          measureNumber,
+          path: `measure[${measureNumber}].direction[${directionIndex}].direction-type[${typeIndex + 1}].${key}`
+        }]
+      })
   )
   warnings.push(...collectDynamicMarkingWarnings(direction,partNumber,measureNumber,directionIndex))
+  readDirectionTypes(direction).forEach((type, typeIndex) => {
+    const wedges = toArray(type.wedge as XmlNode | XmlNode[] | undefined)
+    wedges.forEach((wedge, wedgeIndex) => {
+      const wedgePath = wedges.length > 1 ? `wedge[${wedgeIndex + 1}]` : 'wedge'
+      const path = `part[${partNumber}].measure[${measureNumber}].direction[${directionIndex}].direction-type[${typeIndex + 1}].${wedgePath}`
+      const stop = unrepresentedHairpinStops.get(wedge)
+      if (stop) warnings.push({
+        code: 'unsupported-direction', partNumber, measureNumber, path,
+        message: `Unrepresented hairpin stop position ${JSON.stringify(stop)}. The imported wedge retains the onset of the ending event in the notation. Keep the original MusicXML and compare export and playback.`
+      })
+      if (readOptionalString(wedge, '@_type') !== 'continue') return
+      const appearance: Record<string, string> = {}
+      for (const key of ['spread', 'default-x', 'default-y', 'relative-x', 'relative-y',
+        'line-type', 'dash-length', 'space-length', 'color']) {
+        const value = readOptionalString(wedge, `@_${key}`)
+        if (value !== undefined && !(key === 'line-type' && value === 'solid')) appearance[key] = value
+      }
+      if (readOptionalString(direction, '@_placement') === 'above') appearance.placement = 'above'
+      if (Object.keys(appearance).length === 0) return
+      warnings.push({ code: 'unsupported-direction', partNumber, measureNumber, path,
+        message: `Unrepresented hairpin continuation appearance ${JSON.stringify(appearance)} is not retained. The hairpin keeps its endpoints and uses Studio's automatic layout. Keep the original MusicXML and compare the printed segments and re-export.` })
+    })
+  })
   // Supported scalar markings currently keep only their measure anchor. Report
   // lost source scope without changing that projection or inventing beat/voice fields.
   readDirectionTypes(direction).forEach((type, typeIndex) => {
@@ -3727,6 +4642,7 @@ function collectUnsupportedDirectionWarnings(
   // Reuse the ordered direction index for divisions/backup/forward/offset;
   // do not invent a tick field or reinterpret expression/tempo/manual text.
   textTypes.forEach((type, typeIndex) => {
+    if (importedNavigationAppearance.get(type)?.fields.includes('words')) return
     if (Array.isArray(type.words) || type === tempoWords || readOptionalNode(type, 'metronome') ||
       isExpressionTextDirection(direction, type)) return
     const text = readOptionalString(type, 'words')
@@ -3741,6 +4657,7 @@ function collectUnsupportedDirectionWarnings(
       message: `Unrepresented ${scope} text position (position=${tick / TICKS_PER_QUARTER} quarter-beats${offset === undefined ? '' : `, offset=${JSON.stringify(offset)}`}) is reduced to a measure-level text anchor. Text content is imported. Keep the original MusicXML and compare text attachment and re-export.` })
   })
   textTypes.forEach((type, typeIndex) => {
+    if (importedNavigationAppearance.get(type)?.fields.includes('words')) return
     if (Array.isArray(type.words) || type === tempoWords || readOptionalNode(type, 'metronome') ||
       isSystemTextDirection(direction) || isExpressionTextDirection(direction, type)) return
     const text = readOptionalString(type, 'words')
@@ -3753,6 +4670,7 @@ function collectUnsupportedDirectionWarnings(
   // Expression text retains italic in its model/serializer. Other scalar words
   // kinds lose the explicit override; arrays already have component-loss notice.
   textTypes.forEach((type, typeIndex) => {
+    if (importedNavigationAppearance.get(type)?.fields.includes('words')) return
     if (Array.isArray(type.words) || isExpressionTextDirection(direction, type)) return
     const text = readOptionalString(type, 'words')
     const words = readOptionalNode(type, 'words')
@@ -3765,6 +4683,7 @@ function collectUnsupportedDirectionWarnings(
   // but no explicit font family/size/color override. Arrays already report component
   // loss; do not duplicate that notice or infer a new rich-text representation.
   textTypes.forEach((type, typeIndex) => {
+    if (importedNavigationAppearance.get(type)?.fields.includes('words')) return
     if (Array.isArray(type.words) || !readOptionalString(type, 'words')) return
     const words = readOptionalNode(type, 'words')
     for (const attribute of ['font-family', 'font-size', 'color'] as const) {
@@ -3812,9 +4731,9 @@ function collectUnsupportedDirectionWarnings(
 
 function collectPlaybackNavigationSoundWarnings(sound: XmlNode | undefined, path: string,
   partNumber: number, measureNumber: number): MusicXmlImportWarning[] {
-  if (!sound) return []
+  if (!sound || importedNavigationSounds.has(sound)) return []
   const warnings: MusicXmlImportWarning[] = []
-  for (const attribute of ['dacapo', 'dalsegno', 'segno', 'coda', 'tocoda', 'fine', 'forward-repeat'] as const) {
+  for (const attribute of navigationSoundAttributes) {
     const value = readOptionalString(sound, `@_${attribute}`)
     if (value === undefined || value.length === 0 ||
       ((attribute === 'dacapo' || attribute === 'forward-repeat') && value === 'no')) continue
@@ -3891,11 +4810,11 @@ function collectIndependentTempoWarnings(direction: XmlNode, measureNumber: numb
     if (Math.abs(quarter - soundTempo) > 1e-6) warnings.push({ code: 'unsupported-direction', measureNumber,
       path: path + '.sound.tempo', message: `Independent sound tempo is not represented (metronome=${quarter} quarter BPM, sound=${soundTempo} quarter BPM).` })
   }
-  const visualOffset = readOptionalNumber(direction, 'offset') ?? 0
+  const visualOffset = readOptionalString(direction, 'offset') ?? '0'
   const offsetNode = readOptionalNode(direction, 'offset')
-  const soundOffset = readOptionalNumber(sound, 'offset')
-  const playbackOffset = soundOffset ?? (readOptionalString(offsetNode ?? {}, '@_sound') === 'yes' ? visualOffset : 0)
-  if (Math.abs(visualOffset - playbackOffset) > 1e-6) warnings.push({ code: 'unsupported-direction', measureNumber,
+  const soundOffset = readOptionalString(sound, 'offset')
+  const playbackOffset = soundOffset ?? (readOptionalString(offsetNode ?? {}, '@_sound') === 'yes' ? visualOffset : '0')
+  if (directionTicks.get(direction) !== soundTicks.get(sound)) warnings.push({ code: 'unsupported-direction', measureNumber,
     path: path + (soundOffset === undefined ? '.offset' : '.sound.offset'), message: `Independent tempo offset is not represented (notation=${visualOffset} divisions, playback=${playbackOffset} divisions).` })
   return warnings
 }

@@ -46,9 +46,17 @@ it('keeps an explicit percussion line and refuses a malformed explicit line', ()
   expect(parseMusicXml(xml.replace('<line>2</line>', '<line>4</line>')).parts[0].staves[0].measures[0].clef.line).toBe(4)
   expect(() => parseMusicXml(xml.replace('<line>2</line>', '<line>oops</line>'))).toThrow('MusicXML 정수 값이 올바르지 않습니다: line')
 })
-it.each(['G', 'F', 'C'])('does not change the existing missing-line policy for pitched %s clefs', sign => {
-  const xml = createUnpitchedFixture({ kind: 'rest', line: false }).replace('<sign>percussion</sign>', `<sign>${sign}</sign>`)
-  expect(() => parseMusicXml(xml)).toThrow('MusicXML 정수 값이 없습니다: line')
+it.each([
+  ['G', 2],
+  ['F', 4],
+  ['C', 3]
+])('defaults an omitted %s clef line without changing rest or unpitched support', (sign, line) => {
+  const source = (kind: 'rest' | 'unpitched') =>
+    createUnpitchedFixture({ kind, line: false }).replace('<sign>percussion</sign>', `<sign>${sign}</sign>`)
+  const measure = parseMusicXml(source('rest')).parts[0].staves[0].measures[0]
+  expect(measure.clef).toEqual({ sign, line })
+  expect(measure.voices[0].events[0].type).toBe('rest')
+  expect(() => parseMusicXml(source('unpitched'))).toThrow(expected)
 })
 
 it.each(['main', 'grace', 'chord'] as const)('still identifies an unsupported %s unpitched note when graphic type is omitted', owner => {
@@ -61,9 +69,10 @@ it.each(['main', 'grace', 'chord'] as const)('still identifies an unsupported %s
   if (directory) { mkdirSync(directory, { recursive: true }); writeFileSync(join(directory, 'omitted-type-' + owner + '.musicxml'), xml) }
   expect(() => parseMusicXmlWithReport(xml)).toThrow(expected)
 })
-it('keeps the previous missing graphic-type diagnostic for an otherwise supported pitched note', () => {
-  const xml = createUnpitchedFixture({ kind: 'pitched' }).replace('<type>whole</type>', '')
-  expect(() => parseMusicXmlWithReport(xml)).toThrow('MusicXML 필수 값이 없습니다: type')
+it('infers the whole-note type for the pitched percussion-clef control', () => {
+  const explicit = createUnpitchedFixture({ kind: 'pitched' })
+  const xml = explicit.replace('<type>whole</type>', '')
+  expect(parseMusicXmlWithReport(xml)).toEqual(parseMusicXmlWithReport(explicit))
 })
 
 it('identifies an unpitched speaking-voice control without assuming a percussion instrument', () => {

@@ -248,7 +248,7 @@ vi.mock('./notation/NotationPreview', async importOriginal => ({
         voiceId: string
       }
     ) => void
-    onSelectLyric: (eventId: string, verse: number) => void
+    onSelectLyric?: (eventId: string, verse: number) => void
     onSelectRehearsalMark?: (reference: {id:string;measureId:string}) => void
     selectedRehearsalMarkId?:string
     onSelectSystemText?:(reference:{id:string;measureId:string})=>void
@@ -556,7 +556,7 @@ vi.mock('./notation/NotationPreview', async importOriginal => ({
                         }절 가사 선택`}
                         key={`${event.id}-${lyric.number ?? 1}-lyric-select`}
                         onClick={() =>
-                          onSelectLyric(event.id, lyric.number ?? 1)
+                          onSelectLyric?.(event.id, lyric.number ?? 1)
                         }
                         type="button"
                       />
