@@ -9,7 +9,9 @@ import { createPlaybackTimeline, resolveEventVelocityAtBeat } from '../renderer/
 import { expandScoreRepeatsForMusicXml } from './expand-repeats'
 import { parseMusicXml, parseMusicXmlWithReport, serializeMusicXml } from './index'
 
+// Synthetic stop edits use exact LF line matches on every checkout.
 const source = readFileSync(new URL('./fixtures/hairpin-file-order.musicxml', import.meta.url), 'utf8')
+  .replaceAll('\r\n', '\n')
 const stop = '      <direction><direction-type><wedge type="stop"/></direction-type><offset>-1</offset><voice>1</voice></direction>\n'
 const normalOrder = source.replace(stop, '').replace('    </measure>', stop + '    </measure>')
 
@@ -28,6 +30,14 @@ function performance(score: ReturnType<typeof parseMusicXml>) {
     [event.voiceId, event.startBeat, event.durationBeats, event.velocityStart, event.velocityEnd]
   )
 }
+
+it('reads an out-of-file-order wedge identically with LF and CRLF', () => {
+  const lf = parseMusicXml(source)
+  const crlf = parseMusicXml(source.replaceAll('\n', '\r\n'))
+  expect(endpoints(crlf)).toEqual(endpoints(lf))
+  expect(performance(crlf)).toEqual(performance(lf))
+  expect(serializeMidi(crlf)).toEqual(serializeMidi(lf))
+})
 
 it.each(['numbers', 'names', 'implicit stop voice', 'rest stop'] as const)(
   'pairs a stop read first with its later file entry, using %s', variant => {

@@ -22,3 +22,9 @@
 1. 승인된 버전과 후보 SHA를 고정한다. 승인된 후보 브랜치 푸시 후 동일 SHA의 Windows/Linux `preflight` 결과를 확인한다.
 2. 게시 승인을 확인하면 `.github/workflows/release.yml`에서 `release/*` 브랜치의 `candidate=true` 경로를 사용한다. 검증과 패키징 뒤 태그 생성과 GitHub 프리릴리즈 게시가 이어진다. 이전 alpha.42에도 이 경로를 사용했다. [alpha.42 Release 실행](https://github.com/mann-lab-apps/in-c/actions/runs/44945782399)
 3. 게시된 다섯 파일과 `SHA256SUMS.txt`를 직접 다운로드해 해시와 설치 정보를 확인한다. 사이트 작업은 별도 승인 범위에서 검증된 게시 파일을 기준으로 진행한다.
+
+## Windows 테스트 픽스처 교정
+
+- 첫 후보 `7dd39f661fe4c4b8afe091a3d8d21efcb06af989`는 로컬 전체 Vitest 7,759건·Node 5건을 통과했다. 독립 검사에서 고정 입력 6,604개가 일치했다. Windows/Linux 사전검증도 통과했다. [첫 사전검증](https://github.com/mann-lab-apps/in-c/actions/runs/45528484894)
+- 첫 게시 워크플로의 Windows 2/4에서 `hairpin-file-order.test.ts`의 5건이 실패했다. CRLF 체크아웃에서는 테스트가 LF에 의존한 줄 일치를 찾지 못해 비교 XML에 중복 종료 표식을 남겼다. 원본 실패 로그를 보존했고 로컬에서도 같은 CRLF로 5건을 재현했다. [실패 작업](https://github.com/mann-lab-apps/in-c/actions/runs/45528861345/job/138918879569)
+- 테스트의 픽스처 가공용 줄바꿈을 정규화하고 LF와 CRLF 원본에서 종료 연결·재생과 MIDI가 같은지 검사한다. 두 줄바꿈의 집중 검증이 각각 39건 통과했다. 제품 소스와 사용설명서·릴리즈 노트의 내용은 첫 후보와 같다. 새 후보는 세 플랫폼의 전체 검사와 패키징을 다시 거친다.
