@@ -6305,76 +6305,126 @@ describe('App component shell', () => {
     expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1)
   }, 15_000)
 
-  it('properties.volta-display edits and resets the display endpoint without changing repeat playback', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
-    const { createNewScore } = await import('./editor/new-score')
-    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
-    const { createPlaybackTimeline } = await import('./playback/timeline')
-    const score = createNewScore({ title: 'Long volta properties', templateId: 'piano-grand-staff', measureCount: 7,
-      keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } })
-    const measures = score.parts[0]!.staves[0]!.measures
-    measures[0]!.repeat = { start: true }
-    measures[1]!.volta = { number: 1, start: true }
-    measures[5]!.volta = { number: 1, end: true }
-    measures[5]!.repeat = { end: true }
-    const timeline = createPlaybackTimeline(score)
-    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/long.chromatics', fileName: 'long.chromatics', contents: encodeNativeProject(createNativeProject(score)) })
-    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/long.chromatics', fileName: 'long.chromatics' })
-    const { App } = await import('./App')
-    render(<App />)
-    const menubar = screen.getByRole('menubar', { name: '주 메뉴' })
-    const applicationMenu = within(menubar.parentElement!)
-    const notation = () => within(screen.getByTestId('notation-preview'))
-    const menu = (name: string, item: string) => {
-      fireEvent.click(within(menubar).getByRole('menuitem', { name }))
-      fireEvent.click(within(applicationMenu.getByRole('menu', { name: `${name} 메뉴` })).getByRole('menuitem', { name: item }))
+  describe('properties.volta-display', () => {
+    async function prepareVoltaProject() {
+      window.history.replaceState({}, '', '/?fixture=release-test')
+      const { createNewScore } = await import('./editor/new-score')
+      const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+      const score = createNewScore({
+        title: 'Long volta properties',
+        templateId: 'piano-grand-staff',
+        measureCount: 7,
+        keySignature: { fifths: 0 },
+        timeSignature: { beats: 4, beatType: 4 }
+      })
+      const measures = score.parts[0]!.staves[0]!.measures
+      measures[0]!.repeat = { start: true }
+      measures[1]!.volta = { number: 1, start: true }
+      measures[5]!.volta = { number: 1, end: true }
+      measures[5]!.repeat = { end: true }
+
+      vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/long.chromatics', fileName: 'long.chromatics' })
+      const { App } = await import('./App')
+      render(<App />)
+      const menubar = screen.getByRole('menubar', { name: '주 메뉴' })
+      const applicationMenu = within(menubar.parentElement!)
+      const status = screen.getByRole('contentinfo', { name: '편집 상태' })
+      const menuItem = (name: string, item: string) => {
+        fireEvent.click(within(menubar).getByRole('menuitem', { name }))
+        return within(applicationMenu.getByRole('menu', { name: `${name} 메뉴` })).getByRole('menuitem', { name: item })
+      }
+      const fileCommand = async (item: string) => {
+        const action = menuItem('파일', item)
+        await act(async () => { fireEvent.click(action) })
+      }
+      const open = async (contents: string, fileName: string) => {
+        vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: `/qa/${fileName}`, fileName, contents })
+        await fileCommand('프로젝트 열기')
+        expect(within(status).getByText(`${fileName}을 열었습니다.`)).toBeInTheDocument()
+      }
+      const save = async () => {
+        await fileCommand('프로젝트 저장')
+        expect(window.inC.project.save).toHaveBeenCalledOnce()
+        expect(within(status).getByText('long.chromatics에 저장했습니다.')).toBeInTheDocument()
+        return vi.mocked(window.inC.project.save).mock.calls[0]![0].contents
+      }
+      const displayEndControl = (measureNumber: number) => {
+        fireEvent.click(within(screen.getByTestId('notation-preview')).getByRole('button', { name: `${measureNumber}마디 선택` }))
+        fireEvent.click(menuItem('추가', '마디 설정 열기'))
+        return screen.getByLabelText('볼타 선 끝 마디')
+      }
+      const load = async (savedShortenedEndpoint = false) => {
+        const initialScore = savedShortenedEndpoint ? structuredClone(score) : score
+        if (savedShortenedEndpoint) {
+          initialScore.parts[0]!.staves[0]!.measures[1]!.volta!.displayEndMeasureId = measures[3]!.id
+        }
+        await open(encodeNativeProject(createNativeProject(initialScore)), 'long.chromatics')
+        expect(screen.getByText('Long volta properties')).toBeInTheDocument()
+      }
+      return { score, measures, displayEndControl, save, open, fileCommand, status, load }
     }
-    menu('파일', '프로젝트 열기')
-    await screen.findByText('Long volta properties')
-    fireEvent.click(notation().getByRole('button', { name: '4마디 선택' }))
-    menu('추가', '마디 설정 열기')
-    const control = screen.getByLabelText('볼타 선 끝 마디')
-    expect(control).toBeVisible()
-    expect(within(control).getAllByRole('option')).toHaveLength(6)
-    expect(control).toHaveValue('')
-    control.focus()
-    fireEvent.change(control, { target: { value: measures[5]!.id } })
-    expect(control).toHaveFocus()
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
-    expect(control).toHaveValue('')
-    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
-    expect(control).toHaveValue(measures[5]!.id)
-    const save = async (count: number) => {
-      menu('파일', '프로젝트 저장')
-      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(count))
-      await screen.findByText('long.chromatics에 저장했습니다.')
-      return vi.mocked(window.inC.project.save).mock.calls[count - 1]![0].contents
-    }
-    const full = decodeNativeProject(await save(1)).score
-    const expected = structuredClone(score)
-    Object.assign(expected.parts[0]!.staves[0]!.measures[1]!.volta!, { displayEndMeasureId: measures[5]!.id })
-    expect(full).toEqual(expected)
-    expect(createPlaybackTimeline(full)).toEqual(timeline)
-    fireEvent.change(control, { target: { value: '' } })
-    expect(decodeNativeProject(await save(2)).score).toEqual(score)
-    fireEvent.change(control, { target: { value: measures[3]!.id } })
-    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-measure-id', measures[3]!.id)
-    const contents = await save(3)
-    Object.assign(expected.parts[0]!.staves[0]!.measures[1]!.volta!, { displayEndMeasureId: measures[3]!.id })
-    expect(decodeNativeProject(contents).score).toEqual(expected)
-    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/reopened.chromatics', fileName: 'reopened.chromatics', contents })
-    menu('파일', '프로젝트 열기')
-    await screen.findByText('reopened.chromatics을 열었습니다.')
-    fireEvent.click(notation().getByRole('button', { name: '3마디 선택' }))
-    menu('추가', '마디 설정 열기')
-    expect(screen.getByLabelText('볼타 선 끝 마디')).toHaveValue(measures[3]!.id)
-    fireEvent.click(notation().getByRole('button', { name: '7마디 선택' }))
-    menu('추가', '마디 설정 열기')
-    expect(screen.getByLabelText('볼타 선 끝 마디')).toBeDisabled()
-    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/display.musicxml', fileName: 'display.musicxml' })
-    menu('파일', 'MusicXML로 저장')
-    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.getByRole('contentinfo', { name: '편집 상태' })).toHaveTextContent('볼타 선의 사용자 지정 표시 범위는 프로젝트에만 보존됩니다.'))
+
+    let fixture: Awaited<ReturnType<typeof prepareVoltaProject>>
+
+    beforeEach(async () => {
+      fixture = await prepareVoltaProject()
+    })
+
+    it('edits the display endpoint with undo and redo without changing repeat playback', async () => {
+      await fixture.load()
+      const { score, measures, displayEndControl, save } = fixture
+      const { decodeNativeProject } = await import('../../project/schema')
+      const { createPlaybackTimeline } = await import('./playback/timeline')
+      const control = displayEndControl(4)
+      expect(control).toBeVisible()
+      expect(within(control).getAllByRole('option')).toHaveLength(6)
+      expect(control).toHaveValue('')
+      control.focus()
+      fireEvent.change(control, { target: { value: measures[5]!.id } })
+      expect(control).toHaveFocus()
+      fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+      expect(control).toHaveValue('')
+      fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+      expect(control).toHaveValue(measures[5]!.id)
+
+      const saved = decodeNativeProject(await save()).score
+      const expected = structuredClone(score)
+      expected.parts[0]!.staves[0]!.measures[1]!.volta!.displayEndMeasureId = measures[5]!.id
+      expect(saved).toEqual(expected)
+      expect(createPlaybackTimeline(saved)).toEqual(createPlaybackTimeline(score))
+    })
+
+    it('preserves a shortened endpoint through native save and reopen', async () => {
+      await fixture.load()
+      const { score, measures, displayEndControl, save, open } = fixture
+      const { decodeNativeProject } = await import('../../project/schema')
+      const control = displayEndControl(4)
+      fireEvent.change(control, { target: { value: measures[3]!.id } })
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-measure-id', measures[3]!.id)
+
+      const contents = await save()
+      const expected = structuredClone(score)
+      expected.parts[0]!.staves[0]!.measures[1]!.volta!.displayEndMeasureId = measures[3]!.id
+      expect(decodeNativeProject(contents).score).toEqual(expected)
+      await open(contents, 'reopened.chromatics')
+      expect(displayEndControl(3)).toHaveValue(measures[3]!.id)
+    })
+
+    it('reports MusicXML display loss and persists a native reset', async () => {
+      await fixture.load(true)
+      const { score, measures, displayEndControl, save, fileCommand, status } = fixture
+      const { decodeNativeProject } = await import('../../project/schema')
+      expect(displayEndControl(7)).toBeDisabled()
+      vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/display.musicxml', fileName: 'display.musicxml' })
+      await fileCommand('MusicXML로 저장')
+      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1)
+      expect(status).toHaveTextContent('볼타 선의 사용자 지정 표시 범위는 프로젝트에만 보존됩니다.')
+
+      const control = displayEndControl(4)
+      expect(control).toHaveValue(measures[3]!.id)
+      fireEvent.change(control, { target: { value: '' } })
+      expect(decodeNativeProject(await save()).score).toEqual(score)
+    })
   })
 
   it('properties.measure-signature-card opens one set of signature controls from the palette and preserves history', async () => {
