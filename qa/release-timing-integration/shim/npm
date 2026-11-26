@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+case "$STUDIO_QA_FAULT" in
+  writers)
+    chmod a-w "$STUDIO_CI_PHASE_FILE" "$STUDIO_CI_CASE_FILE"
+    ;;
+  summary)
+    mkdir "$(dirname "$STUDIO_CI_PHASE_FILE")/summary.json"
+    printf "QA blocked this output path\n" > "$(dirname "$STUDIO_CI_PHASE_FILE")/summary.json/fixture.txt"
+    ;;
+  exit-record)
+    mkdir "$(dirname "$STUDIO_CI_PHASE_FILE")/test-exit.txt"
+    printf "QA blocked this output path\n" > "$(dirname "$STUDIO_CI_PHASE_FILE")/test-exit.txt/fixture.txt"
+    ;;
+  partial-summary)
+    mkdir "$(dirname "$STUDIO_CI_PHASE_FILE")/summary.json"
+    printf "QA blocked this output path\n" > "$(dirname "$STUDIO_CI_PHASE_FILE")/summary.json/fixture.txt"
+    export STUDIO_QA_FREEZE_PHASES=1
+    ;;
+  none) ;;
+  *) exit 2 ;;
+esac
+exec "$STUDIO_QA_REAL_NPM" "$@"
