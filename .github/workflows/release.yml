@@ -1,32 +1,24 @@
-name: Play operator inputs read-only inventory
+name: Play Store information read-only
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Read-only operator-input inspection label
+        description: Read-only Play store information
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  check-settings:
+  inspect:
     runs-on: [self-hosted, macOS, ARM64, in-c-release]
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Read public copy, declarations and contact presence without writes
-        working-directory: deployment
+      - name: Verify local inspection script hash and read Apple metadata
+        working-directory: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/app-info-20261126
         env:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
-        run: /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby inspect_play_store_info.rb
-      - name: Preserve public fields and private-field presence only
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: play-launch-settings-${{ github.run_id }}
-          path: deployment/play-store-info-readonly.json
-          retention-days: 14
+        run: |
+          python3 -c "import hashlib; assert hashlib.sha256(open('/tmp/play_store_info_readonly_20261126.rb','rb').read()).hexdigest() == '13e13124593981a9f583ff65078429be9541270d0a4c0e2ff0af78ebdcac4420'"
+          /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby /tmp/play_store_info_readonly_20261126.rb
