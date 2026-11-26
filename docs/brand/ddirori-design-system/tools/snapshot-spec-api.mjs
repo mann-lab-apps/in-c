@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
-import {portableApiText} from './api-portability.mjs';
+import {portableApiJson, portableApiText} from './api-portability.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const require=createRequire(path.join(root,'package.json'));
 const ts=require('typescript');
@@ -61,5 +61,5 @@ output(path.join(base,'specifications/api-react.md'),md.trimEnd()+'\n');
 md='# Flutter API 원문\n\n공개 export 파일의 실제 constructor·필드와 함수 서명이다. `required`, nullable 타입, constructor 기본값이 계약이다. Widget의 key는 Flutter 규칙을 따른다. 아래 선언은 구현을 복제하는 코드가 아닌 소스 조사 자료이며 타입별 동작은 컴포넌트 명세를 따른다.\n\nImport: `package:ddirori_ui/ddirori_ui.dart`; Material 합성은 `package:flutter/material.dart`. 생성 토큰은 [토큰 부록](token-reference.md).\n\n';
 for(const e of dart){md+=`<a id="${e.name}"></a>\n## ${e.name}\n\n소스: [${e.file}](../../../../${e.file}) · 조사 당시 ${e.line}행.\n\n\`\`\`dart\n${e.signature}\n\`\`\`\n\n`;if(e.fields.length)md+='필드 타입: '+e.fields.map(f=>'`'+f+'`').join(', ')+'.\n\n';}
 output(path.join(base,'specifications/api-flutter.md'),md.trimEnd()+'\n');
-output(path.join(base,'evidence/specifications/api.json'),JSON.stringify({react,dart},null,2)+'\n');
+output(path.join(base,'evidence/specifications/api.json'),portableApiJson({react,dart},root));
 console.log(`API snapshot: React ${react.length}, Flutter ${dart.length}`);

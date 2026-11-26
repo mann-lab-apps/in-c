@@ -34,9 +34,10 @@
 
 ## 원칙
 
-- 기존 태그는 재사용하지 않는다. 문제가 있으면 다음 prerelease 버전으로 올린다.
-- 앱 릴리즈 태그는 `main`에서만 만든다.
-- 모든 필수 체크가 완료된 뒤 `v{package.json version}` 태그를 push한다.
+- 릴리즈 기준 브랜치와 정확한 후보 SHA를 기록한다.
+- 게시 승인과 필수 검증 뒤 `release/*`에서 `Release`를 `candidate=true`로 실행한다.
+  워크플로가 패키지 검증 뒤 `v{package.json version}` 태그를 만든다.
+- 태그가 이미 있으면 실제 대상 SHA와 게시 상태를 확인한다. 기존 태그를 다른 SHA로 옮기지 않는다.
 - 미서명 prerelease 상태에서는 macOS Gatekeeper와 Windows SmartScreen 안내를
   숨기지 않는다.
 
@@ -77,21 +78,18 @@
 
 ## 원격 사전 자동화
 
-태그를 만들기 전, release branch push 또는 PR에서 확인할 수 있는 GitHub Actions를
-확인한다.
+- [ ] 최종 후보 SHA의 GitHub Actions `CI`가 통과했다.
+- [ ] 변경 경로가 해당하는 경우 PR의 `Release` 검사와 세 플랫폼의 패키지
+  기본 실행을 확인했다. Windows·Linux만 실행한 `tag=preflight`는 확인 범위를 기록했다.
+- [ ] 디자인 계약 검사가 발생하면 결과와 릴리즈 판단에 필요한 후속 조치를 기록했다.
 
-- [ ] GitHub Actions `CI` workflow가 통과했다.
+## Release 게시
 
-## 태그 이후 Release 자동화
-
-현재 release workflow는 `v*` 태그 push 이후 native artifact를 만들고 GitHub
-prerelease를 게시한다. 이 단계는 릴리즈 전에는 최종 확인할 수 없다.
-
-- [ ] GitHub Actions `Release` workflow의 macOS, Windows, Linux package job이 모두
-  통과했다.
-- [ ] Release artifact와 `SHA256SUMS.txt`가 게시됐다.
-- [ ] Release workflow가 실패하면 태그를 재사용하지 않고 다음 prerelease 버전으로
-  넘어갈지 결정했다.
+- [ ] 게시가 승인됐고 `release/*`가 검증한 후보 SHA를 가리킨다.
+- [ ] 수동 `Release`의 `tag`와 `candidate=true` 입력을 확인했다.
+- [ ] macOS·Windows·Linux의 패키징과 기본 실행, macOS 서명·공증이 통과했다.
+- [ ] 생성된 태그의 실제 SHA, GitHub 프리릴리즈와 `SHA256SUMS.txt`를 확인했다.
+- [ ] 실패 시 원본 로그와 태그·릴리즈 상태를 기록했다. 소스 수정이 필요한 경우 새 후보의 검증을 진행했다.
 
 ## 릴리즈 후 사이트 자동화
 
@@ -121,7 +119,7 @@ Codex는 테스트 결과와 저장소 상태를 기준으로 릴리즈 위험�
 
 GitHub Release와 사이트 배포가 끝난 뒤 Codex가 다시 확인한다.
 
-- [ ] `site/download-manifest.json`의 버전, 태그, URL, 파일명이 최신 릴리즈와
+- [ ] 공식 Studio 다운로드 매니페스트의 버전, 태그, URL, 파일명이 최신 릴리즈와
   맞는지 확인했다.
 - [ ] `site/main.js`의 fallback 릴리즈 정보가 최신 버전과 어긋나지 않는지 확인했다.
 - [ ] `SHA256SUMS.txt`가 Release artifact 전체를 포함하는지 확인했다.

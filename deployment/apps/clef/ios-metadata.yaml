@@ -60,6 +60,7 @@ content:
       marketing_url: https://in-c.mannlab.app/clef-and-staff/
       privacy_url: https://in-c.mannlab.app/clef-and-staff/privacy.html
       release_notes: |-
+        공용 테마의 밝은 화면과 어두운 화면에서 기본 강조색을 블루 기준에 맞췄습니다.
         • PDF 파트를 전환할 때 최신 즐겨찾기와 다른 연결 정보를 유지합니다. 이미 현재인 파일이나 없는 악보는 전환 성공으로 알리지 않습니다.
         • 파트와 연결 파일을 공통 목록으로 정리했습니다. 경로 대신 파일 이름을 보여주고 열기·역할 변경·연결 제거를 구분하며, 긴 정보와 빈 목록에서도 취소할 수 있습니다.
         • 파트·연결 파일의 예전 선택이 다른 라이브러리에 적용되지 않도록 보완했습니다. 역할 변경은 최근 A–B 구간을 유지하고, 저장 실패 시 다시 시도할 수 있습니다.
@@ -372,10 +373,11 @@ screenshots:
     - {by: text, value: 취소, present: true}
     - {by: widget_type, value: ErrorWidget, present: false}
   - id: library
-    purpose: 띠로리 스코어 이름과 펼친 악보 심벌, 공통 검색이 보이는 악보 3개의 라이브러리. 큰 글씨는 별도 QA (현재 중립 공통 테마 기준) · 공통 글자 위계와 조작부 형태 확인 · 역할별 타이포와 실제 목록 여백 및 분류별 찾기 진입 검증
+    purpose: 띠로리 스코어 이름과 펼친 악보 심벌, 공통 검색이 보이는 악보 3개의 라이브러리. 큰 글씨는 별도 QA (중립 바탕과 블루 기본 강조색 기준) · 공통 글자 위계와 조작부 형태 확인 · 역할별 타이포와 실제 목록 여백 및 분류별 찾기 진입 검증
     route: 현재 라이브러리 → 검색 → 정렬/즐겨찾기/필터 → 기본 목록 (분류별 찾기와 빠른 접근 접힘, 선택 모드 해제)
     fixture: 자가 제작 악보 3개 이상, 컬렉션과 즐겨찾기 포함
     must_show:
+    - 블루 기본 강조색이 적용된 주요 조작과 읽기 쉬운 중립 바탕
     - 검색 위의 간결한 현재 라이브러리 전환 버튼과 곡 수, 접힌 분류별 찾기 (분류가 있을 때; 펼친 공통 선택 컨트롤은 widget/manual QA)
     - 띠로리 스코어 제품명과 제품 심벌, 흰색/무채색 바탕과 임시 강조색
     - 공통 검색, 정렬·즐겨찾기·필터 진입, 기본 라이브러리와 곡 수
@@ -383,6 +385,7 @@ screenshots:
     - 악보 제목·작곡가/파일 정보·마지막 페이지, 독립 즐겨찾기·고정·더보기 행동
     - 긴 제목 줄바꿈, 터치 영역, 좁은 폭16/넓은 폭32 여백과 명확한 타이포 위계
     exclude:
+    - 이전 라임 기본 테마 화면
     - 빈 라이브러리, 테스트 체크리스트, 개인정보, 오류 배너
     - 큰 글씨 레이아웃 overflow 표시나 잘린 정보 편집 버튼
     - 이전 색조가 들어간 바탕의 캡처 또는 팔레트 비교용 웹 데모 화면
@@ -392,6 +395,7 @@ screenshots:
     - action: wait
       milliseconds: 500
     assertions:
+    - {by: widget_type, value: DdiroriButton, present: true}
     - by: tooltip
       value: 라이브러리 전환
       present: true
@@ -1410,6 +1414,7 @@ manual:
   accessibility:
     status: pending
     evidence: >-
+      2026-11-27 스코어의 공용 기본 강조색을 블루 기준으로 동기화했다. 밝은 화면과 어두운 화면에서 블루 기본 테마의 포커스와 선택 대비를 실기기로 재검수한다.
       2026-11-03 common parts: 최신 기능의 파트/연결 파일을 실제 공통 Sheet/flat Item·이름 있는 행동과 별도 역할 선택으로 이행한다. 모델·파일·요청 수명·저장/retry는 앱 adapter/controller에 유지한다. 320/390/840·가로·200% light/dark, 파일 없음/미지원·역할/제거 분리·빈 목록·취소·sandbox 경로 비노출은 host fixture 범위다. 실제 파일/codec/provider 열기, VoiceOver·IME·기기 성능·후보/스토어 캡처는 pending이다.
       2026-11-03 bookmark name: 기존 Score draft form으로 이름 입력·실제 저장 대기·Back/중복 제출 차단·실패 시 입력 유지와 재시도를 검사한다. 저장 중 폐기/다른 route로 덮임과 library 변경의 결과 소유권도 검사한다. 실제 기기의 IME·키보드 inset·VoiceOver·디스크/복구 실패·강제 종료와 저장 원자성은 pending이다.
       2026-11-03 bookmarks: 최신 기능 소스의 공통 Sheet/flat Item·이름 있는 이동/이름 변경/삭제/취소와 320/390/840·가로·200% light/dark를 host widget으로 검사한다. 실제 PDF에서 예전 목록/이름 입력 뒤 library 전환, 취소·현재 쪽·원본 byte 보존을 확인한다. iOS VoiceOver·IME·실제 touch·대형 목록 비용과 저장 실패 뒤 이름 draft 보존은 아직 별도 확인 대상이다.
@@ -1479,6 +1484,7 @@ manual:
   review_device_qa:
     status: pending
     evidence: >-
+      2026-11-27 스코어의 공용 기본 강조색을 블루 기준으로 동기화했다. 기본 테마가 새 공용 토큰을 읽는 후보에서 라이브러리 화면과 설치 후 외관을 재확인한다.
       2026-11-03 PDF switch snapshot: 전환 직전 최신 score를 조회한다. stale favorite/다른 참조·없는 score·현재 파일 중복·실패/retry와 원문 byte는 controller/store/file 자동 검사다. 화면 배치와 원본 쓰기는 바꾸지 않았다. 일반 optimistic cache·다른 쓰기와의 원자성, picker 대기와 실제 PDF 전환 widget/provider 검수는 별도 pending이다.
       2026-11-03 common parts: 최신 기능의 파트/연결 파일을 실제 공통 Sheet/flat Item·이름 있는 행동과 별도 역할 선택으로 이행한다. 모델·파일·요청 수명·저장/retry는 앱 adapter/controller에 유지한다. 320/390/840·가로·200% light/dark, 파일 없음/미지원·역할/제거 분리·빈 목록·취소·sandbox 경로 비노출은 host fixture 범위다. 실제 파일/codec/provider 열기, VoiceOver·IME·기기 성능·후보/스토어 캡처는 pending이다.
       2026-11-03 parts request: 최신 기능 후보에서 파트 선택의 controller/문서/library·요청 세대와 route, 최신 linkedFile metadata를 확인한다. 실제 PDF·소유한 WAV/store로 역할 변경 중 새 A-B·실패/retry·폐기/새 picker의 늦은 결과를 자동 검사했다. 이번은 표시 공통화가 아니며 과거 root 캡처를 현재 feature 화면 검수로 재사용하지 않는다. raw 표시/절대 경로·PDF 교체 전체·실제 provider/codec/오디오 출력/VoiceOver는 pending이다.

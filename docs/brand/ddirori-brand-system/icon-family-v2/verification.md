@@ -43,6 +43,8 @@ node docs/brand/ddirori-brand-system/icon-family-v2/tools/verify-review.mjs
 - `DDIRORI_ICON_REVIEW_URL`: 이미 실행한 리뷰 서버의 페이지 URL.
 - `build.mjs --out <새 폴더>`: 독립 내보내기. `verify.mjs`는 임시 폴더를 만들어 재생성 비교 후 해당 임시 폴더만 삭제한다.
 
+현재 체크아웃에서 재생성과 픽셀을 다시 확인할 때는 `node docs/brand/ddirori-brand-system/icon-family-v2/tools/verify.mjs --current`를 실행한다. 원본 해시, 파일 목록, 비 PNG 출력, 기존 검토 래스터는 엄격히 비교한다. 재생성된 PNG의 인코딩이 달라지면 크기·모드·픽셀·이미지 메타데이터가 모두 일치해야 통과한다. 보고서는 `out/ddirori/icon-family-v2-verification.json`에 기록하며 `DDIRORI_ICON_REPORT`로 경로를 지정할 수 있다. 옵션 없이 실행하면 기존 조사 기준과 전체 바이트를 대조한다.
+
 라이브 서버·실기기가 없는 CI에서도 check-contract는 Node 내장 모듈만으로 동작한다. 새 도구 버전으로 export가 달라지면 도구 버전과 원인을 검토하고 기록한다. 기존 PNG를 자동 baseline으로 승격하지 않는다.
 
 ## 시각 검수와 회귀 기준

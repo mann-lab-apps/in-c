@@ -1,11 +1,14 @@
 require 'minitest/autorun'
 require 'tmpdir'
 require 'pathname'
+require 'fileutils'
 require_relative '../lib/ios_metadata'
 
 class IOSMetadataTest < Minitest::Test
   def setup
-    @temp = Dir.mktmpdir('ios-authored-metadata-', File.join(Deployment::ROOT, 'output'))
+    output = File.join(Deployment::ROOT, 'output')
+    FileUtils.mkdir_p(output)
+    @temp = Dir.mktmpdir('ios-authored-metadata-', output)
     @data = YAML.safe_load(File.read(File.join(Deployment::ROOT, 'apps/clef/ios-metadata.yaml')), aliases: false)
     # Compiler tests use a pinned fixture regardless of the editable authored file.
     @data['source']['state'] = 'pinned'
@@ -13,7 +16,9 @@ class IOSMetadataTest < Minitest::Test
     save
   end
 
-  def teardown = FileUtils.rm_rf(@temp)
+  def teardown
+    FileUtils.rm_rf(@temp) if @temp
+  end
   def save = File.write(@path, YAML.dump(@data))
   def metadata = Deployment::IOSMetadata.new(@path)
   def compile = metadata.compile(output_root: @temp)

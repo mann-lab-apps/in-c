@@ -151,8 +151,9 @@ export function IconButton({ label, children, className = '', ...props }: Button
 소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 77행.
 
 ```tsx
-export function Input({ label, error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {
+export function Input({ label, labelVisibility = 'visible', error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {
     label: string;
+    labelVisibility?: 'visible' | 'sr-only';
     error?: string;
     help?: string;
     clearable?: boolean;
@@ -163,6 +164,7 @@ export function Input({ label, error, help, clearable = false, onClear, ...props
 | 인자 | 타입 | 필수 | 인자 기본값 |
 | --- | --- | --- | --- |
 | label | string | 예 | — |
+| labelVisibility | "visible" &#124; "sr-only" &#124; undefined | 아니오 | 'visible' |
 | error | string &#124; undefined | 아니오 | — |
 | help | string &#124; undefined | 아니오 | — |
 | clearable | boolean &#124; undefined | 아니오 | false |
@@ -171,7 +173,7 @@ export function Input({ label, error, help, clearable = false, onClear, ...props
 <a id="Search"></a>
 ## Search
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 87행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 88행.
 
 ```tsx
 export function Search({ value, onChange, label = '검색' }: {
@@ -190,7 +192,7 @@ export function Search({ value, onChange, label = '검색' }: {
 <a id="Choices"></a>
 ## Choices
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 92행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 93행.
 
 ```tsx
 export function Choices<T extends string | number>({ label, options, selected, onChange, multiple = false, disabled = false }: {
@@ -218,7 +220,7 @@ export function Choices<T extends string | number>({ label, options, selected, o
 <a id="Toolbar"></a>
 ## Toolbar
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 105행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 106행.
 
 ```tsx
 export function Toolbar({ children, label = '도구' }: {
@@ -235,7 +237,7 @@ export function Toolbar({ children, label = '도구' }: {
 <a id="Item"></a>
 ## Item
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 109행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 110행.
 
 ```tsx
 export function Item({ title, subtitle, leading, trailing, actions, flat = false, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {
@@ -270,7 +272,7 @@ export function Item({ title, subtitle, leading, trailing, actions, flat = false
 <a id="Banner"></a>
 ## Banner
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 131행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 132행.
 
 ```tsx
 export function Banner({ children, kind = 'info', action }: {
@@ -289,7 +291,7 @@ export function Banner({ children, kind = 'info', action }: {
 <a id="StatePanel"></a>
 ## StatePanel
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 139행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 140행.
 
 ```tsx
 export function StatePanel({ title, message, error = false, bachFace = false, action, diagnostic }: {
@@ -314,7 +316,7 @@ export function StatePanel({ title, message, error = false, bachFace = false, ac
 <a id="Progress"></a>
 ## Progress
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 149행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 150행.
 
 ```tsx
 export function Progress({ value, label = '불러오는 중' }: {
@@ -331,7 +333,7 @@ export function Progress({ value, label = '불러오는 중' }: {
 <a id="SettingsRow"></a>
 ## SettingsRow
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 153행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 154행.
 
 ```tsx
 export function SettingsRow({ label, description, children }: {
@@ -350,7 +352,7 @@ export function SettingsRow({ label, description, children }: {
 <a id="Dialog"></a>
 ## Dialog
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 158행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 159행.
 
 ```tsx
 export function Dialog({ open, title, children, onClose, actions, sheet = false, busy = false }: {
@@ -377,7 +379,7 @@ export function Dialog({ open, title, children, onClose, actions, sheet = false,
 <a id="NumberControl"></a>
 ## NumberControl
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 185행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 280행.
 
 ```tsx
 export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {
@@ -406,7 +408,7 @@ export function NumberControl({ label, value, onChange, min, max, step = 1, unit
 <a id="PageControls"></a>
 ## PageControls
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 221행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 316행.
 
 ```tsx
 export function PageControls({ page, count, onChange, performance = false }: {
@@ -427,7 +429,7 @@ export function PageControls({ page, count, onChange, performance = false }: {
 <a id="Transport"></a>
 ## Transport
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 227행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 322행.
 
 ```tsx
 export function Transport({ playing, onToggle, position = 0, duration, onSeek, onPrevious, onNext }: {
@@ -454,7 +456,7 @@ export function Transport({ playing, onToggle, position = 0, duration, onSeek, o
 <a id="TunerStatus"></a>
 ## TunerStatus
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 236행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 331행.
 
 ```tsx
 export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfidence';
@@ -463,7 +465,7 @@ export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfi
 <a id="TunerMeter"></a>
 ## TunerMeter
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 237행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 332행.
 
 ```tsx
 export function TunerMeter({ status, cents, note = 'A4' }: {
@@ -482,7 +484,7 @@ export function TunerMeter({ status, cents, note = 'A4' }: {
 <a id="BeatIndicator"></a>
 ## BeatIndicator
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 245행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 340행.
 
 ```tsx
 export function BeatIndicator({ beats, currentBeat, running }: {
@@ -501,7 +503,7 @@ export function BeatIndicator({ beats, currentBeat, running }: {
 <a id="ServiceAvailability"></a>
 ## ServiceAvailability
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 253행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 348행.
 
 ```tsx
 export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavailable';
@@ -510,7 +512,7 @@ export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavai
 <a id="ServiceLink"></a>
 ## ServiceLink
 
-소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 255행.
+소스: [packages/ddirori_web/src/index.tsx](../../../../packages/ddirori_web/src/index.tsx) · 조사 당시 350행.
 
 ```tsx
 export function ServiceLink({product,name,description,availability='available',onOpen}:{product:ProductId;name:string;description:string;availability?:ServiceAvailability;onOpen?:()=>void})
@@ -804,7 +806,7 @@ export function Select<T extends string>({
 <a id="Slider"></a>
 ## Slider
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 550행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 565행.
 
 ```tsx
 export function Slider({
@@ -842,7 +844,7 @@ export function Slider({
 <a id="SegmentedControl"></a>
 ## SegmentedControl
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 599행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 614행.
 
 ```tsx
 export function SegmentedControl<T extends string>({
@@ -871,7 +873,7 @@ export function SegmentedControl<T extends string>({
 <a id="Tabs"></a>
 ## Tabs
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 650행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 666행.
 
 ```tsx
 export function Tabs<T extends string>({
@@ -900,7 +902,7 @@ export function Tabs<T extends string>({
 <a id="Icon"></a>
 ## Icon
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 722행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 738행.
 
 ```tsx
 export function Icon({
@@ -920,7 +922,7 @@ export function Icon({
 <a id="Avatar"></a>
 ## Avatar
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 740행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 756행.
 
 ```tsx
 export function Avatar({ name, src }: { name: string; src?: string })
@@ -934,7 +936,7 @@ export function Avatar({ name, src }: { name: string; src?: string })
 <a id="Badge"></a>
 ## Badge
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 755행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 771행.
 
 ```tsx
 export function Badge({
@@ -954,7 +956,7 @@ export function Badge({
 <a id="StatusBadge"></a>
 ## StatusBadge
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 764행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 780행.
 
 ```tsx
 export function StatusBadge({
@@ -974,7 +976,7 @@ export function StatusBadge({
 <a id="Divider"></a>
 ## Divider
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 780행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 796행.
 
 ```tsx
 export function Divider()
@@ -983,7 +985,7 @@ export function Divider()
 <a id="List"></a>
 ## List
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 783행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 799행.
 
 ```tsx
 export function List({
@@ -1003,7 +1005,7 @@ export function List({
 <a id="Card"></a>
 ## Card
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 796행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 812행.
 
 ```tsx
 export function Card({ children }: { children: ReactNode })
@@ -1016,7 +1018,7 @@ export function Card({ children }: { children: ReactNode })
 <a id="Section"></a>
 ## Section
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 799행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 815행.
 
 ```tsx
 export function Section({
@@ -1039,7 +1041,7 @@ export function Section({
 <a id="Accordion"></a>
 ## Accordion
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 820행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 836행.
 
 ```tsx
 export function Accordion({
@@ -1065,7 +1067,7 @@ export function Accordion({
 <a id="TableColumn"></a>
 ## TableColumn
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 849행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 867행.
 
 ```tsx
 export type TableColumn = { key: string; label: string; sortable?: boolean };
@@ -1074,7 +1076,7 @@ export type TableColumn = { key: string; label: string; sortable?: boolean };
 <a id="Table"></a>
 ## Table
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 850행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 868행.
 
 ```tsx
 export function Table({
@@ -1106,7 +1108,7 @@ export function Table({
 <a id="InlineMessage"></a>
 ## InlineMessage
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 920행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 938행.
 
 ```tsx
 export function InlineMessage({
@@ -1126,7 +1128,7 @@ export function InlineMessage({
 <a id="Toast"></a>
 ## Toast
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 937행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 955행.
 
 ```tsx
 export function Toast({
@@ -1149,7 +1151,7 @@ export function Toast({
 <a id="Skeleton"></a>
 ## Skeleton
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 956행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 974행.
 
 ```tsx
 export function Skeleton({
@@ -1169,7 +1171,7 @@ export function Skeleton({
 <a id="ConfirmDialog"></a>
 ## ConfirmDialog
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 971행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 989행.
 
 ```tsx
 export function ConfirmDialog({
@@ -1204,7 +1206,7 @@ export function ConfirmDialog({
 <a id="AppHeader"></a>
 ## AppHeader
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1019행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1037행.
 
 ```tsx
 export function AppHeader({
@@ -1230,7 +1232,7 @@ export function AppHeader({
 <a id="Navigation"></a>
 ## Navigation
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1047행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1065행.
 
 ```tsx
 export function Navigation({
@@ -1250,7 +1252,7 @@ export function Navigation({
 <a id="NavigationItem"></a>
 ## NavigationItem
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1060행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1078행.
 
 ```tsx
 export function NavigationItem({
@@ -1276,12 +1278,13 @@ export function NavigationItem({
 <a id="Popover"></a>
 ## Popover
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1084행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1102행.
 
 ```tsx
 export function Popover({
   label,
   triggerLabel,
+  triggerKind = "secondary",
   open,
   onOpenChange,
   children,
@@ -1290,6 +1293,7 @@ export function Popover({
 }: {
   label: string;
   triggerLabel?: string;
+  triggerKind?: "secondary" | "quiet";
   open: boolean;
   onOpenChange: (v: boolean) => void;
   children: ReactNode;
@@ -1302,6 +1306,7 @@ export function Popover({
 | --- | --- | --- | --- |
 | label | string | 예 | — |
 | triggerLabel | string &#124; undefined | 아니오 | — |
+| triggerKind | "secondary" &#124; "quiet" &#124; undefined | 아니오 | "secondary" |
 | open | boolean | 예 | — |
 | onOpenChange | (v: boolean) => void | 예 | — |
 | children | ReactNode | 예 | — |
@@ -1311,7 +1316,7 @@ export function Popover({
 <a id="Menu"></a>
 ## Menu
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1193행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1227행.
 
 ```tsx
 export function Menu({
@@ -1336,7 +1341,7 @@ export function Menu({
 <a id="Tooltip"></a>
 ## Tooltip
 
-소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1267행.
+소스: [packages/ddirori_web/src/basic.tsx](../../../../packages/ddirori_web/src/basic.tsx) · 조사 당시 1305행.
 
 ```tsx
 export function Tooltip({

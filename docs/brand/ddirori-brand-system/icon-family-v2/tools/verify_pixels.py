@@ -35,4 +35,10 @@ for p in temp.glob('adaptive-*.png'):
  im=Image.open(p).convert('RGBA');r=max(math.hypot(x+.5-54,y+.5-54) for y in range(108) for x in range(108) if im.getpixel((x,y))[3]>=128)
  assert r<=33,(p,r)
  safe.append({'glyph':p.stem,'furthestOpaquePixelRadius':round(r,3),'safeRadius':33})
-print(json.dumps({'pngCount':count,'metrics':metrics,'adaptive':safe,'containerValidation':'PNG-backed ICNS/ICO frames decoded; not OS install validation'}))
+reencoded = json.loads(sys.argv[3]) if len(sys.argv) > 3 else []
+for name in reencoded:
+ with Image.open(root/name) as original, Image.open(temp/name) as rebuilt:
+  assert original.mode == rebuilt.mode and original.size == rebuilt.size, name
+  assert original.tobytes() == rebuilt.tobytes(), f'Rebuilt PNG pixels differ: {name}'
+  assert original.info == rebuilt.info, f'Rebuilt PNG metadata differs: {name}'
+print(json.dumps({'pngCount':count,'metrics':metrics,'adaptive':safe,'reencodedPngCount':len(reencoded),'containerValidation':'PNG-backed ICNS/ICO frames decoded; not OS install validation'}))

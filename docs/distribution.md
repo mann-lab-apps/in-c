@@ -36,28 +36,22 @@ npm run package:linux
 배포 전에 [`docs/releases/checklist-template.md`](releases/checklist-template.md)를
 릴리즈 PR이나 이슈에 복사하고 모든 필수 항목을 확인한다.
 
-`package.json` 버전과 같은 `v` 접두사 태그를 push하면 Release workflow가
-시작된다.
+후보 브랜치의 소스 SHA를 고정한다. 변경이 경로 필터에 해당하면 PR의
+`Release` 검사에서 세 플랫폼의 테스트·패키징·기본 실행을 확인할 수 있다.
+Windows·Linux 기본 실행만 확인할 때는 수동 실행의 `tag=preflight`를 사용한다.
+두 경로 모두 게시 작업을 건너뛴다. PR의 macOS 패키지는 Developer ID 서명과
+공증을 생략한다.
 
-```bash
-npm version 0.1.0-alpha.2 --no-git-tag-version
-git add package.json package-lock.json
-git commit -m "Prepare 0.1.0-alpha.2"
-git tag v0.1.0-alpha.2
-git push origin main v0.1.0-alpha.2
-```
+게시 승인 뒤에는 후보 SHA를 가리키는 `release/*` 브랜치에서 `Release`를
+수동 실행한다. `tag`에 `package.json` 버전과 일치하는 새 태그를 입력하고
+`candidate=true`를 선택한다. 워크플로가 세 플랫폼의 테스트·패키징·기본 실행과
+macOS 서명·공증을 마친 뒤 후보에 태그를 만들고 GitHub 프리릴리즈를 게시한다.
+게시 파일과 `SHA256SUMS.txt`를 내려받아 확인한다.
 
-macOS, Windows와 Linux job은 각각 네이티브 패키지를 만들고 packaged app
-smoke test를 실행한다. 세 job이 모두 성공해야 prerelease가 생성된다.
-Release에는 설치 파일과 `SHA256SUMS.txt`가 함께 게시된다.
-
-Release workflow는 `v*` 태그를 만든 뒤에야 native artifact를 검증할 수 있다.
-따라서 릴리즈 전에는 로컬 검증과 PR/브랜치 CI를 사전 게이트로 사용한다. 태그 후
-Release workflow가 실패하면 태그를 재사용하지 않고 다음 alpha 버전으로 새
-prerelease를 만든다.
-
-이미 존재하는 태그는 GitHub Actions의 `Release` workflow dispatch에서도
-선택할 수 있다. package version과 태그가 다르면 게시 전에 실패한다.
+워크플로 실패 시 먼저 실행 SHA와 태그·릴리즈·산출물의 실제 상태를 조회하고
+실패 로그를 보존한다. 기존 태그가 있으면 후보 SHA와 일치하는지 확인한다.
+소스를 수정한 후보에 이전 태그를 옮기지 않는다. 태그 push도 `Release`를
+시작하므로 후보 수동 실행과 별도 태그 push를 같은 릴리즈에 병행하지 않는다.
 
 ## 버전과 브랜치 운영
 
@@ -71,8 +65,9 @@ prerelease를 만든다.
   릴리즈 커밋을 가리킨다.
 - 태그는 재사용하지 않는다. 문제가 있으면 다음 alpha 버전으로 새 릴리즈를
   만든다.
-- 릴리즈가 생성된 뒤 다운로드 페이지의 `site/download-manifest.json`을
-  새 태그와 산출물 정보로 갱신하고 `main`에 반영한다.
+- 게시 파일 검증 뒤 공식 `ddirori.com/studio/`의 다운로드 매니페스트와
+  정적 대체 링크를 `mann-lab-apps/ddirori`에서 갱신한다. 이전 안내의
+  `site/download-manifest.json`을 갱신해야 하면 해당 사이트의 배포 범위를 적용한다.
 
 ## 설치 경고
 
