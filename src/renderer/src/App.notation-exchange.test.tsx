@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { createPhaseTrace } from './metadata-ci-phase-probe'
 import '@testing-library/jest-dom/vitest'
 import { useMemo } from 'react'
 import {
@@ -1178,6 +1179,8 @@ describe('App component shell', () => {
   })
 
   it.each(['save','copy'] as const)('studio.metadata-save-feedback keeps blocked %s editable and recovers through actual metadata commands',async channel=>{
+    const phase=createPhaseTrace(channel)
+    phase('begin')
     window.history.replaceState({},'', '/?fixture=release-test')
     const {createScore,createNote}=await import('../../score-core'),{createNativeProject,encodeNativeProject,decodeNativeProject}=await import('../../project/schema')
     const {serializeMidi}=await import('./midi/serialize-midi')
@@ -1187,7 +1190,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.project.save).mockResolvedValue({filePath:'/scores/metadata.chromatics',fileName:'metadata.chromatics'})
     vi.mocked(window.inC.musicXml.save).mockResolvedValue({filePath:'/scores/metadata.musicxml',fileName:'metadata.musicxml'})
     vi.mocked(window.inC.musicXml.exportCopy).mockResolvedValue({filePath:'/scores/metadata.musicxml',fileName:'metadata.musicxml'})
-    const {App}=await import('./App');render(<App/>);openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}));await screen.findByText('metadata.chromatics을 열었습니다.')
+    phase('fixture ready');const {App}=await import('./App');phase('App imported');render(<App/>);phase('rendered');openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 열기'}));await screen.findByText('metadata.chromatics을 열었습니다.');phase('native opened')
     fireEvent.click(screen.getByRole('button',{name:'metadata-note 선택'}));fireEvent.keyDown(window,{key:'d',code:'KeyD'});const edited=structuredClone(playbackMockState.lastScore!)
     openStudioWorkspace(channel==='save'?'파일':'내보내기');const label=channel==='save'?'MusicXML로 저장':'MusicXML 내보내기',trigger=screen.getByRole('button',{name:label});act(()=>trigger.focus());fireEvent.click(trigger);await act(async()=>{})
     expect(document.querySelector('.editor-status')).toHaveTextContent('제목·작곡가')
@@ -1197,21 +1200,22 @@ describe('App component shell', () => {
     expect(raw).not.toBeVisible();fireEvent.click(within(technical).getByText('기술 정보'));expect(raw).toBeVisible()
     fireEvent.keyDown(within(technical).getByText('기술 정보'),{key:'Enter'});fireEvent.keyDown(within(technical).getByText('기술 정보'),{key:' ',code:'Space'})
     expect(playbackMockState.play).not.toHaveBeenCalled();expect(playbackMockState.playFromEvent).not.toHaveBeenCalled();expect(window.inC.musicXml.save).not.toHaveBeenCalled();expect(window.inC.musicXml.exportCopy).not.toHaveBeenCalled()
-    expect(playbackMockState.lastScore).toEqual(edited);expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id','metadata-note');expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정');await waitFor(()=>expect(trigger).toHaveFocus())
+    expect(playbackMockState.lastScore).toEqual(edited);expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id','metadata-note');expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경');expect(document.querySelector('.editor-status')).toHaveTextContent('1회 수정');await waitFor(()=>expect(trigger).toHaveFocus());phase('rejected and preserved')
     openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}));await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledOnce());expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents).score).toEqual(edited)
-    const normalized=structuredClone(edited);normalized.title=edited.title.trim();normalized.composer=edited.composer!.trim()
+    phase('first Native saved');const normalized=structuredClone(edited);normalized.title=edited.title.trim();normalized.composer=edited.composer!.trim()
     for(const [action,field]of [['악보 제목 편집','악보 제목'],['작곡가 편집','작곡가']]as const){
       fireEvent.click(screen.getByRole('button',{name:'악보 정보'}));fireEvent.click(screen.getByRole('button',{name:action}));const input=screen.getByRole('textbox',{name:field});expect(input).toHaveFocus();fireEvent.keyDown(input,{key:'Enter'});fireEvent.blur(input);await act(async()=>{});expect(screen.getByRole('button',{name:'악보 정보'})).toHaveFocus()
     }
     expect(playbackMockState.lastScore).toEqual(normalized);expect(document.querySelector('.editor-status')).toHaveTextContent('3회 수정');expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-event-id','metadata-note')
-    fireEvent.keyDown(window,{key:'z',ctrlKey:true});expect(playbackMockState.lastScore).toEqual({...normalized,composer:edited.composer})
+    phase('metadata edited');fireEvent.keyDown(window,{key:'z',ctrlKey:true});expect(playbackMockState.lastScore).toEqual({...normalized,composer:edited.composer})
     fireEvent.keyDown(window,{key:'z',ctrlKey:true});expect(playbackMockState.lastScore).toEqual(edited)
     fireEvent.keyDown(window,{key:'z',ctrlKey:true});expect(playbackMockState.lastScore).toEqual(score)
     for(let i=0;i<3;i++)fireEvent.keyDown(window,{key:'z',ctrlKey:true,shiftKey:true});expect(playbackMockState.lastScore).toEqual(normalized)
-    openStudioWorkspace(channel==='save'?'파일':'내보내기');const retry=screen.getByRole('button',{name:label});act(()=>retry.focus());fireEvent.click(retry);const ipc=channel==='save'?window.inC.musicXml.save:window.inC.musicXml.exportCopy;await waitFor(()=>expect(ipc).toHaveBeenCalledOnce());await waitFor(()=>expect(retry).toHaveFocus())
-    const reopened=parseMusicXml(vi.mocked(ipc).mock.calls[0][0].contents);expect(reopened.title).toBe(normalized.title);expect(reopened.composer).toBe(normalized.composer);expect(serializeMidi(reopened)).toEqual(serializeMidi(edited));expect(playbackMockState.lastScore).toEqual(normalized)
+    phase('undo and redo checked');openStudioWorkspace(channel==='save'?'파일':'내보내기');const retry=screen.getByRole('button',{name:label});act(()=>retry.focus());fireEvent.click(retry);const ipc=channel==='save'?window.inC.musicXml.save:window.inC.musicXml.exportCopy;await waitFor(()=>expect(ipc).toHaveBeenCalledOnce());await waitFor(()=>expect(retry).toHaveFocus())
+    phase('MusicXML retried');const reopened=parseMusicXml(vi.mocked(ipc).mock.calls[0][0].contents);expect(reopened.title).toBe(normalized.title);expect(reopened.composer).toBe(normalized.composer);expect(serializeMidi(reopened)).toEqual(serializeMidi(edited));expect(playbackMockState.lastScore).toEqual(normalized)
     if(channel==='copy')expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경')
     openStudioWorkspace('파일');fireEvent.click(screen.getByRole('button',{name:'프로젝트 저장'}));await waitFor(()=>expect(window.inC.project.save).toHaveBeenCalledTimes(2));expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1][0].contents).score).toEqual(normalized)
+    phase('complete')
   },15_000)
 
   it.each(['save','copy'] as const)('studio.repeat-conflict-feedback explains blocked %s without losing native history',async channel=>{
