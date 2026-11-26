@@ -1,24 +1,25 @@
-name: Play Store text update
+name: Play independent store information verification
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Requested Play listing text update
+        description: Read-only verification label
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  inspect:
+  verify:
     runs-on: [self-hosted, macOS, ARM64, in-c-release]
     timeout-minutes: 5
     steps:
-      - name: Verify scoped text-update script and save requested listing fields
-        working-directory: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/app-info-20261126
+      - name: Run hash-checked GET-only verification
+        working-directory: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/app-info-20261126/independent-20261126T085023Z
         env:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           BUNDLE_GEMFILE: /Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/Gemfile
           BUNDLE_PATH: /Users/jaemankim/Desktop/privates/coding/in-c/deployment/vendor/bundle
         run: |
-          python3 -c "import hashlib; assert hashlib.sha256(open('/tmp/play_store_info_update_20261126.rb','rb').read()).hexdigest() == '631f1289b4292b4552b90ae8a88231cf0b6e38e41e6315eb67362a33a774cbb3'"
-          /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby /tmp/play_store_info_update_20261126.rb
+          python3 -c "import hashlib; assert hashlib.sha256(open('/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/app-info-20261126/independent-20261126T085023Z/verify-store-info.rb','rb').read()).hexdigest() == 'd73268dc0d4b655f86fb2d1fe8eb4ff0ce25ffb1ed5a4173fbab3779d8b49f61'"
+          /opt/homebrew/bin/bundle exec /opt/homebrew/bin/ruby '/Users/jaemankim/Desktop/privates/coding/worktrees/ddirori-play-library-context-20261031/deployment/output/classical-local-library/app-info-20261126/independent-20261126T085023Z/verify-store-info.rb'
+
