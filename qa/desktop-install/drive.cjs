@@ -7,7 +7,7 @@ const { createHash } = require('node:crypto')
 const { fileURLToPath } = require('node:url')
 
 const [mode, executableArg, workArg, expectedAsar] = process.argv.slice(2)
-assert(['fresh', 'prepare', 'recover', 'distribution'].includes(mode))
+assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default'].includes(mode))
 const executable = path.resolve(executableArg)
 const work = path.resolve(workArg)
 const results = path.join(work, 'results')
@@ -267,6 +267,22 @@ function checkCopy(copy, snapshot, key) {
 }
 
 async function main() {
+  if (mode === 'portable-default') {
+    assert.equal(process.platform, 'win32')
+    const profile = profileFor('v3')
+    const recovered = copyFor('recovered-v3')
+    const saved = hash(recovered)
+    await connect('portable-default', profile, async qa => {
+      await wait(async () => (await qa.state()).recent.includes(path.basename(recovered)),
+        'installed recent file in portable default profile')
+      assert(!fs.existsSync(path.join(profile, 'autosave', 'recovery.json')))
+      await qa.screenshot('recent')
+      await qa.open(recovered)
+      assert.equal(hash(recovered), saved)
+      return { recentFromInstalled: true, reopened: true, installedFile: path.basename(recovered), sha256: saved }
+    }, true)
+    return
+  }
   if (mode === 'prepare' || mode === 'recover') {
     for (const key of ['v2', 'v3']) {
       const profile = profileFor(key)

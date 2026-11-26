@@ -121,3 +121,13 @@ for root, expected_platform in ((windows, "win32"), (linux, "linux")):
     check_native(native, details, 3)
     check_mxl(unique(root, "distribution.mxl"), native, details)
     print("PASS distribution launcher, Native v3, MXL score and fixed XSD", delivery["deliveryMode"])
+
+portable_default = read(unique(windows, "portable-default.json"))
+installed_default = read(unique(windows, "installed-recovered-v3.json"))
+assert portable_default["deliveryMode"] == "portable-exe" and portable_default["sharedDefault"]
+assert portable_default["appAsarSha256"] == installed_default["appAsarSha256"]
+assert portable_default["profile"] == installed_default["profile"]
+assert portable_default["details"]["recentFromInstalled"] and portable_default["details"]["reopened"]
+installed_file = unique(windows, portable_default["details"]["installedFile"])
+assert digest(installed_file) == portable_default["details"]["sha256"] == installed_default["details"]["savedSha256"]
+print("PASS Windows portable default profile sees and reopens the installed application's recent score")

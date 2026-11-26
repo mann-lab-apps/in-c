@@ -72,6 +72,7 @@ Run-App 'recover' $app (Join-Path $Work 'transition') $asar
 
 $env:STUDIO_QA_DELIVERY_MODE = 'portable-exe'
 Run-App 'distribution' $portable (Join-Path $Work 'portable') $asar
+Run-App 'portable-default' $portable (Join-Path $Work 'transition') $asar
 @{ arch = $env:RUNNER_ARCH; filesystem = $drive.DriveFormat; candidateAsarSha256 = $asar
     portableSha256 = (Get-FileHash $portable -Algorithm SHA256).Hash.ToLowerInvariant()
     publishedToCandidate = 'same-version replacement'; appId = $appId } |
