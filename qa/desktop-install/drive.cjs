@@ -34,7 +34,7 @@ async function wait(test, label, timeout = 18000) {
   throw Error('Timed out: ' + label)
 }
 
-function dialog(title, file) {
+async function dialog(title, file) {
   assert.equal(path.dirname(file), files)
   if (process.platform === 'win32') {
     execFileSync('pwsh', ['-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'choose-file.ps1'),
@@ -45,9 +45,28 @@ function dialog(title, file) {
       '--limit', '1', '--name', quotedTitle], { encoding: 'utf8' }).trim()
     const keys = (...args) => execFileSync('xdotool', args, { timeout: 3000 })
     keys('windowfocus', '--sync', windowId)
+    await pause(250)
     keys('key', '--clearmodifiers', 'ctrl+l')
-    keys('type', '--clearmodifiers', '--', file)
+    await pause(400)
+    keys('key', '--clearmodifiers', 'ctrl+a')
+    keys('type', '--clearmodifiers', '--delay', '12', '--', file)
+    await pause(550)
     keys('key', '--clearmodifiers', 'Return')
+    await pause(450)
+    const isStillOpen = () => {
+      try {
+        keys('search', '--onlyvisible', '--name', quotedTitle)
+        return true
+      } catch (error) {
+        if (error.status !== 1) throw error
+        return false
+      }
+    }
+    if (isStillOpen()) {
+      keys('windowfocus', '--sync', windowId)
+      keys('key', '--clearmodifiers', 'Return')
+    }
+    await wait(() => !isStillOpen(), 'native GTK dialog accepted ' + title, 7000)
   }
 }
 
@@ -102,6 +121,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     title: document.querySelector('.studio-document h1')?.textContent ?? '',
     unsaved: document.querySelector('.studio-document__state')?.textContent ?? '',
     status: document.querySelector('.editor-status')?.textContent ?? '',
+    startupFeedback: document.querySelector('.studio-start__feedback')?.textContent ?? '',
     recent: document.querySelector('.recent-files__list')?.textContent ?? '',
     selected: [...document.querySelectorAll('.notation-event.is-selected')].map(event => event.dataset.eventId)
   }))
@@ -156,7 +176,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     const menu = async label => { await click('파일'); await click(label) }
     const chooser = async (clickAction, title, file) => {
       await clickAction()
-      dialog(title, file)
+      await dialog(title, file)
     }
     const open = async file => {
       if (!(await state()).startup) await menu('파일 작업 열기')
@@ -198,6 +218,9 @@ async function connect(label, profile, action, sharedDefault = false) {
     failure = error
     const latest = socket?.readyState === WebSocket.OPEN ? await state().catch(() => null) : null
     fs.writeFileSync(path.join(results, label + '-failure.json'), JSON.stringify({ error: String(error), latest }, null, 2))
+    if (process.platform === 'linux') {
+      execFileSync('xwd', ['-root', '-silent', '-out', path.join(results, label + '-desktop.xwd')], { timeout: 2500 })
+    }
   } finally {
     if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ id: ++id, method: 'Browser.close' }))
@@ -230,7 +253,7 @@ function checkCopy(copy, snapshot, key) {
   assert.deepEqual(pitch(project.score), pitch(snapshot.score))
   if (key === 'v3') assert.equal(project.score.hairpins[0].endTime.tick, 20160)
   return { savedSha256: hash(copy), savedVersion: project.version, savedPitch: pitch(project.score),
-    endTick: project.score.hairpins[0]?.endTime?.tick ?? null }
+    endTick: project.score.hairpins?.[0]?.endTime?.tick ?? null }
 }
 
 async function main() {
