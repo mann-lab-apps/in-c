@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 if ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($File)) -ne [IO.Path]::GetFullPath($FixtureDirectory)) {
     throw 'The dialog must target a generated fixture or output.'
 }
+Add-Type -AssemblyName System.Windows.Forms
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -21,6 +22,25 @@ public static class FixtureDialog {
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr window, StringBuilder buffer, int capacity);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, string text);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, IntPtr process);
+    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint source, uint destination, bool attach);
+    [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr window);
+    [DllImport("user32.dll")] public static extern IntPtr GetFocus();
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
+
+    public static bool FocusEdit(IntPtr dialog, IntPtr edit) {
+        uint own = GetCurrentThreadId();
+        uint ui = GetWindowThreadProcessId(edit, IntPtr.Zero);
+        if (!AttachThreadInput(own, ui, true)) return false;
+        try {
+            SetForegroundWindow(dialog);
+            SetFocus(edit);
+            return GetFocus() == edit;
+        } finally {
+            AttachThreadInput(own, ui, false);
+        }
+    }
 
     public static IntPtr FindEdit(IntPtr container) {
         var result = IntPtr.Zero;
@@ -51,10 +71,20 @@ $button = [FixtureDialog]::GetDlgItem($window, 1)
 if ($edit -eq [IntPtr]::Zero -or $button -eq [IntPtr]::Zero) {
     throw "Could not find the native filename and OK controls: $Title"
 }
-if ([FixtureDialog]::SendMessage($edit, 0x000C, [IntPtr]::Zero, $File) -eq [IntPtr]::Zero) {
-    throw "Could not set the native filename: $Title"
-}
-if (-not [FixtureDialog]::PostMessage($button, 0x00f5, [IntPtr]::Zero, [IntPtr]::Zero)) {
-    throw "Could not confirm the native dialog: $Title"
+if (Test-Path -LiteralPath $File) {
+    if ([FixtureDialog]::SendMessage($edit, 0x000C, [IntPtr]::Zero, $File) -eq [IntPtr]::Zero) {
+        throw "Could not set the native filename: $Title"
+    }
+    if (-not [FixtureDialog]::PostMessage($button, 0x00f5, [IntPtr]::Zero, [IntPtr]::Zero)) {
+        throw "Could not confirm the native dialog: $Title"
+    }
+} else {
+    # Use input notifications so the save dialog commits the edited name.
+    [Windows.Forms.Clipboard]::SetText($File)
+    if (-not [FixtureDialog]::FocusEdit($window, $edit)) { throw "Could not focus the native filename: $Title" }
+    [Windows.Forms.SendKeys]::SendWait('^a')
+    [Windows.Forms.SendKeys]::SendWait('^v')
+    Start-Sleep -Milliseconds 300
+    [Windows.Forms.SendKeys]::SendWait('{ENTER}')
 }
 Write-Output "Confirmed native dialog $Title for $([IO.Path]::GetFileName($File))"
