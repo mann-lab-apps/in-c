@@ -2405,6 +2405,7 @@ describe('App component shell', () => {
     const status = screen.getByRole('status', { name: '편집 및 파일 상태' })
     await waitFor(() => expect(status).toHaveTextContent('프로젝트를 열지 못했습니다.'))
     expect(status).toHaveTextContent('현재 악보는 유지됩니다.')
+    if (failure === 'invalid') expect(status).toHaveTextContent('파일의 JSON을 읽을 수 없습니다.')
     expect(status).not.toHaveTextContent(diagnostic)
     expect(status).toHaveTextContent('1회 수정')
     expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')
@@ -2430,6 +2431,24 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
     expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents).score).toEqual(incoming.score)
+  })
+
+  it.each([
+    ['Error: Unsupported Chromatics project version: 4. Original file was not modified.', '지원하지 않는 프로젝트 형식 v4'],
+    ['Error: Unsupported Chromatics project version value. Original file was not modified.', '프로젝트 형식 버전 정보가 올바르지 않습니다.'],
+    [JSON.stringify([{ code: 'unrecognized_keys', path: ['score'], keys: ['newSetting'], message: 'Unrecognized key' }]),
+      '이 앱에서 읽을 수 없는 프로젝트 항목']
+  ])('studio.project-open-feedback explains a rejected Native file without including its raw diagnostic (%s)', async (reason, guidance) => {
+    const diagnostic = `Error invoking remote method 'project:open': ${reason}`
+    vi.mocked(window.inC.project.open).mockRejectedValueOnce(new Error(diagnostic))
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    expect(await screen.findByText(new RegExp(guidance))).toBeVisible()
+    const technical = screen.getByRole('group', { name: '프로젝트 열기 기술 정보' })
+    expect(within(technical).getByText(diagnostic)).not.toBeVisible()
+    fireEvent.click(within(technical).getByRole('button', { name: '기술 정보' }))
+    expect(within(technical).getByText(diagnostic)).toBeVisible()
   })
 
   it('studio.project-open-feedback distinguishes an opened document from failed recent-list bookkeeping', async () => {
@@ -2503,7 +2522,12 @@ describe('App component shell', () => {
     if (stage === 'cleanup') vi.mocked(window.inC.autosave.clear).mockRejectedValueOnce(new Error(diagnostic))
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 파일 저장' }))
     const status = screen.getByRole('status', { name: '편집 및 파일 상태' })
-    await waitFor(() => expect(status).toHaveTextContent('프로젝트 저장을 마무리하지 못했습니다.'))
+    const summaries = {
+      write: '프로젝트 저장을 마무리하지 못했습니다.',
+      recent: '프로젝트 파일은 저장했습니다. 최근 악보 목록을 갱신하지 못했습니다.',
+      cleanup: '프로젝트 파일은 저장했습니다. 자동저장 복구 정보를 갱신하지 못했습니다.'
+    }
+    await waitFor(() => expect(status).toHaveTextContent(summaries[stage]))
     expect(status).toHaveTextContent('다시 시도해 주세요.')
     expect(status).not.toHaveTextContent(diagnostic)
     expect(document.querySelector('.studio-document')).toHaveTextContent('저장하지 않은 변경')

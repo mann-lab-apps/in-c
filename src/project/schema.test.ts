@@ -35,6 +35,14 @@ describe('native project schema', () => {
     expect(() => validateNativeProject({ ...source(), version })).toThrow(/Unsupported.*version/)
   })
 
+  it('distinguishes a numeric project version from a malformed version field', () => {
+    const project = source()
+    expect(() => validateNativeProject({ ...project, version: 4 })).toThrow('Unsupported Chromatics project version: 4.')
+    for (const version of ['4', { toString: '4' }]) {
+      expect(() => validateNativeProject({ ...project, version })).toThrow('Unsupported Chromatics project version value.')
+    }
+  })
+
   it('migrates version 1 without changing its source and preserves version 2 span geometry', () => {
     const legacy = { ...source(), version: 1 }
     const contents = JSON.stringify(legacy)

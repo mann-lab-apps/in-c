@@ -140,7 +140,8 @@ export function validateNativeProject(input: unknown): NativeProject {
     input = { ...legacy, version: NATIVE_VERSION }
   }
   if (input && typeof input === 'object' && 'format' in input && input.format === NATIVE_FORMAT && 'version' in input && input.version !== NATIVE_VERSION && input.version !== TIME_HAIRPIN_NATIVE_VERSION) {
-    throw new Error(`Unsupported Chromatics project version: ${String(input.version)}. Original file was not modified.`)
+    const version = typeof input.version === 'number' && Number.isSafeInteger(input.version) ? `: ${input.version}` : ' value'
+    throw new Error(`Unsupported Chromatics project version${version}. Original file was not modified.`)
   }
   const project = nativeProjectSchema.parse(input)
   if (project.version !== nativeProjectVersion(project.score)) {

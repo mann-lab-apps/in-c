@@ -50,3 +50,29 @@ it('ordinary recovery keeps Native geometry and opens controls without a pending
   openStudioWorkspace('파일');expect(screen.getByRole('button',{name:'프로젝트 열기'})).toBeEnabled();expect(screen.getByRole('button',{name:'MusicXML 가져오기'})).toBeEnabled()
   await save(recovered)
 })
+
+it('reports a completed Native write and leaves a later recovery edit pending when recent bookkeeping fails', async () => {
+  const recovered = await setup()
+  const file = { filePath: '/owned/recovered.chromatics', fileName: 'recovered.chromatics' }
+  let finishSave!: (value: typeof file) => void
+  vi.mocked(window.inC.project.save).mockImplementationOnce(() => new Promise(resolve => { finishSave = resolve }))
+  vi.mocked(window.inC.recentMusicXml.add).mockRejectedValueOnce(new Error('Recent index unavailable'))
+
+  const { App } = await import('./App')
+  render(<App />)
+  fireEvent.click(await screen.findByRole('button', { name: '복구본 열기' }))
+  openStudioWorkspace('파일')
+  fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+  await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+  const [{ contents }] = vi.mocked(window.inC.project.save).mock.calls[0]
+  expect(decodeNativeProject(contents).score).toEqual(recovered.score)
+
+  fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp' })
+  expect(playbackMockState.lastScore).not.toEqual(recovered.score)
+  await act(async () => finishSave(file))
+  const status = screen.getByRole('status', { name: '편집 및 파일 상태' })
+  await waitFor(() => expect(status).toHaveTextContent('프로젝트 파일은 저장했습니다. 최근 악보 목록을 갱신하지 못했습니다.'))
+  expect(status).toHaveTextContent('저장 중 변경사항은 아직 저장되지 않았습니다.')
+  expect(document.querySelector('.studio-document__state')).toHaveTextContent('저장하지 않은 변경')
+  expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+})

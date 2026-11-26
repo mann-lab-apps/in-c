@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { MusicXmlFileSession } from './musicxml-files'
 import { NativeProjectFileSession } from './project-files'
+import { fileRevision } from './file-revision'
 import { decodeNativeProject, encodeNativeProject } from '../project/schema'
 import { AutosaveFileStore, type AutosaveSnapshot } from './autosave-files'
 import { RecentFileStore } from './recent-files'
@@ -57,10 +58,13 @@ ipcMain.handle('project:open', async () => {
     : await dialog.showOpenDialog({ title: `${studioDisplayName} 프로젝트 열기`, properties: ['openFile'], filters: [{ name: 'Studio 프로젝트 (.chromatics)', extensions: ['chromatics'] }] })
   const filePath = result.filePaths[0]
   if (result.canceled || !filePath) return null
-  return { filePath, fileName: basename(filePath), contents: encodeNativeProject(await nativeFiles.open(filePath)) }
+  const contents = encodeNativeProject(await nativeFiles.open(filePath))
+  return { filePath, fileName: basename(filePath), contents, revision: fileRevision(contents) }
 })
 
-ipcMain.handle('project:save', async (_event, input: { filePath?: string; suggestedName: string; contents: string }) => {
+ipcMain.handle('project:save', async (_event, input: {
+  filePath?: string; expectedRevision?: string; revisionPath?: string; suggestedName: string; contents: string
+}) => {
   const project = decodeNativeProject(input.contents)
   let filePath = input.filePath
   if (!filePath) {
@@ -71,8 +75,8 @@ ipcMain.handle('project:save', async (_event, input: { filePath?: string; sugges
     filePath = result.filePath
     nativeFiles.authorizeSave(filePath)
   }
-  await nativeFiles.save(filePath, project)
-  return { filePath, fileName: basename(filePath) }
+  const revision = await nativeFiles.save(filePath, project, input.expectedRevision, input.revisionPath)
+  return { filePath, fileName: basename(filePath), revision }
 })
 
 const autosaveFiles = new AutosaveFileStore(autosavePath)
@@ -188,11 +192,8 @@ ipcMain.handle(openMusicXmlChannel, async () => {
     return null
   }
 
-  return {
-    filePath,
-    fileName: basename(filePath),
-    contents: await musicXmlFiles.open(filePath)
-  }
+  const contents = await musicXmlFiles.open(filePath)
+  return { filePath, fileName: basename(filePath), contents, revision: fileRevision(contents) }
 })
 
 ipcMain.handle(
@@ -201,6 +202,7 @@ ipcMain.handle(
     _event,
     input: {
       filePath?: string
+      expectedRevision?: string
       suggestedName: string
       contents: string
     }
@@ -210,10 +212,11 @@ ipcMain.handle(
         assertSmokeDirectSavePath(input.filePath, input.filePath.endsWith('.mxl') ? 'mxl' : 'musicxml')
         musicXmlFiles.authorizeSave(input.filePath)
       }
-      await writeMusicXmlFile(input.filePath, input.contents)
+      const revision = await musicXmlFiles.save(input.filePath, input.contents, input.expectedRevision)
       return {
         filePath: input.filePath,
-        fileName: basename(input.filePath)
+        fileName: basename(input.filePath),
+        revision
       }
     }
 
@@ -237,10 +240,11 @@ ipcMain.handle(
     }
 
     musicXmlFiles.authorizeSave(result.filePath)
-    await writeMusicXmlFile(result.filePath, input.contents)
+    const revision = await musicXmlFiles.save(result.filePath, input.contents)
     return {
       filePath: result.filePath,
-      fileName: basename(result.filePath)
+      fileName: basename(result.filePath),
+      revision
     }
   }
 )
@@ -423,13 +427,10 @@ ipcMain.handle(
     const fileName = recent?.fileName ?? basename(input.filePath)
 
     try {
-      return {
-        filePath: input.filePath,
-        fileName,
-        contents: recent?.format === 'native'
-          ? encodeNativeProject(await nativeFiles.open(input.filePath))
-          : await musicXmlFiles.open(input.filePath)
-      }
+      const contents = recent?.format === 'native'
+        ? encodeNativeProject(await nativeFiles.open(input.filePath))
+        : await musicXmlFiles.open(input.filePath)
+      return { filePath: input.filePath, fileName, contents, revision: fileRevision(contents) }
     } catch (error) {
       if (isMissingFileError(error)) {
         throw new Error(`최근 파일을 찾을 수 없습니다: ${fileName}`)
@@ -1129,13 +1130,6 @@ function recentMusicXmlPath(): string {
 
 function musicXmlBackupDirectory(): string {
   return join(app.getPath('userData'), 'musicxml-backups')
-}
-
-async function writeMusicXmlFile(
-  filePath: string,
-  contents: string
-): Promise<void> {
-  await musicXmlFiles.save(filePath, contents)
 }
 
 async function backupExistingMusicXmlFile(

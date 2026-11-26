@@ -1,4 +1,5 @@
-import { chmod, copyFile, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, copyFile, mkdtemp, readFile, readdir, readlink, rename, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
@@ -119,6 +120,93 @@ describe('native project disk lifecycle', () => {
       await writeFile(env.file, future)
       await expect(session.save(env.file, env.project)).rejects.toThrow(/Unsupported/)
       expect(await readFile(env.file, 'utf8')).toBe(future)
+    } finally { await env.cleanup() }
+  })
+
+  it('checks the accepted project revision even after another read observes an external edit', async () => {
+    const env = await setup()
+    const session = new NativeProjectFileSession(env.backup)
+    try {
+      await writeFile(env.file, encodeNativeProject(env.project))
+      const accepted = await session.open(env.file)
+      const expectedRevision = createHash('sha256').update(encodeNativeProject(accepted)).digest('hex')
+      const external = { ...accepted, score: { ...accepted.score, title: 'External edit' } }
+      const externalContents = encodeNativeProject(external)
+      await writeFile(env.file, externalContents)
+      expect(await session.open(env.file)).toEqual(external)
+      accepted.score.title = 'Pending Studio edit'
+
+      await expect(session.save(env.file, accepted, expectedRevision)).rejects.toThrow(/changed on disk/)
+      expect(await readFile(env.file, 'utf8')).toBe(externalContents)
+      expect(await readdir(env.directory)).toEqual(['score.chromatics'])
+
+      const copy = join(env.directory, 'new-copy.chromatics')
+      session.authorizeSave(copy)
+      await session.save(copy, accepted, expectedRevision, env.file)
+      expect((await readNativeProjectFile(copy)).score.title).toBe('Pending Studio edit')
+      expect(await readFile(env.file, 'utf8')).toBe(externalContents)
+    } finally { await env.cleanup() }
+  })
+
+  it('keeps the file an external editor replaces while the project backup is being written', async () => {
+    const env = await setup()
+    const replacement = join(env.directory, 'external.chromatics')
+    let replaceDuringBackup = true
+    const session = new NativeProjectFileSession(async path => {
+      await env.backup(path)
+      if (replaceDuringBackup) {
+        replaceDuringBackup = false
+        await rename(replacement, env.file)
+      }
+    })
+    try {
+      const original = encodeNativeProject(env.project)
+      const external = structuredClone(env.project)
+      external.score.title = 'External replacement'
+      const externalContents = encodeNativeProject(external)
+      await writeFile(env.file, original)
+      await writeFile(replacement, externalContents)
+      const edited = await session.open(env.file)
+      const revision = createHash('sha256').update(encodeNativeProject(edited)).digest('hex')
+      edited.score.title = 'Studio edit'
+
+      await expect(session.save(env.file, edited, revision)).rejects.toThrow(/changed on disk/)
+      expect(await readFile(env.file, 'utf8')).toBe(externalContents)
+      expect(await readFile(env.backupPath, 'utf8')).toBe(original)
+      expect((await readdir(env.directory)).sort()).toEqual(['score.chromatics', 'score.chromatics.bak'])
+
+      expect(await session.open(env.file)).toEqual(external)
+      await session.save(env.file, edited)
+      expect(await readNativeProjectFile(env.file)).toEqual(edited)
+    } finally { await env.cleanup() }
+  })
+
+  it.skipIf(process.platform === 'win32')('preserves both projects when the selected link is retargeted during backup', async () => {
+    const env = await setup()
+    const link = join(env.directory, 'selected.chromatics')
+    const alternative = join(env.directory, 'alternative.chromatics')
+    const nextLink = join(env.directory, 'next.chromatics')
+    const session = new NativeProjectFileSession(async path => {
+      await env.backup(path)
+      await rename(nextLink, link)
+    })
+    try {
+      const original = encodeNativeProject(env.project)
+      const external = structuredClone(env.project)
+      external.score.title = 'Other project'
+      const externalContents = encodeNativeProject(external)
+      await writeFile(env.file, original)
+      await writeFile(alternative, externalContents)
+      await symlink('score.chromatics', link)
+      await symlink('alternative.chromatics', nextLink)
+      const edited = await session.open(link)
+      edited.score.title = 'Studio edit'
+
+      await expect(session.save(link, edited)).rejects.toThrow(/changed on disk/)
+      expect(await readFile(env.file, 'utf8')).toBe(original)
+      expect(await readFile(alternative, 'utf8')).toBe(externalContents)
+      expect(await readlink(link)).toBe('alternative.chromatics')
+      expect((await readdir(env.directory)).filter(name => name.endsWith('.tmp'))).toEqual([])
     } finally { await env.cleanup() }
   })
 })

@@ -25,6 +25,15 @@ interface RecentMusicXmlFile {
   format?: 'native'
 }
 
+export interface ScoreFile {
+  filePath: string
+  fileName: string
+  revision?: string
+}
+
+type OpenScoreFile = ScoreFile & { contents: string }
+type SaveScoreFileInput = { filePath?: string; expectedRevision?: string; suggestedName: string; contents: string }
+
 const api = {
   appName: studioDisplayName,
   png: {
@@ -33,9 +42,8 @@ const api = {
   project: {
     listBackups: () => ipcRenderer.invoke('project:list-backups') as Promise<NativeBackupEntry[]>,
     readBackup: (id: string) => ipcRenderer.invoke('project:read-backup', id) as Promise<{ contents: string }>,
-    open: () => ipcRenderer.invoke('project:open') as Promise<{ filePath: string; fileName: string; contents: string } | null>,
-    save: (input: { filePath?: string; suggestedName: string; contents: string }) =>
-      ipcRenderer.invoke('project:save', input) as Promise<{ filePath: string; fileName: string } | null>
+    open: () => ipcRenderer.invoke('project:open') as Promise<OpenScoreFile | null>,
+    save: (input: SaveScoreFileInput & { revisionPath?: string }) => ipcRenderer.invoke('project:save', input) as Promise<ScoreFile | null>
   },
   versions: {
     node: process.versions.node,
@@ -48,21 +56,8 @@ const api = {
         filePath: string
         fileName: string
       } | null>,
-    open: () =>
-      ipcRenderer.invoke(openMusicXmlChannel) as Promise<{
-        filePath: string
-        fileName: string
-        contents: string
-      } | null>,
-    save: (input: {
-      filePath?: string
-      suggestedName: string
-      contents: string
-    }) =>
-      ipcRenderer.invoke(saveMusicXmlChannel, input) as Promise<{
-        filePath: string
-        fileName: string
-      } | null>
+    open: () => ipcRenderer.invoke(openMusicXmlChannel) as Promise<OpenScoreFile | null>,
+    save: (input: SaveScoreFileInput) => ipcRenderer.invoke(saveMusicXmlChannel, input) as Promise<ScoreFile | null>
   },
   pdf: {
     save: (input: { filePath?: string; suggestedName: string }) =>
@@ -111,12 +106,7 @@ const api = {
         addRecentMusicXmlChannel,
         input
       ) as Promise<RecentMusicXmlFile[]>,
-    open: (input: { filePath: string }) =>
-      ipcRenderer.invoke(openRecentMusicXmlChannel, input) as Promise<{
-        filePath: string
-        fileName: string
-        contents: string
-      }>,
+    open: (input: { filePath: string }) => ipcRenderer.invoke(openRecentMusicXmlChannel, input) as Promise<OpenScoreFile>,
     remove: (input: { filePath: string }) =>
       ipcRenderer.invoke(
         removeRecentMusicXmlChannel,

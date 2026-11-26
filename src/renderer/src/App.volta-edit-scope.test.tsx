@@ -192,6 +192,36 @@ it('edits multiple passes from the middle of a bracket and preserves both MusicX
   expect(playbackMockState.lastScore).toEqual(current)
 })
 
+it('saves edited volta passes and restores the bracket and repeat order when reopened', async () => {
+  await openScore(threePassFixture())
+  const input = openPassEditor(3)
+  fireEvent.change(input, { target: { value: '1, 2' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  const edited = structuredClone(playbackMockState.lastScore!)
+  expect(bars(edited)[1].volta).toEqual({ start: true, passes: [1, 2] })
+  expect(bars(edited)[3].volta).toEqual({ end: true, passes: [1, 2] })
+
+  vi.mocked(window.inC.project.save).mockResolvedValueOnce({
+    fileName: 'volta-scope.chromatics', filePath: '/fixture/volta-scope.chromatics'
+  })
+  openStudioWorkspace('파일')
+  fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+  await within(screen.getByRole('status', { name: '편집 및 파일 상태' })).findByText(/volta-scope\.chromatics에 저장/)
+  const [{ contents }] = vi.mocked(window.inC.project.save).mock.calls[0]
+  expect(decodeNativeProject(contents).score).toEqual(edited)
+
+  vi.mocked(window.inC.project.open).mockResolvedValueOnce({
+    contents, fileName: 'reopened-volta.chromatics', filePath: '/fixture/reopened-volta.chromatics'
+  })
+  openStudioWorkspace('파일')
+  fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+  await within(screen.getByRole('status', { name: '편집 및 파일 상태' })).findByText(/reopened-volta\.chromatics을 열었습니다/)
+  expect(inspectVolta(3).getByText('볼타 회차: 1, 2')).toBeVisible()
+  const reopened = playbackMockState.lastScore!
+  expect(reopened).toEqual(edited)
+  expect(createScoreRepeatPlaybackPlan(reopened)).toEqual(createScoreRepeatPlaybackPlan(edited))
+})
+
 it('distinguishes an imported exact second ending from the legacy preset in the inspector', async () => {
   const score = threePassFixture()
   bars(score)[1].volta = { start: true, passes: [2] }

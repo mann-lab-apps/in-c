@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from 'vitest'
 import * as io from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { strToU8, zipSync } from 'fflate'
@@ -71,6 +72,68 @@ it.each(['musicxml', 'mxl'])('refuses a removed opened %s and permits retry afte
   expect(await e.read()).toBe(edited); expect(e.backups).toEqual([e.original])
 })
 
+it.each(['musicxml', 'mxl'])('checks the accepted %s revision after another read observes a change', async ext => {
+  const e = await setup(ext)
+  const accepted = await e.session.open(e.file)
+  const expectedRevision = createHash('sha256').update(accepted).digest('hex')
+  await e.write(external)
+  const externalBytes = await io.readFile(e.file)
+  expect(await e.session.open(e.file)).toBe(external)
+
+  await expect(e.session.save(e.file, edited, expectedRevision)).rejects.toThrow(conflict)
+  expect(await io.readFile(e.file)).toEqual(externalBytes)
+  expect(e.backups).toEqual([])
+  await e.checkNeighborAndTemp()
+})
+
+it.each(['musicxml', 'mxl'])('keeps the %s file an external editor replaces during backup', async ext => {
+  const e = await setup(ext)
+  const replacement = join(e.directory, 'external.' + ext)
+  const externalBytes = Buffer.from(encodeMusicXmlFile(external, replacement))
+  await io.writeFile(replacement, externalBytes)
+  let replaceDuringBackup = true
+  const session = new MusicXmlFileSession(async path => {
+    await e.backUp(path)
+    if (replaceDuringBackup) {
+      replaceDuringBackup = false
+      await io.rename(replacement, e.file)
+    }
+  })
+  const accepted = await session.open(e.file)
+  const revision = createHash('sha256').update(accepted).digest('hex')
+
+  await expect(session.save(e.file, edited, revision)).rejects.toThrow(conflict)
+  expect(await io.readFile(e.file)).toEqual(externalBytes)
+  expect(e.backups).toEqual([e.original])
+  await e.checkNeighborAndTemp()
+
+  expect(await session.open(e.file)).toBe(external)
+  await session.save(e.file, edited)
+  expect(await e.read()).toBe(edited)
+})
+
+it.skipIf(process.platform === 'win32').each(['musicxml', 'mxl'])('preserves both %s scores when the selected link is retargeted during backup', async ext => {
+  const e = await setup(ext)
+  const link = join(e.directory, 'selected.' + ext)
+  const alternative = join(e.directory, 'alternative.' + ext)
+  const nextLink = join(e.directory, 'next.' + ext)
+  const externalBytes = Buffer.from(encodeMusicXmlFile(external, alternative))
+  await io.writeFile(alternative, externalBytes)
+  await io.symlink('score.' + ext, link)
+  await io.symlink('alternative.' + ext, nextLink)
+  const session = new MusicXmlFileSession(async path => {
+    await e.backUp(path)
+    await io.rename(nextLink, link)
+  })
+  await session.open(link)
+
+  await expect(session.save(link, edited)).rejects.toThrow(conflict)
+  expect(await io.readFile(e.file)).toEqual(e.original)
+  expect(await io.readFile(alternative)).toEqual(externalBytes)
+  expect(await io.readlink(link)).toBe('alternative.' + ext)
+  await e.checkNeighborAndTemp()
+})
+
 it.each(['musicxml', 'mxl'])('records only a successful first %s save and rejects a later external edit', async ext => {
   const e = await setup(ext)
   // A dialog-authorized destination with no prior read retains explicit overwrite policy.
@@ -138,7 +201,7 @@ it.each(['musicxml', 'mxl'])('continues the same %s queue after an earlier backu
   const a = session.save(e.file, edited), b = session.save(e.file, external)
   const result = await Promise.allSettled([a, b])
   expect(result[0]).toMatchObject({ status: 'rejected', reason: { message: 'first owned backup failure' } })
-  expect(result[1]).toEqual({ status: 'fulfilled', value: undefined })
+  expect(result[1]).toEqual({ status: 'fulfilled', value: createHash('sha256').update(external).digest('hex') })
   expect(await e.read()).toBe(external); expect(e.backups).toEqual([e.original])
   await e.checkNeighborAndTemp()
 })

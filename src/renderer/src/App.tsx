@@ -1,4 +1,6 @@
 import { resolveNotePointerOwner } from './notation/note-pointer-owner'
+import type { ScoreFile } from '../../preload'
+import { ZodError } from 'zod'
 import { readPaletteEventInk } from './notation/palette-event-ink'
 import { tupletInputLabel } from './editor/tuplet-labels'
 import { restoreMeasureTextHistoryRequest } from './editor/measure-text-history-focus'
@@ -1548,7 +1550,7 @@ export const App = () => {
     restore()
     return () => { observer.disconnect(); window.cancelAnimationFrame(frame) }
   }, [fileOperationFocus, fileOperationDocumentGeneration, canRestoreFileFocus])
-  const nativeFile = useRef<{ filePath: string; fileName: string } | undefined>(undefined)
+  const nativeFile = useRef<ScoreFile | undefined>(undefined)
   const nativeEnvelope = useRef<NativeProject | undefined>(undefined)
   // Dirty counts reset on save; native-only layout edits need an independent
   // monotonic token so an old read cannot mistake reused counts for its snapshot.
@@ -1589,9 +1591,7 @@ export const App = () => {
     })
     return () => window.cancelAnimationFrame(frame)
   }, [fileStatus, startScreenVisible, recentMusicXmlFiles])
-  const currentMusicXmlFileRef = useRef<
-    Pick<RecentMusicXmlFile, 'filePath' | 'fileName'> | undefined
-  >(undefined)
+  const currentMusicXmlFileRef = useRef<ScoreFile | undefined>(undefined)
   const [missingRecentFilePath, setMissingRecentFilePath] = useState<string>()
   const autosaveHasLoaded = useRef(false)
   const [expressionProfile, setExpressionProfile] = useState<ExpressionProfile>()
@@ -5661,7 +5661,7 @@ export const App = () => {
         .map(part => [part.partId, normalizePrintPageSetup(part.layout.pageSetup)]))
       playback.stop()
       openScore(project.score, withNativeInputModeNotice(`${file.fileName}을 열었습니다.`, project), { markDirty: false, viewState: project.view, partPageSetupPreferences: preferences })
-      nativeFile.current = { filePath: file.filePath, fileName: file.fileName }
+      nativeFile.current = { filePath: file.filePath, fileName: file.fileName, revision: file.revision }
       nativeEnvelope.current = project
       currentMusicXmlFileRef.current = undefined
       const openedGeneration = documentGeneration.current
@@ -5683,7 +5683,7 @@ export const App = () => {
           tone: 'error',
           message: missing
             ? '최근 프로젝트 파일을 찾을 수 없습니다. 파일 위치를 확인하거나 목록에서 지워 주세요.'
-            : '프로젝트를 열지 못했습니다. 현재 악보는 유지됩니다. 파일을 확인한 뒤 다시 시도해 주세요.',
+            : describeNativeOpenFailure(error, message),
           details: { operation: '프로젝트 열기', message }
         })
       }
@@ -5743,27 +5743,30 @@ export const App = () => {
     const sameDocument = () => generation === documentGeneration.current
     const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision && (context.scoreViewMode !== 'part' || currentNativeContext.current.livePartViewPartId === context.livePartViewPartId)
     let nativeSaveRequested = false
-    let nativeWriteCompleted = false
+    let postWriteStep: 'recent' | 'recovery' | undefined
     let nativeSaveCancelled = false
     try {
       if (context.noteInputState?.tupletInput) throw new Error(`${tupletInputLabel(context.noteInputState?.tupletInput)} 입력을 완료하거나 취소한 뒤 저장해 주세요.`)
       const project = createNativeSnapshot(context.score, nativeEnvelope.current, context.partPageSetupPreferences, context.scoreViewMode, context.livePartViewPartId)
       const contents = encodeNativeProject(project)
+      const source = nativeFile.current
       nativeSaveRequested = true
       const result = await window.inC.project.save({
-        ...(!saveAs && nativeFile.current ? { filePath: nativeFile.current.filePath } : {}),
+        ...(!saveAs && source ? { filePath: source.filePath } : {}),
+        ...(source?.revision !== undefined ? { expectedRevision: source.revision, revisionPath: source.filePath } : {}),
         suggestedName: `${toFileName(context.score.title)}.chromatics`, contents
       })
       nativeSaveCancelled = result === null
-      nativeWriteCompleted = !!result
       if (!result || !sameDocument()) return
       nativeFile.current = result
       nativeEnvelope.current ??= project
       currentMusicXmlFileRef.current = undefined
-      const files = await window.inC.recentMusicXml.add({ ...result, format: 'native' })
+      postWriteStep = 'recent'
+      const files = await window.inC.recentMusicXml.add({ filePath: result.filePath, fileName: result.fileName, format: 'native' })
       if (!sameDocument()) return
       setRecentMusicXmlFiles(files)
       if (sameSnapshot()) {
+        postWriteStep = 'recovery'
         await window.inC.autosave.clear()
         if (sameSnapshot()) {
           setAutosaveRevision(0)
@@ -5782,7 +5785,7 @@ export const App = () => {
       // the workflow failure without claiming that no file reached the disk.
       if (sameDocument()) setFileStatus(nativeSaveRequested ? {
         tone: 'error',
-        message: describeNativeSaveFailure(error, nativeWriteCompleted),
+        message: describeNativeSaveFailure(error, postWriteStep, !sameSnapshot()),
         details: { operation: '프로젝트 저장', message: getErrorMessage(error) }
       } : { tone: 'error', message: getErrorMessage(error) })
     } finally {
@@ -5847,7 +5850,8 @@ export const App = () => {
       )
       currentMusicXmlFileRef.current = {
         filePath: file.filePath,
-        fileName: file.fileName
+        fileName: file.fileName,
+        revision: file.revision
       }
 
       const openedGeneration = documentGeneration.current
@@ -5923,7 +5927,8 @@ export const App = () => {
         )
         currentMusicXmlFileRef.current = {
           filePath: openedFile.filePath,
-          fileName: openedFile.fileName
+          fileName: openedFile.fileName,
+          revision: openedFile.revision
         }
 
         const openedGeneration = documentGeneration.current
@@ -6027,6 +6032,7 @@ export const App = () => {
         ...(currentMusicXmlFile
           ? { filePath: currentMusicXmlFile.filePath }
           : {}),
+        ...(currentMusicXmlFile?.revision !== undefined ? { expectedRevision: currentMusicXmlFile.revision } : {}),
         suggestedName: `${toFileName(score.title)}.musicxml`,
         contents
       })
@@ -6043,7 +6049,8 @@ export const App = () => {
 
       currentMusicXmlFileRef.current = {
         filePath: result.filePath,
-        fileName: result.fileName
+        fileName: result.fileName,
+        revision: result.revision
       }
       writeStoredMusicXmlViewState(
         result.filePath,
@@ -11787,13 +11794,51 @@ function scoreHasNotes(score: Score): boolean {
       voice.events.some(event => event.type === 'note')))))
 }
 
-function describeNativeSaveFailure(error: unknown, writeCompleted: boolean): string {
+function describeNativeOpenFailure(error: unknown, diagnostic: string): string {
+  // Electron forwards the message, without validation error types, for these two read paths.
+  const remote = /^Error invoking remote method '(?:project:open|recent-musicxml:open)': (?:Error: )?([\s\S]+)$/.exec(diagnostic)
+  const reason = remote?.[1] ?? diagnostic
+  const unchanged = '프로젝트를 열지 못했습니다. 현재 악보는 유지됩니다.'
+  const version = /^Unsupported Chromatics project version: (-?\d+)\. Original file was not modified\.$/.exec(reason)?.[1]
+  if (version !== undefined) {
+    return `${unchanged} 지원하지 않는 프로젝트 형식 v${version}입니다. 파일을 만든 앱에서 열 수 있는지 확인해 주세요.`
+  }
+  if (reason === 'Unsupported Chromatics project version value. Original file was not modified.') {
+    return `${unchanged} 프로젝트 형식 버전 정보가 올바르지 않습니다. 원본 파일을 보관하고 백업을 확인해 주세요.`
+  }
+  if (reason === 'Invalid Chromatics project JSON. Original file was not modified.') {
+    return `${unchanged} 파일의 JSON을 읽을 수 없습니다. 원본 파일을 보관하고 백업을 확인해 주세요.`
+  }
+  if (error instanceof ZodError || (remote && isNativeSchemaDiagnostic(reason))) {
+    return `${unchanged} 이 앱에서 읽을 수 없는 프로젝트 항목이 있습니다. 기술 정보를 확인하고 파일을 만든 앱 또는 백업에서 다시 열어 주세요.`
+  }
+  return `${unchanged} 파일을 확인한 뒤 다시 시도해 주세요.`
+}
+
+function isNativeSchemaDiagnostic(reason: string): boolean {
+  if (!reason.startsWith('[') || !reason.endsWith(']')) return false
+  try {
+    const issues: unknown = JSON.parse(reason)
+    return Array.isArray(issues) && issues.length > 0 && issues.every(issue =>
+      issue && typeof issue.code === 'string' && Array.isArray(issue.path) && typeof issue.message === 'string'
+    )
+  } catch {
+    return false
+  }
+}
+
+function describeNativeSaveFailure(error: unknown, postWriteStep: 'recent' | 'recovery' | undefined, newerChanges: boolean): string {
+  if (postWriteStep) {
+    const stepMessage = postWriteStep === 'recent'
+      ? '최근 악보 목록을 갱신하지 못했습니다.'
+      : '자동저장 복구 정보를 갱신하지 못했습니다.'
+    const pendingChanges = newerChanges ? ' 저장 중 변경사항은 아직 저장되지 않았습니다.' : ''
+    return `프로젝트 파일은 저장했습니다. ${stepMessage}${pendingChanges} 기술 정보를 확인한 뒤 다시 시도해 주세요.`
+  }
   const diagnostic = getErrorMessage(error)
   const diskConflict = 'Native project changed on disk. Reopen it or save to another file.'
-  // Electron prefixes the original main-process message. Do not classify other
-  // errors by substring, or describe post-write cleanup failures as unwritten.
-  if (!writeCompleted && (diagnostic === diskConflict ||
-      diagnostic === `Error invoking remote method 'project:save': Error: ${diskConflict}`)) {
+  // Electron prefixes the original main-process message.
+  if (diagnostic === diskConflict || diagnostic === `Error invoking remote method 'project:save': Error: ${diskConflict}`) {
     return '프로젝트 저장을 마무리하지 못했습니다. 파일이 앱 밖에서 변경되어 덮어쓰지 않았습니다. 편집 내용은 유지됩니다. 파일 → 프로젝트 다른 이름으로 저장을 선택해 새 파일로 보관해 주세요.'
   }
   return '프로젝트 저장을 마무리하지 못했습니다. 변경 사항은 유지됩니다. 기술 정보를 확인한 뒤 다시 시도해 주세요.'

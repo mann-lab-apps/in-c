@@ -1,9 +1,12 @@
 import { access, open, readFile, rename, rm, stat } from 'node:fs/promises'
 import { constants } from 'node:fs'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { resolveOutputFileTarget } from './output-file-target'
 import { decodeMusicXmlFile, encodeMusicXmlFile, MAX_MUSICXML_BYTES } from '../musicxml/container'
+import { assertSaveTargetUnchanged, fileRevision, readSaveTarget } from './file-revision'
+
+const changedOnDisk = 'MusicXML file changed on disk. Reopen it or save to another file.'
 
 export async function readMusicXmlFile(filePath: string): Promise<string> {
   if ((await stat(filePath)).size > MAX_MUSICXML_BYTES) {
@@ -22,7 +25,7 @@ export class MusicXmlFileSession {
   async open(filePath: string): Promise<string> {
     return this.enqueue(async () => {
       const contents = await readMusicXmlFile(filePath)
-      this.revisions.set((await fileIdentity(filePath)).path, xmlRevision(contents))
+      this.revisions.set((await fileIdentity(filePath)).path, fileRevision(contents))
       this.authorizeSave(filePath)
       return contents
     })
@@ -32,11 +35,13 @@ export class MusicXmlFileSession {
     this.writablePaths.add(filePath)
   }
 
-  async save(filePath: string, contents: string): Promise<void> {
+  async save(filePath: string, contents: string, expectedRevision?: string): Promise<string> {
     if (!this.writablePaths.has(filePath)) {
       throw new Error('먼저 파일 열기 또는 저장 대화상자에서 파일을 선택해 주세요.')
     }
-    await this.enqueue(() => this.replace(filePath, contents, true))
+    const revision = fileRevision(contents)
+    await this.enqueue(() => this.replace(filePath, contents, revision, expectedRevision))
+    return revision
   }
 
   async exportCopy(filePath: string, contents: string): Promise<void> {
@@ -60,28 +65,23 @@ export class MusicXmlFileSession {
     return result
   }
 
-  private async replace(filePath: string, contents: string, primary = false): Promise<void> {
+  private async replace(filePath: string, contents: string, revision?: string, expectedRevision?: string): Promise<void> {
     const bytes = encodeMusicXmlFile(contents, filePath)
     // Keep the selected link and replace its actual target, like native saves.
     // Encoding still follows the selected name's XML/MXL format.
-    const targetPath = (await fileIdentity(filePath)).path
+    const targetPath = await resolveOutputFileTarget(filePath)
     // A valid selected filename may already fill the filesystem component limit.
     const temporaryPath = join(dirname(targetPath), `.studio-musicxml-${randomUUID()}.tmp`)
-    let mode: number | undefined
-    try {
-      mode = (await stat(targetPath)).mode & 0o777
-      // Atomic replacement must respect the selected file's write permissions.
-      await access(targetPath, constants.W_OK)
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-    }
-    const expected = primary ? this.revisions.get(targetPath) : undefined
+    const before = await readSaveTarget(targetPath)
+    // Atomic replacement must respect the selected file's write permissions.
+    if (before) await access(targetPath, constants.W_OK)
+    const expected = revision === undefined ? undefined : expectedRevision ?? this.revisions.get(targetPath)
     if (expected !== undefined) {
       let current: string | undefined
-      try { current = xmlRevision(await readMusicXmlFile(filePath)) } catch (error) {
+      try { current = fileRevision(await readMusicXmlFile(filePath)) } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
       }
-      if (expected !== current) throw new Error('MusicXML file changed on disk. Reopen it or save to another file.')
+      if (expected !== current) throw new Error(changedOnDisk)
     }
     await this.backup(targetPath)
     let created = false
@@ -90,10 +90,12 @@ export class MusicXmlFileSession {
       created = true
       try {
         await handle.writeFile(bytes)
-        if (mode !== undefined) await handle.chmod(mode)
+        if (before) await handle.chmod(Number(before.mode & 0o777n))
       } finally { await handle.close() }
+      if (filePath !== targetPath && await resolveOutputFileTarget(filePath) !== targetPath) throw new Error(changedOnDisk)
+      await assertSaveTargetUnchanged(filePath, before, changedOnDisk)
       await rename(temporaryPath, targetPath)
-      if (primary) this.revisions.set(targetPath, xmlRevision(contents))
+      if (revision !== undefined) this.revisions.set(targetPath, revision)
     } finally {
       if (created) await rm(temporaryPath, { force: true })
     }
@@ -108,8 +110,4 @@ async function fileIdentity(filePath: string): Promise<{ path: string; inode?: s
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     return { path: await resolveOutputFileTarget(filePath) }
   }
-}
-
-function xmlRevision(contents: string): string {
-  return createHash('sha256').update(contents).digest('hex')
 }
