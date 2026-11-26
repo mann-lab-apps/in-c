@@ -17,13 +17,14 @@ on:
           - both
           - windows
           - linux
+          - macos
 
 permissions:
   contents: read
 
 jobs:
   installed-windows:
-    if: inputs.tag == 'preflight' && inputs.platform != 'linux'
+    if: inputs.tag == 'preflight' && (inputs.platform == 'both' || inputs.platform == 'windows')
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -57,7 +58,7 @@ jobs:
           if-no-files-found: warn
 
   appimage-linux:
-    if: inputs.tag == 'preflight' && inputs.platform != 'windows'
+    if: inputs.tag == 'preflight' && (inputs.platform == 'both' || inputs.platform == 'linux')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -96,4 +97,36 @@ jobs:
             ${{ runner.temp }}/studio-linux-appimage/installation/*
             ${{ runner.temp }}/studio-linux-appimage/results/*
             ${{ runner.temp }}/studio-linux-appimage/files/*
+          if-no-files-found: warn
+
+  dmg-macos:
+    if: inputs.tag == 'preflight' && inputs.platform == 'macos'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: qa/desktop-install
+      - name: Verify the public candidate tag and read asset metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$RUNNER_TEMP/studio-mac-published"
+          mkdir -p "$proof"
+          ref='refs/tags/v0.1.0-alpha.45'
+          git ls-remote origin "$ref" "$ref^{}" > "$proof/tag.txt"
+          test "$(awk '$2 ~ /\^\{\}$/ {print $1}' "$proof/tag.txt")" = d05cae65fef5ded3b33902b8a13fc3f4fb05e343
+          gh release view v0.1.0-alpha.45 --repo mann-lab-apps/in-c \
+            --json tagName,isPrerelease,isDraft,publishedAt,url,assets > "$proof/release.json"
+      - name: Check the downloaded DMG and ZIP and launch the mounted app
+        run: python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.45
+      - name: Keep macOS installed app and asset proof
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-macos-published-evidence
+          path: ${{ runner.temp }}/studio-mac-published/*
           if-no-files-found: warn
