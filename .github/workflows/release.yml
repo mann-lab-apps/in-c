@@ -1,10 +1,10 @@
-name: Studio Windows file-boundary QA
+name: Studio Windows MXL file-boundary QA
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Run file-boundary QA for the frozen Studio candidate
+        description: Run compressed MusicXML file-boundary QA for the frozen Studio candidate
         required: true
         type: choice
         options:
@@ -59,18 +59,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node node_modules/electron/install.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Exercise Windows save collisions on packaged code
+      - name: Exercise Windows compressed MusicXML save collisions on packaged code
         run: |
           if ($env:RUNNER_ARCH -ne 'X64') { throw "Unexpected runner architecture $env:RUNNER_ARCH" }
           $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($env:RUNNER_TEMP))
           $env:STUDIO_QA_FILESYSTEM = $drive.DriveFormat
+          if ($env:STUDIO_QA_FILESYSTEM -ne 'NTFS') { throw "Unexpected file system $env:STUDIO_QA_FILESYSTEM" }
           Write-Output "Files: $env:STUDIO_QA_FILESYSTEM"
-          node qa-tools/qa/windows-save-boundaries/run.cjs candidate/release/win-unpacked/resources/app.asar candidate/node_modules/electron/dist/electron.exe "$env:RUNNER_TEMP/studio-file-boundary-proof"
+          node qa-tools/qa/windows-save-boundaries/run.cjs candidate/release/win-unpacked/resources/app.asar candidate/node_modules/electron/dist/electron.exe "$env:RUNNER_TEMP/studio-file-boundary-proof" candidate
           exit $LASTEXITCODE
       - name: Keep Windows file-boundary evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: studio-windows-file-boundary-evidence
+          name: studio-windows-mxl-file-boundary-evidence
           path: ${{ runner.temp }}/studio-file-boundary-proof/artifacts
           if-no-files-found: warn

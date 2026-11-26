@@ -8,13 +8,13 @@ const { app, BrowserWindow, dialog, ipcMain, nativeTheme } = require('electron')
 
 const [bundle, out, format, scenario] = process.argv.slice(-4)
 assert(path.isAbsolute(bundle) && path.isAbsolute(out))
-assert(['native', 'musicxml'].includes(format))
-assert(['replace', 'locked-original', 'locked-copy'].includes(scenario))
-const xml = format === 'musicxml'
-const extension = xml ? 'musicxml' : 'chromatics'
+assert.equal(format, 'mxl')
+assert(['replace', 'new-destination', 'locked-original', 'locked-copy'].includes(scenario))
+const { strFromU8, strToU8, unzipSync, zipSync } = require(process.env.STUDIO_QA_FFLATE)
+const extension = 'mxl'
 const width = Number(process.env.STUDIO_QA_WIDTH)
 assert([960, 1400].includes(width))
-assert(scenario === 'replace' || (process.platform === 'win32' && !xml))
+assert(!scenario.startsWith('locked-') || process.platform === 'win32')
 fs.mkdirSync(out)
 
 const profile = path.join(out, 'profile')
@@ -25,22 +25,26 @@ const fixture = name => path.join(__dirname, 'fixtures', name)
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'))
 const sha = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 const pitch = score => score.parts[0].staves[0].measures[0].voices[0].events[0].pitch
-const native = read(fixture('repeat-independent-v3.chromatics'))
 const musicXml = fs.readFileSync(fixture('repeat-independent.musicxml'), 'utf8')
 const initialTitle = 'Windows file safety original'
 const logs = []
 
+function scoreXml(file) {
+  const archive = unzipSync(fs.readFileSync(file))
+  const container = strFromU8(archive['META-INF/container.xml'])
+  const entry = /\bfull-path="([^"]+)"/.exec(container)?.[1]
+  assert(entry && archive[entry], 'Missing root score in fixture archive')
+  return strFromU8(archive[entry])
+}
+
 function writeScore(file, title, earlierFile) {
-  if (xml) {
-    const source = earlierFile ? fs.readFileSync(earlierFile, 'utf8') : musicXml
-    const updated = source.replace(/<work-title>[^<]*<\/work-title>/, '<work-title>' + title + '</work-title>')
-    assert.notEqual(updated, source)
-    fs.writeFileSync(file, updated)
-  } else {
-    const project = earlierFile ? read(earlierFile) : structuredClone(native)
-    project.score.title = title
-    fs.writeFileSync(file, JSON.stringify(project))
-  }
+  const source = earlierFile ? scoreXml(earlierFile) : musicXml
+  const updated = source.replace(/<work-title>[^<]*<\/work-title>/, '<work-title>' + title + '</work-title>')
+  assert.notEqual(updated, source)
+  fs.writeFileSync(file, zipSync({
+    'META-INF/container.xml': strToU8('<container><rootfiles><rootfile full-path="score.musicxml"/></rootfiles></container>'),
+    'score.musicxml': strToU8(updated)
+  }, { mtime: new Date('2026-11-25T00:00:00Z') }))
 }
 
 writeScore(target, initialTitle)
@@ -62,29 +66,36 @@ delete process.env.ELECTRON_RENDERER_URL
 
 // Allow the real backup to finish before the independent fixture process performs its rename.
 let onBackup
-function afterOwnedBackup(file, name) {
-  if (!onBackup || path.relative(profile, path.dirname(file)) !== name) return
-  const callback = onBackup
-  onBackup = undefined
-  callback(file)
-}
-
-const rename = filePromises.rename.bind(filePromises)
-filePromises.rename = async (from, to) => {
-  await rename(from, to)
-  afterOwnedBackup(to, 'native-project-backups')
-}
+let onTempClose
 const copyFile = filePromises.copyFile.bind(filePromises)
 filePromises.copyFile = async (from, to, ...options) => {
   await copyFile(from, to, ...options)
-  afterOwnedBackup(to, 'musicxml-backups')
+  if (onBackup && path.relative(profile, path.dirname(to)) === 'musicxml-backups') {
+    const callback = onBackup
+    onBackup = undefined
+    callback(to)
+  }
 }
 
-const saveChannel = xml ? 'musicxml:save' : 'project:save'
+const openFile = filePromises.open.bind(filePromises)
+filePromises.open = async (file, ...options) => {
+  const fileHandle = await openFile(file, ...options)
+  if (onTempClose && path.dirname(file) === out && /^\.studio-musicxml-.*\.tmp$/.test(path.basename(file))) {
+    const close = fileHandle.close.bind(fileHandle)
+    fileHandle.close = async () => {
+      await close()
+      const callback = onTempClose
+      onTempClose = undefined
+      callback(file)
+    }
+  }
+  return fileHandle
+}
+
 const saves = []
 const handle = ipcMain.handle.bind(ipcMain)
 ipcMain.handle = (channel, callback) => handle(channel, async (...args) => {
-  if (channel !== saveChannel) return callback(...args)
+  if (channel !== 'musicxml:save' && channel !== 'musicxml:export') return callback(...args)
   try {
     const result = await callback(...args)
     saves.push({ file: result?.filePath ?? null })
@@ -100,13 +111,15 @@ let stage = 'launch'
 let cancelOpen = false
 let openDialogs = 0
 let saveDialogs = 0
+let chosenOpen = target
+let chosenSave = copy
 dialog.showOpenDialog = async () => {
   openDialogs++
-  return cancelOpen ? { canceled: true, filePaths: [] } : { canceled: false, filePaths: [target] }
+  return cancelOpen ? { canceled: true, filePaths: [] } : { canceled: false, filePaths: [chosenOpen] }
 }
 dialog.showSaveDialog = async () => {
   saveDialogs++
-  return { canceled: false, filePath: copy }
+  return { canceled: false, filePath: chosenSave }
 }
 
 const evaluate = (fn, arg) => win.webContents.executeJavaScript('(' + fn.toString() + ')(' + (JSON.stringify(arg) ?? '') + ')')
@@ -150,12 +163,16 @@ const statusWith = label => wait(async () => {
   const current = await state()
   return current.status.includes(label) && current
 }, label)
-const openLabel = xml ? 'MusicXML 가져오기' : '프로젝트 열기'
+const openLabel = 'MusicXML 가져오기'
 const file = path.basename(target)
-const openedNotice = file + (xml ? '을 가져왔습니다' : '을 열었습니다')
-const savedNotice = file + (xml ? '을 MusicXML로 내보냈습니다' : '에 저장했습니다')
+const openedNotice = file + '을 가져왔습니다'
+const savedNotice = file + '을 MusicXML로 내보냈습니다'
 const conflictNotice = '파일이 앱 밖에서 변경되어 덮어쓰지 않았습니다'
-const save = () => xml ? menu('파일', 'MusicXML로 저장') : click('프로젝트 저장')
+const save = () => menu('파일', 'MusicXML로 저장')
+const saveCopy = async () => {
+  await menu('파일', '내보내기 설정')
+  await click('MusicXML 내보내기')
+}
 const open = () => click(openLabel)
 const change = key => evaluate(key => window.dispatchEvent(new KeyboardEvent('keydown', { key, code: key, bubbles: true })), key)
 const cleanup = () => assert(!fs.readdirSync(out).some(name => /\.(?:tmp|bak)$/.test(name)))
@@ -185,8 +202,8 @@ async function openAndEdit() {
   return { edited, pending: await autosaved(initialTitle), originalHash: sha(target), recoveryHash: sha(recovery) }
 }
 
-function externalReplace(source) {
-  const child = spawnSync(process.env.STUDIO_QA_NODE, [path.join(__dirname, 'replace-file.cjs'), out, source, target], {
+function externalWrite(source, destination, operation) {
+  const child = spawnSync(process.env.STUDIO_QA_NODE, [path.join(__dirname, 'replace-file.cjs'), out, source, destination, operation], {
     encoding: 'utf8', timeout: 10000, windowsHide: true
   })
   assert.ifError(child.error)
@@ -216,7 +233,7 @@ async function checkReplacement(initial) {
   onBackup = file => {
     backupHash = sha(file)
     assert.equal(sha(target), initial.originalHash)
-    renameEvidence = externalReplace(replacement)
+    renameEvidence = externalWrite(replacement, target, 'replace')
     assert.equal(sha(target), firstExternalHash)
   }
   await save()
@@ -265,12 +282,7 @@ async function checkReplacement(initial) {
   const firstSaveHash = sha(target)
   assert.notEqual(firstSaveHash, firstExternalHash)
   assert.equal(saveDialogs, 0)
-  if (xml) assert(fs.readFileSync(target, 'utf8').includes('<work-title>' + firstTitle + '</work-title>'))
-  else {
-    const project = read(target)
-    assert.deepEqual(project.score, revised.score)
-    assert.equal(project.score.hairpins[0].endTime.tick, 20160)
-  }
+  assert(scoreXml(target).includes('<work-title>' + firstTitle + '</work-title>'))
   cleanup()
   fs.copyFileSync(target, path.join(out, 'reopened-and-saved.' + extension))
   logs.push({ stage, adoptedTitle: firstTitle, saved: firstSaveHash, savedPitch: pitch(revised.score), directlySaved: true })
@@ -291,7 +303,7 @@ async function checkReplacement(initial) {
   const nextExternal = path.join(out, 'new-incoming.' + extension)
   writeScore(nextExternal, 'Second edit by separate process', target)
   const secondExternalHash = sha(nextExternal)
-  const secondRename = externalReplace(nextExternal)
+  const secondRename = externalWrite(nextExternal, target, 'replace')
   const attempts = saves.length
   await save()
   await wait(() => saves.length > attempts, 'second conflict reached IPC')
@@ -305,6 +317,56 @@ async function checkReplacement(initial) {
     recovery: sha(recovery), secondConflictPreserved: true, tempFilesCleaned: true })
   fs.copyFileSync(recovery, path.join(out, 'recovery-after-second-conflict.json'))
   await capture('second-conflict-preserved')
+}
+
+async function reopenCopy() {
+  chosenOpen = copy
+  await menu('파일', '파일 작업 열기')
+  await open()
+  const reopened = await statusWith(path.basename(copy) + '을 가져왔습니다')
+  assert(reopened.title.includes(initialTitle) && reopened.unsaved.includes('변경 없음'))
+}
+
+async function checkNewDestination(initial) {
+  stage = 'create the selected destination after the MXL temporary file closes'
+  const destination = path.join(out, 'occupied.mxl')
+  const incoming = path.join(out, 'incoming.mxl')
+  writeScore(incoming, 'Created by another process after choosing destination')
+  const expectedHash = sha(incoming)
+  let creation
+  onTempClose = file => {
+    assert(fs.statSync(file).size > 0 && !fs.existsSync(destination))
+    creation = externalWrite(incoming, destination, 'create')
+  }
+  chosenSave = destination
+  await saveCopy()
+  const conflict = await statusWith('MusicXML 사본 내보내기를 마무리하지 못했습니다')
+  assert(creation && creation.operation === 'create')
+  assert.match(saves.at(-1).error, /changed on disk/)
+  assert.equal(sha(destination), expectedHash)
+  assertProtected(conflict, initial, initial.originalHash)
+  fs.copyFileSync(recovery, path.join(out, 'recovery-after-conflict.json'))
+  logs.push({ stage, editorPid: process.pid, creation, expectedDestination: expectedHash, destination: sha(destination),
+    original: sha(target), recovery: sha(recovery), selection: conflict.selected, unsaved: conflict.unsaved,
+    tempFilesCleaned: true, status: conflict.status })
+  await capture('destination-conflict-preserved')
+
+  stage = 'export to a fresh destination and reopen the copy'
+  chosenSave = copy
+  await saveCopy()
+  const exported = await statusWith(path.basename(copy) + '로 MusicXML을 내보냈습니다')
+  assert.equal(fs.realpathSync(saves.at(-1).file), fs.realpathSync(copy))
+  assert.equal(saveDialogs, 2)
+  assertProtected(exported, initial, initial.originalHash)
+  assert.equal(sha(destination), expectedHash)
+  const saved = sha(copy)
+  await reopenCopy()
+  assert.equal(sha(copy), saved)
+  assert.equal(sha(destination), expectedHash)
+  assert.equal(sha(target), initial.originalHash)
+  logs.push({ stage, reopened: true, saved, savedPitch: pitch(initial.pending.score), title: initialTitle,
+    destination: sha(destination), original: sha(target) })
+  await capture('new-destination-copy-reopened')
 }
 
 async function checkLock(initial) {
@@ -338,36 +400,38 @@ async function checkLock(initial) {
     assert.equal(pid, lock.pid)
     assert.notEqual(pid, process.pid)
     await save()
-    const denied = await statusWith('프로젝트 저장을 마무리하지 못했습니다')
+    const denied = await statusWith('MusicXML 저장을 마무리하지 못했습니다')
     const failure = saves.at(-1)
     assert.match(failure.code || failure.error, /\b(?:EACCES|EPERM|EBUSY)\b/)
     assert.equal(lock.exitCode, null)
     assertProtected(denied, initial, initial.originalHash)
     logs.push({ stage, editorPid: process.pid, lockPid: pid, error: failure, status: denied.status,
-      original: sha(target), recovery: sha(recovery), selection: denied.selected, tempFilesCleaned: true })
+      original: sha(target), recovery: sha(recovery), selection: denied.selected, unsaved: denied.unsaved, tempFilesCleaned: true })
+    fs.copyFileSync(target, path.join(out, 'original-at-failure.mxl'))
     fs.copyFileSync(recovery, path.join(out, 'recovery-after-locked-save.json'))
     await capture('locked-save-denied')
     if (scenario === 'locked-original') {
       stage = 'release lock and retry the original save'
       await unlock()
       await save()
-      await statusWith(savedNotice)
+      const saved = await statusWith(savedNotice)
+      assert(saved.unsaved.includes('변경 없음') && !fs.existsSync(recovery))
     } else {
       stage = 'save to a separate path while the original remains locked'
-      await menu('파일', '프로젝트 다른 이름으로 저장')
-      await statusWith(path.basename(copy) + '에 저장했습니다')
+      await saveCopy()
+      const exported = await statusWith(path.basename(copy) + '로 MusicXML을 내보냈습니다')
       assert.equal(lock.exitCode, null)
-      assert.equal(sha(target), initial.originalHash)
+      assertProtected(exported, initial, initial.originalHash)
     }
     const destination = scenario === 'locked-copy' ? copy : target
     assert.equal(fs.realpathSync(saves.at(-1).file), fs.realpathSync(destination))
     assert.equal(saveDialogs, scenario === 'locked-copy' ? 1 : 0)
     assert.notEqual(sha(destination), initial.originalHash)
-    assert.deepEqual(read(destination).score, initial.pending.score)
-    assert(!fs.existsSync(recovery))
+    assert(scoreXml(destination).includes('<work-title>' + initialTitle + '</work-title>'))
     cleanup()
     logs.push({ stage, retry: 'passed', destination: path.basename(destination), saved: sha(destination),
-      original: sha(target), recoveryClearedAfterSave: true })
+      savedPitch: pitch(initial.pending.score), title: initialTitle, original: sha(target),
+      recoveryAfterRetry: fs.existsSync(recovery) ? sha(recovery) : null })
     await capture('lock-retry-saved')
   } finally {
     await unlock()
@@ -387,6 +451,7 @@ app.on('browser-window-created', (_event, created) => {
     try {
       const initial = await openAndEdit()
       if (scenario === 'replace') await checkReplacement(initial)
+      else if (scenario === 'new-destination') await checkNewDestination(initial)
       else await checkLock(initial)
       const screen = await state()
       assert.deepEqual(screen.viewport, [width, 750])

@@ -4,7 +4,8 @@ const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
 
-const [asar, electron, proof] = process.argv.slice(2).map(value => path.resolve(value))
+const [asar, electron, proof, candidate] = process.argv.slice(2).map(value => path.resolve(value))
+assert(candidate, 'Pass the candidate directory for the frozen fixture dependency')
 assert(fs.statSync(asar).isFile() && fs.statSync(electron).isFile())
 assert(!fs.existsSync(proof), 'Use a fresh proof directory')
 const bundle = path.join(asar, 'out', 'main', 'index.js')
@@ -14,12 +15,13 @@ fs.mkdirSync(artifacts, { recursive: true })
 fs.mkdirSync(cases)
 const tests = []
 for (const width of [960, 1400]) {
-  for (const format of ['native', 'musicxml']) tests.push({ width, format, scenario: 'replace' })
+  for (const scenario of ['replace', 'new-destination']) tests.push({ width, format: 'mxl', scenario })
   if (process.platform === 'win32') {
-    for (const scenario of ['locked-original', 'locked-copy']) tests.push({ width, format: 'native', scenario })
+    for (const scenario of ['locked-original', 'locked-copy']) tests.push({ width, format: 'mxl', scenario })
   }
 }
-const environment = { ...process.env, STUDIO_QA_NODE: process.execPath }
+const environment = { ...process.env, STUDIO_QA_NODE: process.execPath,
+  STUDIO_QA_FFLATE: require.resolve('fflate', { paths: [candidate] }) }
 delete environment.ELECTRON_RUN_AS_NODE
 const results = []
 for (const test of tests) {
@@ -39,7 +41,7 @@ for (const test of tests) {
   fs.writeFileSync(path.join(archive, 'process.log'), [child.stdout, child.stderr, child.error?.message].filter(Boolean).join('\n'))
   if (fs.existsSync(target)) {
     for (const item of fs.readdirSync(target, { withFileTypes: true })) {
-      if (item.isFile() && /\.(?:json|png|chromatics|musicxml|log)$/.test(item.name)) {
+      if (item.isFile() && /\.(?:json|png|mxl|log)$/.test(item.name)) {
         fs.copyFileSync(path.join(target, item.name), path.join(archive, item.name))
       }
     }
