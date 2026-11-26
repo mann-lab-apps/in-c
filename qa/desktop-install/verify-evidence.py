@@ -97,6 +97,7 @@ for version in (2, 3):
     source = unique(windows, f"recovered-{key}.chromatics").parent / f"source-{key}.chromatics"
     before = source.parent / f"before-{key}.json"
     assert old["appAsarSha256"] == published["appAsarSha256"]
+    assert old["exitKind"] == "interrupted-after-autosave"
     assert new["appAsarSha256"] == replacement["appAsarSha256"]
     assert old["profile"] == new["profile"] and new["details"]["recentRecovered"]
     assert new["sharedDefault"] == (version == 3)
