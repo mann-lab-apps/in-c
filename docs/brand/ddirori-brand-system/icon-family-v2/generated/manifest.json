@@ -4,7 +4,7 @@
   "generator": "tools/build.mjs + tools/containers.py",
   "sources": {
     "family.json": "8c51ffe1a0c721dd9fe43feeb532147872fd7fc11e4b81bab7d5db4f3241b9c6",
-    "palette-candidates.json": "9bffa68724d69d6e3927f6ad24c17a9aa5f51288f890d68f793a64d1aa7d97d4",
+    "palette-candidates.json": "e19584959a400795c8b7f2261615999b66261097895ab234acd3076e9e2e87e1",
     "build.mjs": "5506982ba516e66b030805bee016919d06fa2af2cc9861659533da39ec28ee77",
     "containers.py": "1bd6aeca70b6dbf4be1053479fdb6e4ed88cd2ef4f9f9a4dda30dfc7257ee866"
   },

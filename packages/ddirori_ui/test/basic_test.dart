@@ -189,6 +189,17 @@ void main() {
       isTrue,
     );
   });
+  test('the default theme uses the active blue palette in both modes', () {
+    for (final brightness in Brightness.values) {
+      final defaults = ddiroriTheme(brightness: brightness);
+      final explicitBlue = ddiroriTheme(brightness: brightness, accent: 'blue');
+      expect(
+        defaults.extension<DdiroriStyle>()!.colors,
+        explicitBlue.extension<DdiroriStyle>()!.colors,
+      );
+    }
+  });
+
   test('six accent themes preserve neutral surfaces', () {
     expect(DdiroriTokens.accents.length, 6);
     for (final accent in DdiroriTokens.accents.keys) {

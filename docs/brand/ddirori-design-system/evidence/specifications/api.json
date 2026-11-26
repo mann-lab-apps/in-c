@@ -128,7 +128,7 @@
       "props": [
         {
           "name": "onError",
-          "type": "(import(\"<repo>/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha44-candidate-20261126/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
           "required": false,
           "default": "—"
         },
@@ -166,7 +166,7 @@
       "props": [
         {
           "name": "onError",
-          "type": "(import(\"<repo>/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha44-candidate-20261126/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
           "required": false,
           "default": "—"
         },
@@ -206,13 +206,19 @@
       "name": "Input",
       "file": "packages/ddirori_web/src/index.tsx",
       "line": 77,
-      "signature": "export function Input({ label, error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {\n    label: string;\n    error?: string;\n    help?: string;\n    clearable?: boolean;\n    onClear?: () => void;\n})",
+      "signature": "export function Input({ label, labelVisibility = 'visible', error, help, clearable = false, onClear, ...props }: InputHTMLAttributes<HTMLInputElement> & {\n    label: string;\n    labelVisibility?: 'visible' | 'sr-only';\n    error?: string;\n    help?: string;\n    clearable?: boolean;\n    onClear?: () => void;\n})",
       "props": [
         {
           "name": "label",
           "type": "string",
           "required": true,
           "default": "—"
+        },
+        {
+          "name": "labelVisibility",
+          "type": "\"visible\" | \"sr-only\" | undefined",
+          "required": false,
+          "default": "'visible'"
         },
         {
           "name": "error",
@@ -243,7 +249,7 @@
     {
       "name": "Search",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 87,
+      "line": 88,
       "signature": "export function Search({ value, onChange, label = '검색' }: {\n    value: string;\n    onChange: (v: string) => void;\n    label?: string;\n})",
       "props": [
         {
@@ -269,7 +275,7 @@
     {
       "name": "Choices",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 92,
+      "line": 93,
       "signature": "export function Choices<T extends string | number>({ label, options, selected, onChange, multiple = false, disabled = false }: {\n    label: string;\n    options: readonly {\n        value: T;\n        label: string;\n    }[];\n    selected: readonly T[];\n    onChange: (v: T[]) => void;\n    multiple?: boolean;\n    disabled?: boolean;\n})",
       "props": [
         {
@@ -313,7 +319,7 @@
     {
       "name": "Toolbar",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 105,
+      "line": 106,
       "signature": "export function Toolbar({ children, label = '도구' }: {\n    children: ReactNode;\n    label?: string;\n})",
       "props": [
         {
@@ -333,7 +339,7 @@
     {
       "name": "Item",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 109,
+      "line": 110,
       "signature": "export function Item({ title, subtitle, leading, trailing, actions, flat = false, selected = false, selecting = false, disabled = false, onSelected, onOpen }: {\n    title: string;\n    subtitle?: string;\n    leading?: ReactNode;\n    trailing?: ReactNode;\n    actions?: ReactNode;\n    flat?: boolean;\n    selected?: boolean;\n    selecting?: boolean;\n    disabled?: boolean;\n    onSelected?: (v: boolean) => void;\n    onOpen?: () => void;\n})",
       "props": [
         {
@@ -407,7 +413,7 @@
     {
       "name": "Banner",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 131,
+      "line": 132,
       "signature": "export function Banner({ children, kind = 'info', action }: {\n    children: ReactNode;\n    kind?: 'info' | 'success' | 'warning' | 'error';\n    action?: ReactNode;\n})",
       "props": [
         {
@@ -433,7 +439,7 @@
     {
       "name": "StatePanel",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 139,
+      "line": 140,
       "signature": "export function StatePanel({ title, message, error = false, bachFace = false, action, diagnostic }: {\n    title: string;\n    message: string;\n    error?: boolean;\n    bachFace?: boolean;\n    action?: ReactNode;\n    diagnostic?: string;\n})",
       "props": [
         {
@@ -477,7 +483,7 @@
     {
       "name": "Progress",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 149,
+      "line": 150,
       "signature": "export function Progress({ value, label = '불러오는 중' }: {\n    value?: number;\n    label?: string;\n})",
       "props": [
         {
@@ -497,7 +503,7 @@
     {
       "name": "SettingsRow",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 153,
+      "line": 154,
       "signature": "export function SettingsRow({ label, description, children }: {\n    label: string;\n    description?: string;\n    children: ReactNode;\n})",
       "props": [
         {
@@ -523,7 +529,7 @@
     {
       "name": "Dialog",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 158,
+      "line": 159,
       "signature": "export function Dialog({ open, title, children, onClose, actions, sheet = false, busy = false }: {\n    open: boolean;\n    title: string;\n    children: ReactNode;\n    onClose: () => void;\n    actions?: ReactNode;\n    sheet?: boolean;\n    busy?: boolean;\n})",
       "props": [
         {
@@ -573,7 +579,7 @@
     {
       "name": "NumberControl",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 185,
+      "line": 280,
       "signature": "export function NumberControl({ label, value, onChange, min, max, step = 1, unit = '', disabled = false }: {\n    label: string;\n    value: number;\n    onChange: (v: number) => void;\n    min: number;\n    max: number;\n    step?: number;\n    unit?: string;\n    disabled?: boolean;\n})",
       "props": [
         {
@@ -629,7 +635,7 @@
     {
       "name": "PageControls",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 221,
+      "line": 316,
       "signature": "export function PageControls({ page, count, onChange, performance = false }: {\n    page: number;\n    count?: number;\n    onChange: (v: number) => void;\n    performance?: boolean;\n})",
       "props": [
         {
@@ -661,7 +667,7 @@
     {
       "name": "Transport",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 227,
+      "line": 322,
       "signature": "export function Transport({ playing, onToggle, position = 0, duration, onSeek, onPrevious, onNext }: {\n    playing: boolean;\n    onToggle?: () => void;\n    position?: number;\n    duration?: number;\n    onSeek?: (n: number) => void;\n    onPrevious?: () => void;\n    onNext?: () => void;\n})",
       "props": [
         {
@@ -711,14 +717,14 @@
     {
       "name": "TunerStatus",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 236,
+      "line": 331,
       "signature": "export type TunerStatus = 'flat' | 'centered' | 'sharp' | 'noSignal' | 'lowConfidence';",
       "props": []
     },
     {
       "name": "TunerMeter",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 237,
+      "line": 332,
       "signature": "export function TunerMeter({ status, cents, note = 'A4' }: {\n    status: TunerStatus;\n    cents?: number;\n    note?: string;\n})",
       "props": [
         {
@@ -744,7 +750,7 @@
     {
       "name": "BeatIndicator",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 245,
+      "line": 340,
       "signature": "export function BeatIndicator({ beats, currentBeat, running }: {\n    beats: number;\n    currentBeat: number;\n    running: boolean;\n})",
       "props": [
         {
@@ -770,14 +776,14 @@
     {
       "name": "ServiceAvailability",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 253,
+      "line": 348,
       "signature": "export type ServiceAvailability = 'available' | 'external' | 'install' | 'unavailable';",
       "props": []
     },
     {
       "name": "ServiceLink",
       "file": "packages/ddirori_web/src/index.tsx",
-      "line": 255,
+      "line": 350,
       "signature": "export function ServiceLink({product,name,description,availability='available',onOpen}:{product:ProductId;name:string;description:string;availability?:ServiceAvailability;onOpen?:()=>void})",
       "props": [
         {
@@ -1125,7 +1131,7 @@
     {
       "name": "Slider",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 550,
+      "line": 565,
       "signature": "export function Slider({\n  label,\n  value,\n  onChange,\n  min = 0,\n  max = 100,\n  step = 1,\n  disabled = false,\n  valueText,\n}: {\n  label: string;\n  value: number;\n  onChange: (v: number) => void;\n  min?: number;\n  max?: number;\n  step?: number;\n  disabled?: boolean;\n  valueText?: string;\n})",
       "props": [
         {
@@ -1181,7 +1187,7 @@
     {
       "name": "SegmentedControl",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 599,
+      "line": 614,
       "signature": "export function SegmentedControl<T extends string>({\n  label,\n  options,\n  value,\n  onChange,\n  disabled = false,\n}: {\n  label: string;\n  options: readonly Option<T>[];\n  value: T;\n  onChange: (value: T) => void;\n  disabled?: boolean;\n})",
       "props": [
         {
@@ -1219,7 +1225,7 @@
     {
       "name": "Tabs",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 650,
+      "line": 666,
       "signature": "export function Tabs<T extends string>({\n  label,\n  options,\n  value,\n  onChange,\n  activation = \"automatic\",\n}: {\n  label: string;\n  options: readonly (Option<T> & { content: ReactNode })[];\n  value: T;\n  onChange: (v: T) => void;\n  activation?: \"automatic\" | \"manual\";\n})",
       "props": [
         {
@@ -1257,7 +1263,7 @@
     {
       "name": "Icon",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 722,
+      "line": 738,
       "signature": "export function Icon({\n  children,\n  label,\n}: {\n  children: ReactNode;\n  label?: string;\n})",
       "props": [
         {
@@ -1277,7 +1283,7 @@
     {
       "name": "Avatar",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 740,
+      "line": 756,
       "signature": "export function Avatar({ name, src }: { name: string; src?: string })",
       "props": [
         {
@@ -1297,7 +1303,7 @@
     {
       "name": "Badge",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 755,
+      "line": 771,
       "signature": "export function Badge({\n  children,\n  tone = \"neutral\",\n}: {\n  children: ReactNode;\n  tone?: \"neutral\" | \"success\" | \"warning\" | \"error\";\n})",
       "props": [
         {
@@ -1317,7 +1323,7 @@
     {
       "name": "StatusBadge",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 764,
+      "line": 780,
       "signature": "export function StatusBadge({\n  label,\n  tone = \"neutral\",\n}: {\n  label: string;\n  tone?: \"neutral\" | \"success\" | \"warning\" | \"error\";\n})",
       "props": [
         {
@@ -1337,14 +1343,14 @@
     {
       "name": "Divider",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 780,
+      "line": 796,
       "signature": "export function Divider()",
       "props": []
     },
     {
       "name": "List",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 783,
+      "line": 799,
       "signature": "export function List({\n  children,\n  label,\n}: {\n  children: ReactNode;\n  label: string;\n})",
       "props": [
         {
@@ -1364,7 +1370,7 @@
     {
       "name": "Card",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 796,
+      "line": 812,
       "signature": "export function Card({ children }: { children: ReactNode })",
       "props": [
         {
@@ -1378,7 +1384,7 @@
     {
       "name": "Section",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 799,
+      "line": 815,
       "signature": "export function Section({\n  title,\n  children,\n  action,\n}: {\n  title: string;\n  children: ReactNode;\n  action?: ReactNode;\n})",
       "props": [
         {
@@ -1404,7 +1410,7 @@
     {
       "name": "Accordion",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 820,
+      "line": 836,
       "signature": "export function Accordion({\n  title,\n  children,\n  open,\n  onOpenChange,\n}: {\n  title: string;\n  children: ReactNode;\n  open: boolean;\n  onOpenChange: (value: boolean) => void;\n})",
       "props": [
         {
@@ -1436,14 +1442,14 @@
     {
       "name": "TableColumn",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 849,
+      "line": 867,
       "signature": "export type TableColumn = { key: string; label: string; sortable?: boolean };",
       "props": []
     },
     {
       "name": "Table",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 850,
+      "line": 868,
       "signature": "export function Table({\n  label,\n  columns,\n  rows,\n  sort,\n  onSort,\n  empty = \"표시할 항목이 없어요\",\n}: {\n  label: string;\n  columns: readonly TableColumn[];\n  rows: readonly { id: string; cells: Record<string, ReactNode> }[];\n  sort?: { key: string; direction: \"ascending\" | \"descending\" };\n  onSort?: (key: string) => void;\n  empty?: string;\n})",
       "props": [
         {
@@ -1487,7 +1493,7 @@
     {
       "name": "InlineMessage",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 920,
+      "line": 938,
       "signature": "export function InlineMessage({\n  children,\n  error = false,\n}: {\n  children: ReactNode;\n  error?: boolean;\n})",
       "props": [
         {
@@ -1507,7 +1513,7 @@
     {
       "name": "Toast",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 937,
+      "line": 955,
       "signature": "export function Toast({\n  message,\n  onClose,\n  action,\n}: {\n  message: string;\n  onClose: () => void;\n  action?: ReactNode;\n})",
       "props": [
         {
@@ -1533,7 +1539,7 @@
     {
       "name": "Skeleton",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 956,
+      "line": 974,
       "signature": "export function Skeleton({\n  label = \"불러오는 중\",\n  lines = 3,\n}: {\n  label?: string;\n  lines?: number;\n})",
       "props": [
         {
@@ -1553,7 +1559,7 @@
     {
       "name": "ConfirmDialog",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 971,
+      "line": 989,
       "signature": "export function ConfirmDialog({\n  open,\n  title,\n  children,\n  onClose,\n  onConfirm,\n  busy = false,\n  error,\n}: {\n  open: boolean;\n  title: string;\n  children: ReactNode;\n  onClose: () => void;\n  onConfirm: () => void | Promise<void>;\n  busy?: boolean;\n  error?: string;\n})",
       "props": [
         {
@@ -1603,7 +1609,7 @@
     {
       "name": "AppHeader",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 1019,
+      "line": 1037,
       "signature": "export function AppHeader({\n  title,\n  subtitle,\n  leading,\n  actions,\n}: {\n  title: string;\n  subtitle?: string;\n  leading?: ReactNode;\n  actions?: ReactNode;\n})",
       "props": [
         {
@@ -1635,7 +1641,7 @@
     {
       "name": "Navigation",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 1047,
+      "line": 1065,
       "signature": "export function Navigation({\n  label,\n  children,\n}: {\n  label: string;\n  children: ReactNode;\n})",
       "props": [
         {
@@ -1655,7 +1661,7 @@
     {
       "name": "NavigationItem",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 1060,
+      "line": 1078,
       "signature": "export function NavigationItem({\n  label,\n  href,\n  current = false,\n  icon,\n}: {\n  label: string;\n  href: string;\n  current?: boolean;\n  icon?: ReactNode;\n})",
       "props": [
         {
@@ -1687,8 +1693,8 @@
     {
       "name": "Popover",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 1084,
-      "signature": "export function Popover({\n  label,\n  triggerLabel,\n  open,\n  onOpenChange,\n  children,\n  menu = false,\n  onKeyDown,\n}: {\n  label: string;\n  triggerLabel?: string;\n  open: boolean;\n  onOpenChange: (v: boolean) => void;\n  children: ReactNode;\n  menu?: boolean;\n  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;\n})",
+      "line": 1102,
+      "signature": "export function Popover({\n  label,\n  triggerLabel,\n  triggerKind = \"secondary\",\n  open,\n  onOpenChange,\n  children,\n  menu = false,\n  onKeyDown,\n}: {\n  label: string;\n  triggerLabel?: string;\n  triggerKind?: \"secondary\" | \"quiet\";\n  open: boolean;\n  onOpenChange: (v: boolean) => void;\n  children: ReactNode;\n  menu?: boolean;\n  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;\n})",
       "props": [
         {
           "name": "label",
@@ -1701,6 +1707,12 @@
           "type": "string | undefined",
           "required": false,
           "default": "—"
+        },
+        {
+          "name": "triggerKind",
+          "type": "\"secondary\" | \"quiet\" | undefined",
+          "required": false,
+          "default": "\"secondary\""
         },
         {
           "name": "open",
@@ -1737,7 +1749,7 @@
     {
       "name": "Menu",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 1193,
+      "line": 1227,
       "signature": "export function Menu({\n  label,\n  items,\n}: {\n  label: string;\n  items: readonly {\n    id: string;\n    label: string;\n    disabled?: boolean;\n    onSelect: () => void;\n  }[];\n})",
       "props": [
         {
@@ -1757,7 +1769,7 @@
     {
       "name": "Tooltip",
       "file": "packages/ddirori_web/src/basic.tsx",
-      "line": 1267,
+      "line": 1305,
       "signature": "export function Tooltip({\n  text,\n  children,\n}: {\n  text: string;\n  children: ReactElement<{ \"aria-describedby\"?: string }>;\n})",
       "props": [
         {
@@ -1768,7 +1780,7 @@
         },
         {
           "name": "children",
-          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"<repo>/node_modules/@types/react/index\").JSXElementConstructor<any>>",
+          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha44-candidate-20261126/node_modules/@types/react/index\").JSXElementConstructor<any>>",
           "required": true,
           "default": "—"
         }
@@ -2250,21 +2262,22 @@
       "file": "packages/ddirori_ui/lib/src/music.dart",
       "line": 7,
       "kind": "class",
-      "signature": "class DdiroriPageControls extends StatelessWidget {\nconst DdiroriPageControls({\n    super.key,\n    required this.page,\n    required this.onPrevious,\n    required this.onNext,\n    this.pageCount,\n    this.performance = false,\n  });\n  final int page;\n  final int? pageCount;\n  final VoidCallback? onPrevious, onNext;\n  final bool performance;\n}",
+      "signature": "class DdiroriPageControls extends StatelessWidget {\nconst DdiroriPageControls({\n    super.key,\n    required this.page,\n    required this.onPrevious,\n    required this.onNext,\n    this.pageCount,\n    this.performance = false,\n    this.statusLabel,\n  });\n  final int page;\n  final int? pageCount;\n  final VoidCallback? onPrevious, onNext;\n  final bool performance;\n  final String? statusLabel;\n}",
       "fields": [
         "int page",
         "int? pageCount",
         "VoidCallback? onPrevious, onNext",
-        "bool performance"
+        "bool performance",
+        "String? statusLabel"
       ],
       "constructors": [
-        "const DdiroriPageControls({\n    super.key,\n    required this.page,\n    required this.onPrevious,\n    required this.onNext,\n    this.pageCount,\n    this.performance = false,\n  });"
+        "const DdiroriPageControls({\n    super.key,\n    required this.page,\n    required this.onPrevious,\n    required this.onNext,\n    this.pageCount,\n    this.performance = false,\n    this.statusLabel,\n  });"
       ]
     },
     {
       "name": "DdiroriAnnotationTools",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 63,
+      "line": 81,
       "kind": "class",
       "signature": "class DdiroriAnnotationTools extends StatelessWidget {\nconst DdiroriAnnotationTools({\n    super.key,\n    required this.tool,\n    required this.onToolChanged,\n    required this.color,\n    required this.onColorChanged,\n    required this.width,\n    required this.onWidthChanged,\n    this.onUndo,\n    this.onRedo,\n  });\n  final String tool;\n  final ValueChanged<String> onToolChanged;\n  final Color color;\n  final ValueChanged<Color> onColorChanged;\n  final double width;\n  final ValueChanged<double> onWidthChanged;\n  final VoidCallback? onUndo, onRedo;\n}",
       "fields": [
@@ -2283,7 +2296,7 @@
     {
       "name": "DdiroriTransportVariant",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 142,
+      "line": 160,
       "kind": "enum",
       "signature": "enum DdiroriTransportVariant { full, compact }",
       "fields": [],
@@ -2292,7 +2305,7 @@
     {
       "name": "DdiroriPlaybackProgress",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 156,
+      "line": 174,
       "kind": "class",
       "signature": "class DdiroriPlaybackProgress extends StatefulWidget {\nconst DdiroriPlaybackProgress({\n    super.key,\n    required this.position,\n    this.duration,\n    this.bufferedPosition,\n    this.onSeek,\n    this.enabled = true,\n    this.statusLabel,\n    this.sliderKey,\n  });\n\n  final Duration position;\n  final Duration? duration;\n  final Duration? bufferedPosition;\n  final ValueChanged<Duration>? onSeek;\n  final bool enabled;\n  final String? statusLabel;\n  final Key? sliderKey;\n}",
       "fields": [
@@ -2311,7 +2324,7 @@
     {
       "name": "DdiroriTransport",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 288,
+      "line": 306,
       "kind": "class",
       "signature": "class DdiroriTransport extends StatelessWidget {\nconst DdiroriTransport({\n    super.key,\n    required this.playing,\n    required this.onToggle,\n    this.position = Duration.zero,\n    this.duration,\n    this.onSeek,\n    this.onPrevious,\n    this.onNext,\n    this.bufferedPosition,\n    this.statusLabel,\n    this.variant = DdiroriTransportVariant.full,\n  });\n  final bool playing;\n  final VoidCallback? onToggle, onPrevious, onNext;\n  final Duration position;\n  final Duration? duration;\n  final Duration? bufferedPosition;\n  final String? statusLabel;\n  final DdiroriTransportVariant variant;\n  final ValueChanged<Duration>? onSeek;\n}",
       "fields": [
@@ -2331,7 +2344,7 @@
     {
       "name": "DdiroriBeatIndicator",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 351,
+      "line": 369,
       "kind": "class",
       "signature": "class DdiroriBeatIndicator extends StatelessWidget {\nconst DdiroriBeatIndicator({\n    super.key,\n    required this.beats,\n    required this.currentBeat,\n    this.running = false,\n  }) : assert(beats > 0);\n  final int beats, currentBeat;\n  final bool running;\n}",
       "fields": [
@@ -2345,7 +2358,7 @@
     {
       "name": "DdiroriTunerStatus",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 401,
+      "line": 419,
       "kind": "enum",
       "signature": "enum DdiroriTunerStatus { flat, centered, sharp, noSignal, lowConfidence }",
       "fields": [],
@@ -2354,7 +2367,7 @@
     {
       "name": "DdiroriTunerMeter",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 403,
+      "line": 421,
       "kind": "class",
       "signature": "class DdiroriTunerMeter extends StatelessWidget {\nconst DdiroriTunerMeter({\n    super.key,\n    required this.status,\n    this.cents,\n    this.note = 'A4',\n  });\n  final DdiroriTunerStatus status;\n  final double? cents;\n  final String note;\n}",
       "fields": [
@@ -2369,7 +2382,7 @@
     {
       "name": "formatDdiroriDuration",
       "file": "packages/ddirori_ui/lib/src/music.dart",
-      "line": 144,
+      "line": 162,
       "kind": "function",
       "signature": "String formatDdiroriDuration(Duration duration)",
       "fields": [],
