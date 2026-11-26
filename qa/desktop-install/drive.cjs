@@ -142,6 +142,10 @@ async function connect(label, profile, action, sharedDefault = false) {
     const asar = mainPath.slice(0, mainPath.indexOf('app.asar') + 'app.asar'.length)
     const appAsarSha256 = hash(asar)
     if (expectedAsar) assert.equal(appAsarSha256, expectedAsar)
+    const mountType = process.env.STUDIO_QA_DELIVERY_MODE === 'appimage-fuse'
+      ? execFileSync('findmnt', ['-n', '-o', 'FSTYPE', '--target', asar], { encoding: 'utf8' }).trim()
+      : null
+    if (mountType !== null) assert.match(mountType, /^fuse(?:\.|$)/)
     socket = new WebSocket(target.webSocketDebuggerUrl)
     await new Promise((resolve, reject) => {
       socket.addEventListener('open', resolve, { once: true })
@@ -184,6 +188,11 @@ async function connect(label, profile, action, sharedDefault = false) {
       await chooser(() => click('프로젝트 열기'), '띠로리 Studio 프로젝트 열기', file)
       return status(path.basename(file) + '을 열었습니다')
     }
+    const importMxl = async file => {
+      await menu('파일 작업 열기')
+      await chooser(() => click('MusicXML 가져오기'), 'MusicXML 가져오기', file)
+      return status(path.basename(file) + '을 가져왔습니다')
+    }
     const save = async file => {
       await chooser(() => menu('프로젝트 다른 이름으로 저장'), '띠로리 Studio 프로젝트 저장', file)
       return status(path.basename(file) + '에 저장했습니다')
@@ -212,9 +221,9 @@ async function connect(label, profile, action, sharedDefault = false) {
       await chooser(() => click('MusicXML 내보내기'), 'MusicXML 내보내기', file)
       return status(path.basename(file) + '로 MusicXML을 내보냈습니다')
     }
-    const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl })
+    const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl, importMxl })
     report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
-      arch: process.arch, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
+      arch: process.arch, mountType, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
   } catch (error) {
     failure = error
     const latest = socket?.readyState === WebSocket.OPEN ? await state().catch(() => null) : null
@@ -376,14 +385,22 @@ async function main() {
     const saved = checkCopy(copy, snapshot, 'v3')
     await qa.open(copy)
     await qa.screenshot('reopened')
-    let mxl
+    let mxl, importedMxl
     if (mode === 'distribution') {
       const output = path.join(files, 'distribution.mxl')
       await qa.exportMxl(output)
       mxl = hash(output)
+      if (process.platform === 'linux') {
+        await qa.importMxl(output)
+        const restored = copyFor('mxl-imported')
+        await qa.save(restored)
+        importedMxl = checkCopy(restored, snapshot, 'v3')
+        assert.equal(hash(output), mxl)
+        await qa.screenshot('mxl-imported')
+      }
     }
     assert.equal(hash(source), original)
-    return { original, reopened: true, mxl, autosaveVersion: snapshot.metadata.version, ...saved }
+    return { original, reopened: true, mxl, importedMxl, autosaveVersion: snapshot.metadata.version, ...saved }
   }, process.platform === 'linux' && Boolean(process.env.XDG_CONFIG_HOME))
 }
 

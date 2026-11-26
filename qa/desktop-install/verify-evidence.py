@@ -1,5 +1,5 @@
 from fractions import Fraction
-from hashlib import sha256
+from hashlib import file_digest, sha256
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
@@ -9,8 +9,8 @@ import subprocess
 import sys
 
 
-windows, linux, candidate = (Path(arg).resolve() for arg in sys.argv[1:])
-schema = candidate / "src/musicxml/schema/musicxml-4.0"
+windows, linux, source, release43, release44 = (Path(arg).resolve() for arg in sys.argv[1:])
+schema = source / "src/musicxml/schema/musicxml-4.0"
 schema_env = {**os.environ, "XML_CATALOG_FILES": (schema / "catalog.xml").as_uri()}
 
 
@@ -72,11 +72,47 @@ def check_mxl(file, native_file, report):
                    input=xml, env=schema_env, check=True)
 
 
+published_roots = {"0.1.0-alpha.43": release43, "0.1.0-alpha.44": release44}
+published_commits = {
+    "0.1.0-alpha.43": "b090426b1ae2f86f881408c5b9650da208c2d9ef",
+    "0.1.0-alpha.44": "7451ea7c1a57fa25ae2830e2b3e5405acdb3d0ec",
+}
+
+def check_assets(root, platform, suffixes):
+    receipt = read(unique(root, "published-assets.json"))
+    assert receipt["platform"] == platform
+    observed = {(a["version"], a["name"]): a for a in receipt["assets"]}
+    assert len(receipt["assets"]) == len(observed) == len(suffixes)
+    checked = {}
+    for version, suffix in suffixes:
+        name = f"Ddirori-Studio-{version}-{suffix}"
+        actual = observed[version, name]
+        local = published_roots[version]
+        sums = unique(root, f"{version}-SHA256SUMS.txt")
+        assert sums.read_bytes() == (local / "SHA256SUMS.txt").read_bytes()
+        assert actual["checksumFileSha256"] == digest(sums)
+        assert actual["commit"] == published_commits[version]
+        assert actual["tag"] == f"v{version}"
+        assert actual["url"] == f"https://github.com/mann-lab-apps/in-c/releases/download/v{version}/{name}"
+        assert actual["bytes"] == (local / name).stat().st_size
+        with (local / name).open("rb") as stream:
+            assert actual["sha256"] == file_digest(stream, "sha256").hexdigest()
+        checked[version, suffix] = actual["sha256"]
+    return checked
+
+
 install_summary = read(unique(windows, "summary.json"))
-setup_names = ("candidate-fresh", "published", "candidate-upgrade", "published-reinstalled")
+setup_names = ("alpha44-fresh", "alpha43-installed", "alpha44-upgrade", "alpha43-reinstalled")
 fresh_setup, published, upgrade, reinstalled = (read(unique(windows, name + ".json")) for name in setup_names)
 previous_version = "0.1.0-alpha.43"
 candidate_version = "0.1.0-alpha.44"
+windows_assets = check_assets(windows, "windows", (
+    (previous_version, "windows-x64-setup.exe"), (candidate_version, "windows-x64-setup.exe"),
+    (candidate_version, "windows-x64-portable.exe"),
+))
+check_assets(linux, "linux", ((candidate_version, "linux-x86_64.AppImage"),))
+assert install_summary["arch"] == "X64" and install_summary["filesystem"] == "NTFS"
+assert install_summary["portableSha256"] == windows_assets[candidate_version, "windows-x64-portable.exe"]
 assert install_summary["appId"] == "com.mannlab.inc"
 assert install_summary["publishedToCandidate"] == "version upgrade"
 assert install_summary["publishedVersion"] == previous_version and install_summary["candidateVersion"] == candidate_version
@@ -87,7 +123,9 @@ for stage, expected in ((fresh_setup, candidate_version), (published, previous_v
     assert stage["source"] == f"Ddirori-Studio-{expected}-windows-x64-setup.exe"
     assert stage["appId"] == install_summary["appId"]
     assert stage["installPath"] == upgrade["installPath"]
-assert published["installerSha256"] == "f6676b55be65457373988774cb97dfab37ab1f016c98a19d31b9aeee9f2d45a6"
+    assert stage["executable"] == upgrade["executable"]
+    assert stage["installerSha256"] == windows_assets[expected, "windows-x64-setup.exe"]
+assert fresh_setup["executableSha256"] == upgrade["executableSha256"]
 assert reinstalled["installerSha256"] == published["installerSha256"]
 assert reinstalled["appAsarSha256"] == published["appAsarSha256"]
 assert fresh_setup["appAsarSha256"] == upgrade["appAsarSha256"] == install_summary["candidateAsarSha256"]
@@ -97,7 +135,7 @@ fresh_app = read(unique(windows, "fresh.json"))
 assert fresh_app["appAsarSha256"] == fresh_setup["appAsarSha256"]
 assert fresh_app["details"]["autosaveVersion"] == candidate_version
 check_native(unique(windows, "fresh.chromatics"), fresh_app["details"], 3)
-print("PASS Windows fresh installed candidate, saved and reopened v3")
+print("PASS Windows fresh installed published alpha.44, saved and reopened v3")
 
 for version in (2, 3):
     key = f"v{version}"
@@ -109,6 +147,8 @@ for version in (2, 3):
     assert old["appAsarSha256"] == published["appAsarSha256"]
     assert old["exitKind"] == "interrupted-after-autosave"
     assert new["appAsarSha256"] == upgrade["appAsarSha256"]
+    assert new["executable"].casefold() == upgrade["executable"].casefold()
+    assert old["executable"].casefold() == published["executable"].casefold()
     assert old["profile"] == new["profile"] and new["details"]["recentRecovered"]
     assert new["sharedDefault"] == (version == 3)
     assert digest(source) == old["details"]["original"] == new["details"]["original"]
@@ -140,15 +180,24 @@ for root, expected_platform in ((windows, "win32"), (linux, "linux")):
         assert delivery["deliveryMode"] == "portable-exe"
         assert delivery["appAsarSha256"] == install_summary["candidateAsarSha256"]
     else:
-        assert delivery["deliveryMode"] in {"appimage-fuse", "appimage-extract-and-run"}
+        assert delivery["deliveryMode"] == "appimage-fuse"
+        assert delivery["mountType"].split(".")[0] == "fuse"
         assert delivery["sharedDefault"]
         expected_asset = f"Ddirori-Studio-{candidate_version}-linux-x86_64.AppImage"
         assert Path(delivery["executable"]).name == expected_asset
-        assert Path(unique(linux, "asset-sha256.txt").read_text().split()[-1]).name == expected_asset
     native = unique(root, "distribution.chromatics")
     assert digest(native.parent / "source-v3.chromatics") == details["original"]
     check_native(native, details, 3)
     check_mxl(unique(root, "distribution.mxl"), native, details)
+    if expected_platform == "linux":
+        restored = unique(root, "mxl-imported.chromatics")
+        imported = details["importedMxl"]
+        assert imported["savedVersion"] == 3 and imported["endTick"] == 20160
+        assert digest(restored) == imported["savedSha256"]
+        restored_score = read(restored)["score"]
+        assert score_pitch(restored_score) == imported["savedPitch"] == details["savedPitch"]
+        assert restored_score["hairpins"][0]["endTime"]["tick"] == 20160
+        print("PASS Linux FUSE release AppImage re-imported its MXL and saved Native v3")
     print("PASS distribution launcher, Native v3, MXL score and fixed XSD", delivery["deliveryMode"])
 
 portable_default = read(unique(windows, "portable-default.json"))

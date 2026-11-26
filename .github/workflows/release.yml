@@ -1,10 +1,10 @@
-name: Studio alpha.44 upgrade and distribution QA
+name: Studio alpha.44 published desktop QA
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Verify the alpha.43 to alpha.44 upgrade and distribution files
+        description: Verify the public alpha.44 files
         required: true
         type: choice
         options:
@@ -21,76 +21,37 @@ on:
 permissions:
   contents: read
 
-env:
-  STUDIO_QA_CANDIDATE: 2424e5f24173ff9efc2e389dcfc4ed2a22afb7a2
-  STUDIO_QA_CANDIDATE_VERSION: 0.1.0-alpha.44
-  STUDIO_QA_PUBLISHED_VERSION: 0.1.0-alpha.43
-
 jobs:
   installed-windows:
     if: inputs.tag == 'preflight' && inputs.platform != 'linux'
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
     steps:
-      - name: Check out product candidate and QA
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.STUDIO_QA_CANDIDATE }}
-          path: candidate
-          persist-credentials: false
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
-          path: qa-tools
+          persist-credentials: false
           sparse-checkout: |
             qa/desktop-install
             qa/windows-save-boundaries/fixtures
-          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: candidate/package-lock.json
-      - name: Download and verify the published alpha.43 installer
+      - name: Verify the published alpha.43 and alpha.44 files
         shell: pwsh
         run: |
-          $dir = Join-Path $env:RUNNER_TEMP 'studio-alpha43-download'
-          New-Item -Type Directory $dir | Out-Null
-          $base = 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.43'
-          $name = 'Ddirori-Studio-0.1.0-alpha.43-windows-x64-setup.exe'
-          Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile (Join-Path $dir 'SHA256SUMS.txt')
-          Invoke-WebRequest "$base/$name" -OutFile (Join-Path $dir $name)
-          $matched = Select-String -LiteralPath (Join-Path $dir 'SHA256SUMS.txt') -Pattern ('^([0-9a-f]{64})\s+\*?' + [regex]::Escape($name) + '$')
-          $actual = (Get-FileHash (Join-Path $dir $name) -Algorithm SHA256).Hash.ToLowerInvariant()
-          if (!$matched -or $matched.Matches[0].Groups[1].Value -ne $actual -or
-              $actual -ne 'f6676b55be65457373988774cb97dfab37ab1f016c98a19d31b9aeee9f2d45a6') {
-            throw "Published installer checksum mismatch: $actual"
-          }
-          Write-Output "$actual  $name"
-      - name: Build the Windows setup and portable EXE
-        working-directory: candidate
-        run: |
-          $candidate = git rev-parse HEAD
-          if ($LASTEXITCODE -ne 0 -or $candidate -ne $env:STUDIO_QA_CANDIDATE) { throw 'Candidate SHA mismatch' }
-          Write-Output "Candidate SHA: $candidate"
-          npm ci
+          node qa/desktop-install/published-assets.cjs windows (Join-Path $env:RUNNER_TEMP 'studio-public-assets') (Join-Path $env:RUNNER_TEMP 'studio-windows-install/installation')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run package:win
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify upgrade, old reader compatibility and portable launch
+      - name: Install, upgrade, recover and launch the posted portable file
         shell: pwsh
         run: |
-          $proof = Join-Path $env:RUNNER_TEMP 'studio-windows-install'
-          $published = Join-Path $env:RUNNER_TEMP 'studio-alpha43-download'
-          & qa-tools/qa/desktop-install/windows-install.ps1 -Candidate (Resolve-Path candidate).Path -Work $proof -Published $published
+          & qa/desktop-install/windows-install.ps1 -Downloads (Join-Path $env:RUNNER_TEMP 'studio-public-assets') -Work (Join-Path $env:RUNNER_TEMP 'studio-windows-install')
       - name: Keep Windows installation and generated score evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: studio-windows-install-evidence
           path: |
-            ${{ runner.temp }}/studio-alpha43-download/SHA256SUMS.txt
-            ${{ runner.temp }}/studio-windows-install/installation/*.json
+            ${{ runner.temp }}/studio-windows-install/installation/*
             ${{ runner.temp }}/studio-windows-install/*/results/*
             ${{ runner.temp }}/studio-windows-install/*/files/*
           if-no-files-found: warn
@@ -102,51 +63,30 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ env.STUDIO_QA_CANDIDATE }}
-          path: candidate
           persist-credentials: false
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          path: qa-tools
           sparse-checkout: |
             qa/desktop-install
             qa/windows-save-boundaries/fixtures
-          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: candidate/package-lock.json
-      - name: Build the candidate AppImage
-        working-directory: candidate
-        run: |
-          test "$(git rev-parse HEAD)" = "$STUDIO_QA_CANDIDATE"
-          echo "Candidate SHA: $STUDIO_QA_CANDIDATE"
-          npm ci
-          npm run package:linux
-      - name: Verify the x64 AppImage launcher and score files
+      - name: Verify the published alpha.44 AppImage
+        run: node qa/desktop-install/published-assets.cjs linux "$RUNNER_TEMP/studio-public-assets" "$RUNNER_TEMP/studio-linux-appimage/installation"
+      - name: Launch the published x64 AppImage through FUSE and round-trip a score
         shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xauth xvfb xdotool x11-apps libfuse2t64
           test "$RUNNER_ARCH" = X64
-          files=(candidate/release/*.AppImage)
-          test "${#files[@]}" -eq 1 && test -x "${files[0]}"
-          test "$(basename "${files[0]}")" = "Ddirori-Studio-${STUDIO_QA_CANDIDATE_VERSION}-linux-x86_64.AppImage"
+          test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse
           proof="$RUNNER_TEMP/studio-linux-appimage"
-          mkdir -p "$proof/installation"
+          launcher="$RUNNER_TEMP/studio-public-assets/Ddirori-Studio-0.1.0-alpha.44-linux-x86_64.AppImage"
+          chmod +x "$launcher"
           export XDG_CONFIG_HOME="$proof/config"
-          export STUDIO_QA_APP_VERSION="$STUDIO_QA_CANDIDATE_VERSION"
+          export STUDIO_QA_APP_VERSION=0.1.0-alpha.44
           export STUDIO_QA_DELIVERY_MODE=appimage-fuse
-          if ! test -r /dev/fuse || ! test -w /dev/fuse; then
-            export APPIMAGE_EXTRACT_AND_RUN=1
-            export STUDIO_QA_DELIVERY_MODE=appimage-extract-and-run
-          fi
-          echo "$STUDIO_QA_DELIVERY_MODE" | tee "$proof/installation/launch-mode.txt"
-          sha256sum "${files[0]}" | tee "$proof/installation/asset-sha256.txt"
-          asarHash=$(sha256sum candidate/release/linux-unpacked/resources/app.asar | cut -d ' ' -f1)
-          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node qa-tools/qa/desktop-install/drive.cjs distribution "${files[0]}" "$proof" "$asarHash"
+          unset APPIMAGE_EXTRACT_AND_RUN
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node qa/desktop-install/drive.cjs distribution "$launcher" "$proof"
       - name: Keep Linux launch and generated score evidence
         if: always()
         uses: actions/upload-artifact@v7
