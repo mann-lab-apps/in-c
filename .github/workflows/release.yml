@@ -96,7 +96,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test -- --maxWorkers=1 --silent=passed-only --shard=${{ matrix.shard }}
+      - if: runner.os != 'macOS' || matrix.shard != '1/4'
+        run: npm test -- --maxWorkers=1 --silent=passed-only --shard=${{ matrix.shard }}
+      - name: Run macOS 1/4 tests with MusicXML stage timing
+        if: runner.os == 'macOS' && matrix.shard == '1/4'
+        shell: bash
+        run: bash qa/macos-release-timing/run-release-timing.sh shard "$RUNNER_TEMP/studio-release-timing"
+      - name: Upload macOS 1/4 timeout diagnostics
+        if: always() && runner.os == 'macOS' && matrix.shard == '1/4'
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-release-timing-macos-1of4
+          path: ${{ runner.temp }}/studio-release-timing/*
+          if-no-files-found: warn
       - if: matrix.shard == '1/4'
         run: npm run test:tools
 
@@ -178,11 +190,12 @@ jobs:
       - name: Package app
         run: ${{ matrix.command }}
         env:
-          CSC_NAME: ${{ runner.os == 'macOS' && env.MACOS_CSC_NAME || '' }}
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.CSC_KEY_PASSWORD || '' }}
-          APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER_ID || '' }}
+          CSC_FOR_PULL_REQUEST: ${{ github.event_name == 'pull_request' && 'false' || '' }}
+          CSC_NAME: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && env.MACOS_CSC_NAME || '' }}
+          CSC_LINK: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_KEY_PASSWORD || '' }}
+          APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_ISSUER_ID || '' }}
       - name: Verify macOS Developer ID signing
         if: runner.os == 'macOS' && github.event_name != 'pull_request'
         run: |

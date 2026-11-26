@@ -894,7 +894,8 @@ const expectStaffTarget = (value:string) => {
 }
 
 const selectedSpanReference = () => {
-  const id=screen.getByLabelText('선택 표기 ID').textContent!
+  const properties = within(screen.getByRole('region', { name: '범위 표기 속성' }))
+  const id = properties.getByLabelText('선택 표기 ID').textContent!
   return listSpans(playbackMockState.lastScore!).find(reference=>reference.id===id)!
 }
 
