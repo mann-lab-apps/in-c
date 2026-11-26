@@ -4,12 +4,13 @@ const filePromises = require('node:fs/promises')
 const path = require('node:path')
 const { createHash } = require('node:crypto')
 const { spawn, spawnSync } = require('node:child_process')
+const { isDeepStrictEqual } = require('node:util')
 const { app, BrowserWindow, dialog, ipcMain, nativeTheme } = require('electron')
 
 const [bundle, out, format, scenario] = process.argv.slice(-4)
 assert(path.isAbsolute(bundle) && path.isAbsolute(out))
 assert.equal(format, 'mxl')
-assert(['replace', 'new-destination', 'locked-original', 'locked-copy'].includes(scenario))
+assert(['replace', 'replace-envelope', 'new-destination', 'locked-original', 'locked-copy'].includes(scenario))
 const { strFromU8, strToU8, unzipSync, zipSync } = require(process.env.STUDIO_QA_FFLATE)
 const extension = 'mxl'
 const width = Number(process.env.STUDIO_QA_WIDTH)
@@ -37,14 +38,19 @@ function scoreXml(file) {
   return strFromU8(archive[entry])
 }
 
+function writeArchive(file, contents, extraEntries = {}) {
+  fs.writeFileSync(file, zipSync({
+    'META-INF/container.xml': strToU8('<container><rootfiles><rootfile full-path="score.musicxml"/></rootfiles></container>'),
+    'score.musicxml': strToU8(contents),
+    ...extraEntries
+  }, { mtime: new Date('2026-11-25T00:00:00Z') }))
+}
+
 function writeScore(file, title, earlierFile) {
   const source = earlierFile ? scoreXml(earlierFile) : musicXml
   const updated = source.replace(/<work-title>[^<]*<\/work-title>/, '<work-title>' + title + '</work-title>')
   assert.notEqual(updated, source)
-  fs.writeFileSync(file, zipSync({
-    'META-INF/container.xml': strToU8('<container><rootfiles><rootfile full-path="score.musicxml"/></rootfiles></container>'),
-    'score.musicxml': strToU8(updated)
-  }, { mtime: new Date('2026-11-25T00:00:00Z') }))
+  writeArchive(file, updated)
 }
 
 writeScore(target, initialTitle)
@@ -176,10 +182,10 @@ const saveCopy = async () => {
 const open = () => click(openLabel)
 const change = key => evaluate(key => window.dispatchEvent(new KeyboardEvent('keydown', { key, code: key, bubbles: true })), key)
 const cleanup = () => assert(!fs.readdirSync(out).some(name => /\.(?:tmp|bak)$/.test(name)))
-const autosaved = title => wait(() => {
+const autosaved = (title, previousPitch) => wait(() => {
   if (!fs.existsSync(recovery)) return undefined
   const entry = read(recovery)
-  return entry.score.title === title && entry
+  return entry.score.title === title && !isDeepStrictEqual(pitch(entry.score), previousPitch) && entry
 }, 'current edit on disk in recovery')
 async function capture(name) {
   await evaluate(() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))))
@@ -223,10 +229,19 @@ function assertProtected(current, initial, hash) {
 
 async function checkReplacement(initial) {
   stage = 'replace from a separate process after the backup'
-  const firstTitle = 'Changed by separate process during save'
+  const envelopeOnly = scenario === 'replace-envelope'
+  const firstTitle = envelopeOnly ? initialTitle : 'Changed by separate process during save'
   const replacement = path.join(out, 'incoming.' + extension)
-  writeScore(replacement, firstTitle)
+  if (envelopeOnly) {
+    const contents = scoreXml(target)
+    fs.copyFileSync(target, path.join(out, 'original-before-repack.mxl'))
+    writeArchive(replacement, contents, { 'qa-container-rewrite.txt': strToU8('Same score, new archive member') })
+    assert.equal(scoreXml(replacement), contents)
+  } else {
+    writeScore(replacement, firstTitle)
+  }
   const firstExternalHash = sha(replacement)
+  assert.notEqual(firstExternalHash, initial.originalHash)
   fs.copyFileSync(replacement, path.join(out, 'external-before-conflict.' + extension))
   let renameEvidence
   let backupHash
@@ -273,8 +288,7 @@ async function checkReplacement(initial) {
   assert(adopted.title.includes(firstTitle) && adopted.unsaved.includes('변경 없음'))
   await change('ArrowDown')
   await statusWith('1회 수정')
-  const revised = await autosaved(firstTitle)
-  assert.notDeepEqual(pitch(revised.score), pitch(initial.pending.score))
+  const revised = await autosaved(firstTitle, pitch(initial.pending.score))
   await save()
   const saved = await statusWith(savedNotice)
   assert(saved.unsaved.includes('변경 없음') && !fs.existsSync(recovery))
@@ -450,7 +464,7 @@ app.on('browser-window-created', (_event, created) => {
   created.webContents.once('did-finish-load', async () => {
     try {
       const initial = await openAndEdit()
-      if (scenario === 'replace') await checkReplacement(initial)
+      if (scenario === 'replace' || scenario === 'replace-envelope') await checkReplacement(initial)
       else if (scenario === 'new-destination') await checkNewDestination(initial)
       else await checkLock(initial)
       const screen = await state()

@@ -15,7 +15,7 @@ candidate_sha = subprocess.check_output(
     ["git", "-C", str(candidate), "rev-parse", "HEAD"], text=True
 ).strip()
 assert summary["candidateSha"] == candidate_sha
-scenarios = ["replace", "new-destination"]
+scenarios = ["replace", "new-destination", "replace-envelope"]
 if summary["platform"] == "win32":
     assert (summary["arch"], summary["filesystem"]) == ("x64", "NTFS")
     scenarios += ["locked-original", "locked-copy"]
@@ -31,9 +31,7 @@ def checked_hash(file, expected):
     assert actual == expected, (file, actual, expected)
 
 
-def checked_score(folder, file_name, saved_hash, title, pitch):
-    file = folder / file_name
-    checked_hash(file, saved_hash)
+def read_score(file):
     with ZipFile(file) as archive:
         assert archive.testzip() is None, file
         assert len(set(archive.namelist())) == len(archive.namelist()), file
@@ -41,7 +39,13 @@ def checked_score(folder, file_name, saved_hash, title, pitch):
         score_path = container.find("./rootfiles/rootfile").attrib["full-path"]
         name = PurePosixPath(score_path)
         assert not name.is_absolute() and ".." not in name.parts, file
-        xml = archive.read(score_path)
+        return archive.read(score_path)
+
+
+def checked_score(folder, file_name, saved_hash, title, pitch):
+    file = folder / file_name
+    checked_hash(file, saved_hash)
+    xml = read_score(file)
     score = ET.fromstring(xml)
     assert score.findtext("work/work-title") == title, file
     measure = score.find("part/measure")
@@ -81,7 +85,7 @@ for case in summary["results"]:
     assert first["tempFilesCleaned"] and first["selection"], case
     assert "저장하지 않은 변경" in first["unsaved"], case
 
-    if case["scenario"] == "replace":
+    if case["scenario"] in {"replace", "replace-envelope"}:
         canceled, saved, second = remaining
         assert first["replacement"]["operation"] == second["replacement"]["operation"] == "replace"
         assert first["replacement"]["pid"] != first["editorPid"]
@@ -96,6 +100,14 @@ for case in summary["results"]:
         checked_hash(folder / "recovery-after-conflict.json", first["recovery"])
         checked_hash(folder / "original.mxl", second["expectedOriginal"])
         checked_hash(folder / "recovery-after-second-conflict.json", second["recovery"])
+        if case["scenario"] == "replace-envelope":
+            before = folder / "original-before-repack.mxl"
+            during = folder / "external-before-conflict.mxl"
+            checked_hash(before, first["initial"])
+            assert first["initial"] != first["expectedOriginal"]
+            assert read_score(before) == read_score(during), case
+            with ZipFile(during) as archive:
+                assert archive.read("qa-container-rewrite.txt") == b"Same score, new archive member"
         checked_score(folder, "reopened-and-saved.mxl", saved["saved"], saved["adoptedTitle"], saved["savedPitch"])
     elif case["scenario"] == "new-destination":
         saved, = remaining

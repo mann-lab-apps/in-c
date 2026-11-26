@@ -15,7 +15,7 @@ fs.mkdirSync(artifacts, { recursive: true })
 fs.mkdirSync(cases)
 const tests = []
 for (const width of [960, 1400]) {
-  for (const scenario of ['replace', 'new-destination']) tests.push({ width, format: 'mxl', scenario })
+  for (const scenario of ['replace', 'new-destination', 'replace-envelope']) tests.push({ width, format: 'mxl', scenario })
   if (process.platform === 'win32') {
     for (const scenario of ['locked-original', 'locked-copy']) tests.push({ width, format: 'mxl', scenario })
   }
