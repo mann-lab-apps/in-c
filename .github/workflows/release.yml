@@ -1,10 +1,10 @@
-name: Studio installer and distribution QA
+name: Studio alpha.44 upgrade and distribution QA
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Verify frozen packages with the published alpha.43 installer
+        description: Verify the alpha.43 to alpha.44 upgrade and distribution files
         required: true
         type: choice
         options:
@@ -22,7 +22,9 @@ permissions:
   contents: read
 
 env:
-  STUDIO_QA_CANDIDATE: a1236f148de0a0a1d50e12ffb3a72d6bef2c46fe
+  STUDIO_QA_CANDIDATE: 2424e5f24173ff9efc2e389dcfc4ed2a22afb7a2
+  STUDIO_QA_CANDIDATE_VERSION: 0.1.0-alpha.44
+  STUDIO_QA_PUBLISHED_VERSION: 0.1.0-alpha.43
 
 jobs:
   installed-windows:
@@ -75,7 +77,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run package:win
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify Windows install, replacement, recovery and portable launch
+      - name: Verify upgrade, old reader compatibility and portable launch
         shell: pwsh
         run: |
           $proof = Join-Path $env:RUNNER_TEMP 'studio-windows-install'
@@ -131,9 +133,11 @@ jobs:
           test "$RUNNER_ARCH" = X64
           files=(candidate/release/*.AppImage)
           test "${#files[@]}" -eq 1 && test -x "${files[0]}"
+          test "$(basename "${files[0]}")" = "Ddirori-Studio-${STUDIO_QA_CANDIDATE_VERSION}-linux-x86_64.AppImage"
           proof="$RUNNER_TEMP/studio-linux-appimage"
           mkdir -p "$proof/installation"
           export XDG_CONFIG_HOME="$proof/config"
+          export STUDIO_QA_APP_VERSION="$STUDIO_QA_CANDIDATE_VERSION"
           export STUDIO_QA_DELIVERY_MODE=appimage-fuse
           if ! test -r /dev/fuse || ! test -w /dev/fuse; then
             export APPIMAGE_EXTRACT_AND_RUN=1

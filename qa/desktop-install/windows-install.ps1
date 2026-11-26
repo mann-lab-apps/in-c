@@ -16,21 +16,28 @@ function Unique-Asset($Directory, $Pattern) {
 }
 
 $candidateRelease = Join-Path $Candidate 'release'
-$candidateSetup = Unique-Asset $candidateRelease '*-windows-x64-setup.exe'
-$portable = Unique-Asset $candidateRelease '*-windows-x64-portable.exe'
-$publicSetup = Unique-Asset $Published '*-windows-x64-setup.exe'
+$package = Get-Content (Join-Path $Candidate 'package.json') -Raw | ConvertFrom-Json
+$candidateVersion = $env:STUDIO_QA_CANDIDATE_VERSION
+$publishedVersion = $env:STUDIO_QA_PUBLISHED_VERSION
+if ($package.version -ne $candidateVersion -or $candidateVersion -eq $publishedVersion) {
+    throw 'A different candidate package version is required.'
+}
+$candidateSetup = Unique-Asset $candidateRelease "Ddirori-Studio-$candidateVersion-windows-x64-setup.exe"
+$portable = Unique-Asset $candidateRelease "Ddirori-Studio-$candidateVersion-windows-x64-portable.exe"
+$publicSetup = Unique-Asset $Published "Ddirori-Studio-$publishedVersion-windows-x64-setup.exe"
 $asar = (Get-FileHash (Join-Path $candidateRelease 'win-unpacked/resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant()
 $install = Join-Path $Work 'installed-app'
 $app = Join-Path $install 'in-C.exe'
 $evidence = Join-Path $Work 'installation'
 New-Item -Type Directory $evidence | Out-Null
-$appId = (Get-Content (Join-Path $Candidate 'package.json') -Raw | ConvertFrom-Json).build.appId
+$appId = $package.build.appId
+if ($appId -ne 'com.mannlab.inc') { throw "Unexpected application ID $appId." }
 $registryGuid = node -e 'const {UUID}=require(require.resolve("builder-util-runtime",{paths:[process.argv[1]]}));console.log(UUID.v5(process.argv[2],UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")));' $Candidate $appId
 if ($LASTEXITCODE -ne 0 -or !$registryGuid) { throw 'Could not derive installer AppId registry key.' }
 $registryLocation = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$registryGuid"
 $installRegistry = "HKCU:\Software\$registryGuid"
 
-function Start-Setup($File, $Label) {
+function Start-Setup($File, $Label, $ExpectedVersion) {
     $start = [DateTimeOffset]::UtcNow
     $process = Start-Process $File -ArgumentList @('/S', '/currentuser', "/D=$install") -Wait -PassThru
     $status = @{ label = $Label; source = [IO.Path]::GetFileName($File); exit = $process.ExitCode
@@ -43,7 +50,7 @@ function Start-Setup($File, $Label) {
     $entry = Get-ItemProperty $registryLocation
     $installation = Get-ItemProperty $installRegistry
     if ($installation.InstallLocation.TrimEnd('\') -ne $install) { throw "Installer $Label registered a different location." }
-    if ($entry.DisplayVersion -ne '0.1.0-alpha.43') { throw "Installer $Label has an unexpected version." }
+    if ($entry.DisplayVersion -ne $ExpectedVersion) { throw "Installer $Label registered $($entry.DisplayVersion) instead of $ExpectedVersion." }
     $installedAsar = (Get-FileHash (Join-Path $install 'resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant()
     $status.appAsarSha256 = $installedAsar
     $status.displayVersion = $entry.DisplayVersion
@@ -54,26 +61,40 @@ function Start-Setup($File, $Label) {
     Write-Host "PASS installer $Label and registered app $appId $($entry.DisplayVersion)"
 }
 
-function Run-App($Stage, $Executable, $Directory, $ExpectedAsar) {
+function Run-App($Stage, $Executable, $Directory, $ExpectedAsar, $ExpectedVersion) {
+    $env:STUDIO_QA_APP_VERSION = $ExpectedVersion
     node (Join-Path $PSScriptRoot 'drive.cjs') $Stage $Executable $Directory $ExpectedAsar
     if ($LASTEXITCODE -ne 0) { throw "Application verification failed: $Stage" }
 }
 
-Start-Setup $candidateSetup 'candidate-fresh'
-Run-App 'fresh' $app (Join-Path $Work 'fresh') $asar
-$uninstaller = Unique-Asset $install 'Uninstall*.exe'
-$removed = Start-Process $uninstaller -ArgumentList @('/S', '/currentuser') -Wait -PassThru
-if ($removed.ExitCode -ne 0 -or (Test-Path $app) -or (Test-Path $registryLocation)) { throw 'Fresh installation cleanup failed.' }
+function Remove-Setup {
+    $uninstaller = Unique-Asset $install 'Uninstall*.exe'
+    $removed = Start-Process $uninstaller -ArgumentList @('/S', '/currentuser') -Wait -PassThru
+    if ($removed.ExitCode -ne 0 -or (Test-Path $app) -or (Test-Path $registryLocation)) { throw 'Isolated installation cleanup failed.' }
+}
 
-Start-Setup $publicSetup 'published'
-Run-App 'prepare' $app (Join-Path $Work 'transition') ''
-Start-Setup $candidateSetup 'candidate-replacement'
-Run-App 'recover' $app (Join-Path $Work 'transition') $asar
+Start-Setup $candidateSetup 'candidate-fresh' $candidateVersion
+Run-App 'fresh' $app (Join-Path $Work 'fresh') $asar $candidateVersion
+Remove-Setup
+
+Start-Setup $publicSetup 'published' $publishedVersion
+$publicAsar = (Get-FileHash (Join-Path $install 'resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant()
+Run-App 'prepare' $app (Join-Path $Work 'transition') $publicAsar $publishedVersion
+Start-Setup $candidateSetup 'candidate-upgrade' $candidateVersion
+Run-App 'recover' $app (Join-Path $Work 'transition') $asar $candidateVersion
 
 $env:STUDIO_QA_DELIVERY_MODE = 'portable-exe'
-Run-App 'distribution' $portable (Join-Path $Work 'portable') $asar
-Run-App 'portable-default' $portable (Join-Path $Work 'transition') $asar
+Run-App 'distribution' $portable (Join-Path $Work 'portable') $asar $candidateVersion
+Run-App 'portable-default' $portable (Join-Path $Work 'transition') $asar $candidateVersion
+Remove-Item Env:STUDIO_QA_DELIVERY_MODE
+
+Remove-Setup
+Start-Setup $publicSetup 'published-reinstalled' $publishedVersion
+Run-App 'previous-read' $app (Join-Path $Work 'transition') $publicAsar $publishedVersion
+
 @{ arch = $env:RUNNER_ARCH; filesystem = $drive.DriveFormat; candidateAsarSha256 = $asar
     portableSha256 = (Get-FileHash $portable -Algorithm SHA256).Hash.ToLowerInvariant()
-    publishedToCandidate = 'same-version replacement'; appId = $appId } |
+    portableFileName = [IO.Path]::GetFileName($portable)
+    publishedVersion = $publishedVersion; candidateVersion = $candidateVersion
+    publishedToCandidate = 'version upgrade'; appId = $appId } |
     ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $evidence 'summary.json')

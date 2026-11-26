@@ -7,12 +7,13 @@ const { createHash } = require('node:crypto')
 const { fileURLToPath } = require('node:url')
 
 const [mode, executableArg, workArg, expectedAsar] = process.argv.slice(2)
-assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default'].includes(mode))
+assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default', 'previous-read'].includes(mode))
 const executable = path.resolve(executableArg)
 const work = path.resolve(workArg)
 const results = path.join(work, 'results')
 const files = path.join(work, 'files')
-const version = '0.1.0-alpha.43'
+const version = process.env.STUDIO_QA_APP_VERSION
+assert.match(version, /^0\.1\.0-alpha\.\d+$/)
 const fixture = {
   v2: path.join(__dirname, 'alpha43-common-v2.chromatics'),
   v3: path.join(__dirname, '../windows-save-boundaries/fixtures/repeat-independent-v3.chromatics')
@@ -212,7 +213,7 @@ async function connect(label, profile, action, sharedDefault = false) {
       return status(path.basename(file) + '로 MusicXML을 내보냈습니다')
     }
     const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl })
-    report = { executable, packagePath: asar, appAsarSha256, profile, sharedDefault, platform: process.platform,
+    report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
       arch: process.arch, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
   } catch (error) {
     failure = error
@@ -267,6 +268,27 @@ function checkCopy(copy, snapshot, key) {
 }
 
 async function main() {
+  if (mode === 'previous-read') {
+    for (const key of ['v2', 'v3']) {
+      const source = copyFor('recovered-' + key)
+      const original = hash(source)
+      const expected = read(source)
+      const profile = path.join(work, 'profile-previous-' + key)
+      await connect('previous-read-' + key, profile, async qa => {
+        await qa.open(source)
+        const copy = copyFor('alpha43-roundtrip-' + key)
+        await qa.save(copy)
+        const saved = checkCopy(copy, expected, key)
+        const actual = read(copy)
+        assert.deepEqual(actual.score.hairpins, expected.score.hairpins)
+        assert.equal(hash(source), original)
+        await qa.open(copy)
+        await qa.screenshot('roundtrip')
+        return { original, reopened: true, ...saved }
+      })
+    }
+    return
+  }
   if (mode === 'portable-default') {
     assert.equal(process.platform, 'win32')
     const profile = profileFor('v3')
@@ -300,7 +322,8 @@ async function main() {
           assert.equal(hash(source), original)
           await qa.screenshot('unsaved')
           fs.copyFileSync(recovery, path.join(files, 'before-' + key + '.json'))
-          return { original, recovery: hash(recovery), recent: hash(recent), editedPitch: pitch(snapshot.score) }
+          return { original, recovery: hash(recovery), recent: hash(recent),
+            autosaveVersion: snapshot.metadata.version, editedPitch: pitch(snapshot.score) }
         }, sharedDefault)
       } else {
         const old = read(path.join(results, 'published-' + key + '.json')).details
@@ -313,6 +336,15 @@ async function main() {
           await qa.screenshot('startup-recovery')
           await qa.click('복구본 열기')
           await qa.status('프로젝트 복구본을 열었습니다')
+          const rewritten = await wait(() => {
+            if (!fs.existsSync(recovery)) return false
+            const entry = read(recovery)
+            return entry.metadata.version === version && entry
+          }, 'rewritten recovery has the candidate application version')
+          assert.deepEqual(pitch(rewritten.score), old.editedPitch)
+          fs.copyFileSync(recovery, path.join(files, 'after-' + key + '.json'))
+          const afterRecoveryHash = hash(recovery)
+          assert.notEqual(afterRecoveryHash, old.recovery)
           const copy = copyFor('recovered-' + key)
           await qa.save(copy)
           const snapshot = read(path.join(files, 'before-' + key + '.json'))
@@ -321,7 +353,8 @@ async function main() {
           const saved = checkCopy(copy, snapshot, key)
           await qa.open(copy)
           await qa.screenshot('reopened')
-          return { original: hash(source), beforeRecovery: old.recovery, recentRecovered: true, reopened: true, ...saved }
+          return { original: hash(source), beforeRecovery: old.recovery, afterRecovery: afterRecoveryHash,
+            autosaveVersion: rewritten.metadata.version, recentRecovered: true, reopened: true, ...saved }
         }, sharedDefault)
       }
     }
@@ -350,7 +383,7 @@ async function main() {
       mxl = hash(output)
     }
     assert.equal(hash(source), original)
-    return { original, reopened: true, mxl, ...saved }
+    return { original, reopened: true, mxl, autosaveVersion: snapshot.metadata.version, ...saved }
   }, process.platform === 'linux' && Boolean(process.env.XDG_CONFIG_HOME))
 }
 

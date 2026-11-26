@@ -73,20 +73,29 @@ def check_mxl(file, native_file, report):
 
 
 install_summary = read(unique(windows, "summary.json"))
-setup_names = ("candidate-fresh", "published", "candidate-replacement")
-fresh_setup, published, replacement = (read(unique(windows, name + ".json")) for name in setup_names)
+setup_names = ("candidate-fresh", "published", "candidate-upgrade", "published-reinstalled")
+fresh_setup, published, upgrade, reinstalled = (read(unique(windows, name + ".json")) for name in setup_names)
+previous_version = "0.1.0-alpha.43"
+candidate_version = "0.1.0-alpha.44"
 assert install_summary["appId"] == "com.mannlab.inc"
-assert install_summary["publishedToCandidate"] == "same-version replacement"
-for stage in (fresh_setup, published, replacement):
-    assert stage["exit"] == 0 and stage["displayVersion"] == "0.1.0-alpha.43"
+assert install_summary["publishedToCandidate"] == "version upgrade"
+assert install_summary["publishedVersion"] == previous_version and install_summary["candidateVersion"] == candidate_version
+assert install_summary["portableFileName"] == f"Ddirori-Studio-{candidate_version}-windows-x64-portable.exe"
+for stage, expected in ((fresh_setup, candidate_version), (published, previous_version),
+                        (upgrade, candidate_version), (reinstalled, previous_version)):
+    assert stage["exit"] == 0 and stage["displayVersion"] == expected
+    assert stage["source"] == f"Ddirori-Studio-{expected}-windows-x64-setup.exe"
     assert stage["appId"] == install_summary["appId"]
-    assert stage["installPath"] == replacement["installPath"]
+    assert stage["installPath"] == upgrade["installPath"]
 assert published["installerSha256"] == "f6676b55be65457373988774cb97dfab37ab1f016c98a19d31b9aeee9f2d45a6"
-assert fresh_setup["appAsarSha256"] == replacement["appAsarSha256"] == install_summary["candidateAsarSha256"]
-assert published["appAsarSha256"] != replacement["appAsarSha256"]
+assert reinstalled["installerSha256"] == published["installerSha256"]
+assert reinstalled["appAsarSha256"] == published["appAsarSha256"]
+assert fresh_setup["appAsarSha256"] == upgrade["appAsarSha256"] == install_summary["candidateAsarSha256"]
+assert published["appAsarSha256"] != upgrade["appAsarSha256"]
 
 fresh_app = read(unique(windows, "fresh.json"))
 assert fresh_app["appAsarSha256"] == fresh_setup["appAsarSha256"]
+assert fresh_app["details"]["autosaveVersion"] == candidate_version
 check_native(unique(windows, "fresh.chromatics"), fresh_app["details"], 3)
 print("PASS Windows fresh installed candidate, saved and reopened v3")
 
@@ -96,26 +105,46 @@ for version in (2, 3):
     new = read(unique(windows, f"installed-recovered-{key}.json"))
     source = unique(windows, f"recovered-{key}.chromatics").parent / f"source-{key}.chromatics"
     before = source.parent / f"before-{key}.json"
+    after = source.parent / f"after-{key}.json"
     assert old["appAsarSha256"] == published["appAsarSha256"]
     assert old["exitKind"] == "interrupted-after-autosave"
-    assert new["appAsarSha256"] == replacement["appAsarSha256"]
+    assert new["appAsarSha256"] == upgrade["appAsarSha256"]
     assert old["profile"] == new["profile"] and new["details"]["recentRecovered"]
     assert new["sharedDefault"] == (version == 3)
     assert digest(source) == old["details"]["original"] == new["details"]["original"]
     assert digest(before) == old["details"]["recovery"] == new["details"]["beforeRecovery"]
-    check_native(unique(windows, f"recovered-{key}.chromatics"), new["details"], version, read(before))
-    print("PASS Windows same-version installer replacement, recovery and reopen", key)
+    assert digest(after) == new["details"]["afterRecovery"] != digest(before)
+    old_snapshot, new_snapshot = read(before), read(after)
+    assert old_snapshot["metadata"]["version"] == old["details"]["autosaveVersion"] == previous_version
+    assert new_snapshot["metadata"]["version"] == new["details"]["autosaveVersion"] == candidate_version
+    assert old_snapshot["score"] == new_snapshot["score"]
+    recovered = unique(windows, f"recovered-{key}.chromatics")
+    check_native(recovered, new["details"], version, old_snapshot)
+    print("PASS Windows alpha.43 to alpha.44 upgrade, recovery and reopen", key)
+
+    old_reader = read(unique(windows, f"previous-read-{key}.json"))
+    assert old_reader["appAsarSha256"] == published["appAsarSha256"]
+    assert old_reader["expectedAppVersion"] == previous_version and old_reader["profile"] != new["profile"]
+    assert old_reader["details"]["original"] == digest(recovered)
+    roundtrip = unique(windows, f"alpha43-roundtrip-{key}.chromatics")
+    check_native(roundtrip, old_reader["details"], version, read(recovered))
+    assert read(roundtrip)["score"].get("hairpins") == read(recovered)["score"].get("hairpins")
+    print("PASS published alpha.43 opens and round-trips alpha.44 Native", key)
 
 for root, expected_platform in ((windows, "win32"), (linux, "linux")):
     delivery = read(unique(root, "distribution.json"))
     details = delivery["details"]
     assert delivery["platform"] == expected_platform and delivery["arch"] == "x64"
+    assert details["autosaveVersion"] == candidate_version
     if expected_platform == "win32":
         assert delivery["deliveryMode"] == "portable-exe"
         assert delivery["appAsarSha256"] == install_summary["candidateAsarSha256"]
     else:
         assert delivery["deliveryMode"] in {"appimage-fuse", "appimage-extract-and-run"}
         assert delivery["sharedDefault"]
+        expected_asset = f"Ddirori-Studio-{candidate_version}-linux-x86_64.AppImage"
+        assert Path(delivery["executable"]).name == expected_asset
+        assert Path(unique(linux, "asset-sha256.txt").read_text().split()[-1]).name == expected_asset
     native = unique(root, "distribution.chromatics")
     assert digest(native.parent / "source-v3.chromatics") == details["original"]
     check_native(native, details, 3)
