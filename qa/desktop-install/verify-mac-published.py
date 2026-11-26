@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 import json
 import os
+import platform
 import plistlib
 import re
 import stat
@@ -154,23 +155,21 @@ def verify_mac(mount):
     run('mac-stapler', ['xcrun', 'stapler', 'validate', app])
     gatekeeper = run('mac-gatekeeper', ['spctl', '--assess', '--verbose=2', '--type', 'execute', app])
     assert 'Notarized Developer ID' in gatekeeper
-    smokes = {}
-    architectures_to_run = ['arm64']
-    if subprocess.run(['/usr/bin/arch', '-x86_64', '/usr/bin/true'],
-                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
-        architectures_to_run.append('x86_64')
-    for cpu in architectures_to_run:
-        profile = mount.parent / f'profile-{cpu}'
-        profile.mkdir()
-        env = os.environ.copy()
-        env.pop('ELECTRON_RUN_AS_NODE', None)
-        env.pop('ELECTRON_RENDERER_URL', None)
-        env['DDIRORI_PIANO_QA_DATA'] = str(profile)
-        env['TMPDIR'] = str(profile) + '/'
-        smoke_log = run(f'mac-smoke-{cpu}', ['/usr/bin/arch', f'-{cpu}', executable,
-                        '--smoke-test', '--piano-audit', '--mute-audio'], timeout=60, env=env)
-        marker = next(line for line in smoke_log.splitlines() if line.startswith('PACKAGED_APP_SMOKE_OK '))
-        smokes[cpu] = json.loads(marker.split(' ', 1)[1])
+    native_cpu = platform.machine()
+    assert native_cpu in {'arm64', 'x86_64'}
+    profile = mount.parent / f'profile-{native_cpu}'
+    profile.mkdir()
+    env = os.environ.copy()
+    env.pop('ELECTRON_RUN_AS_NODE', None)
+    env.pop('ELECTRON_RENDERER_URL', None)
+    env['DDIRORI_PIANO_QA_DATA'] = str(profile)
+    temporary = mount.parent / 'temp'
+    temporary.mkdir()
+    env['TMPDIR'] = str(temporary) + '/'
+    smoke_log = run(f'mac-smoke-{native_cpu}', [executable,
+                    '--smoke-test', '--piano-audit', '--mute-audio'], timeout=60, env=env)
+    marker = next(line for line in smoke_log.splitlines() if line.startswith('PACKAGED_APP_SMOKE_OK '))
+    smokes = {native_cpu: json.loads(marker.split(' ', 1)[1])}
     hashes = mounted_hashes(app)
     return {
         'name': info['CFBundleDisplayName'], 'version': version, 'appId': info['CFBundleIdentifier'],

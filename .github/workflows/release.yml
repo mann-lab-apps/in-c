@@ -101,7 +101,15 @@ jobs:
 
   dmg-macos:
     if: inputs.tag == 'preflight' && inputs.platform == 'macos'
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -122,11 +130,15 @@ jobs:
           gh release view v0.1.0-alpha.45 --repo mann-lab-apps/in-c \
             --json tagName,isPrerelease,isDraft,publishedAt,url,assets > "$proof/release.json"
       - name: Check the downloaded DMG and ZIP and launch the mounted app
-        run: python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.45
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "${{ matrix.arch }}"
+          python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.45
       - name: Keep macOS installed app and asset proof
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: studio-macos-published-evidence
+          name: studio-macos-published-evidence-${{ matrix.arch }}
           path: ${{ runner.temp }}/studio-mac-published/*
           if-no-files-found: warn
