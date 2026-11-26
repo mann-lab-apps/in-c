@@ -8,12 +8,13 @@ import { createNativeProject, decodeNativeProject, encodeNativeProject } from '.
 import { serializeMidi } from './midi/serialize-midi'
 import { readTestMidiEvents } from '../../testing/midi-events'
 import { chooseScoreView, focusTestBody, openStudioWorkspace, playbackMockState, registerAppTestHooks } from './App.test-harness'
+import { App } from './App'
 registerAppTestHooks()
 async function setup(kind: 'upper' | 'lower' | 'edge-upper') {
   window.history.replaceState({}, '', '/?fixture=release-test')
   const score = createMidiPitchRangeFixture(kind), project = createNativeProject(score)
   vi.mocked(window.inC.project.open).mockResolvedValueOnce({ fileName: 'range.chromatics', filePath: '/fixture/range.chromatics', contents: encodeNativeProject(project) })
-  const { App } = await import('./App'); render(<App />)
+  render(<App />)
   openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
   await waitFor(() => expect(playbackMockState.lastScore).toEqual(score))
   return { score, project }
@@ -67,7 +68,7 @@ it('checks the requested full-score or selected-part MIDI without rejecting a sa
   note.pitch = { step: 'B', octave: 9, alter: 0 }
   const project = createNativeProject(score)
   vi.mocked(window.inC.project.open).mockResolvedValueOnce({ fileName: 'scope.chromatics', filePath: '/fixture/scope.chromatics', contents: encodeNativeProject(project) })
-  const { App } = await import('./App'); render(<App />); openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+  render(<App />); openStudioWorkspace('파일'); fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
   await waitFor(() => expect(playbackMockState.lastScore).toEqual(score)); save()
   await waitFor(() => expect(screen.getByRole('region', { name: 'MIDI 오류 상세' })).toBeInTheDocument()); expect(window.inC.midi.save).not.toHaveBeenCalled()
   chooseScoreView('악보 보기', 'part'); chooseScoreView('파트보 선택', 'range-safe')
