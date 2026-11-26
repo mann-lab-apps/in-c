@@ -128,7 +128,7 @@
       "props": [
         {
           "name": "onError",
-          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha44-candidate-20261126/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "type": "(import(\"react\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
           "required": false,
           "default": "—"
         },
@@ -166,7 +166,7 @@
       "props": [
         {
           "name": "onError",
-          "type": "(import(\"/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha44-candidate-20261126/node_modules/@types/react/index\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
+          "type": "(import(\"react\").ReactEventHandler<HTMLButtonElement> & ((e: unknown) => void)) | undefined",
           "required": false,
           "default": "—"
         },
@@ -1780,7 +1780,7 @@
         },
         {
           "name": "children",
-          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"/Users/jaemankim/Desktop/privates/coding/worktrees/studio-alpha44-candidate-20261126/node_modules/@types/react/index\").JSXElementConstructor<any>>",
+          "type": "ReactElement<{ \"aria-describedby\"?: string; }, string | import(\"react\").JSXElementConstructor<any>>",
           "required": true,
           "default": "—"
         }
