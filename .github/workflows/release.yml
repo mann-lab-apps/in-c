@@ -1,10 +1,10 @@
-name: Studio Windows MXL file-boundary QA
+name: Studio installer and distribution QA
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Run compressed MusicXML file-boundary QA for the frozen Studio candidate
+        description: Verify frozen packages with the published alpha.43 installer
         required: true
         type: choice
         options:
@@ -13,65 +13,135 @@ on:
 permissions:
   contents: read
 
+env:
+  STUDIO_QA_CANDIDATE: a1236f148de0a0a1d50e12ffb3a72d6bef2c46fe
+
 jobs:
-  windows-file-boundaries:
+  installed-windows:
     if: inputs.tag == 'preflight'
     runs-on: windows-latest
-    timeout-minutes: 25
-    env:
-      STUDIO_QA_CANDIDATE: a1236f148de0a0a1d50e12ffb3a72d6bef2c46fe
+    timeout-minutes: 30
     steps:
-      - name: Check out frozen Studio candidate
+      - name: Check out product candidate and QA
         uses: actions/checkout@v7
         with:
-          ref: a1236f148de0a0a1d50e12ffb3a72d6bef2c46fe
+          ref: ${{ env.STUDIO_QA_CANDIDATE }}
           path: candidate
           persist-credentials: false
-      - name: Check out QA tools
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           path: qa-tools
-          sparse-checkout: qa/windows-save-boundaries
+          sparse-checkout: |
+            qa/desktop-install
+            qa/windows-save-boundaries/fixtures
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: candidate/package-lock.json
-      - name: Verify candidate SHA
+      - name: Download and verify the published alpha.43 installer
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'studio-alpha43-download'
+          New-Item -Type Directory $dir | Out-Null
+          $base = 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.43'
+          $name = 'Ddirori-Studio-0.1.0-alpha.43-windows-x64-setup.exe'
+          Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile (Join-Path $dir 'SHA256SUMS.txt')
+          Invoke-WebRequest "$base/$name" -OutFile (Join-Path $dir $name)
+          $matched = Select-String -LiteralPath (Join-Path $dir 'SHA256SUMS.txt') -Pattern ('^([0-9a-f]{64})\s+\*?' + [regex]::Escape($name) + '$')
+          $actual = (Get-FileHash (Join-Path $dir $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+          if (!$matched -or $matched.Matches[0].Groups[1].Value -ne $actual -or
+              $actual -ne 'f6676b55be65457373988774cb97dfab37ab1f016c98a19d31b9aeee9f2d45a6') {
+            throw "Published installer checksum mismatch: $actual"
+          }
+          Write-Output "$actual  $name"
+      - name: Build the Windows setup and portable EXE
         working-directory: candidate
         run: |
           $candidate = git rev-parse HEAD
-          if ($LASTEXITCODE -ne 0 -or $candidate -ne $env:STUDIO_QA_CANDIDATE) {
-            throw "Unexpected candidate SHA $candidate"
-          }
-          Write-Output $candidate
-      - name: Install frozen dependencies
-        working-directory: candidate
-        run: npm ci
-      - name: Build and verify the packaged candidate
-        working-directory: candidate
+          if ($LASTEXITCODE -ne 0 -or $candidate -ne $env:STUDIO_QA_CANDIDATE) { throw 'Candidate SHA mismatch' }
+          Write-Output "Candidate SHA: $candidate"
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run package:win
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify Windows install, replacement, recovery and portable launch
+        shell: pwsh
         run: |
-          npm run package:dir
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run verify:package
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node node_modules/electron/install.js
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Exercise Windows compressed MusicXML save collisions on packaged code
-        run: |
-          if ($env:RUNNER_ARCH -ne 'X64') { throw "Unexpected runner architecture $env:RUNNER_ARCH" }
-          $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($env:RUNNER_TEMP))
-          $env:STUDIO_QA_FILESYSTEM = $drive.DriveFormat
-          if ($env:STUDIO_QA_FILESYSTEM -ne 'NTFS') { throw "Unexpected file system $env:STUDIO_QA_FILESYSTEM" }
-          Write-Output "Files: $env:STUDIO_QA_FILESYSTEM"
-          node qa-tools/qa/windows-save-boundaries/run.cjs candidate/release/win-unpacked/resources/app.asar candidate/node_modules/electron/dist/electron.exe "$env:RUNNER_TEMP/studio-file-boundary-proof" candidate
-          exit $LASTEXITCODE
-      - name: Keep Windows file-boundary evidence
+          $proof = Join-Path $env:RUNNER_TEMP 'studio-windows-install'
+          $published = Join-Path $env:RUNNER_TEMP 'studio-alpha43-download'
+          & qa-tools/qa/desktop-install/windows-install.ps1 -Candidate (Resolve-Path candidate).Path -Work $proof -Published $published
+      - name: Keep Windows installation and generated score evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: studio-windows-mxl-file-boundary-evidence
-          path: ${{ runner.temp }}/studio-file-boundary-proof/artifacts
+          name: studio-windows-install-evidence
+          path: |
+            ${{ runner.temp }}/studio-alpha43-download/SHA256SUMS.txt
+            ${{ runner.temp }}/studio-windows-install/installation/*.json
+            ${{ runner.temp }}/studio-windows-install/*/results/*
+            ${{ runner.temp }}/studio-windows-install/*/files/*
+          if-no-files-found: warn
+
+  appimage-linux:
+    if: inputs.tag == 'preflight'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.STUDIO_QA_CANDIDATE }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: qa-tools
+          sparse-checkout: |
+            qa/desktop-install
+            qa/windows-save-boundaries/fixtures
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+      - name: Build the candidate AppImage
+        working-directory: candidate
+        run: |
+          test "$(git rev-parse HEAD)" = "$STUDIO_QA_CANDIDATE"
+          echo "Candidate SHA: $STUDIO_QA_CANDIDATE"
+          npm ci
+          npm run package:linux
+      - name: Verify the x64 AppImage launcher and score files
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xauth xvfb xdotool libfuse2t64
+          test "$RUNNER_ARCH" = X64
+          files=(candidate/release/*.AppImage)
+          test "${#files[@]}" -eq 1 && test -x "${files[0]}"
+          proof="$RUNNER_TEMP/studio-linux-appimage"
+          mkdir -p "$proof/installation"
+          export XDG_CONFIG_HOME="$proof/config"
+          export STUDIO_QA_DELIVERY_MODE=appimage-fuse
+          if ! test -r /dev/fuse || ! test -w /dev/fuse; then
+            export APPIMAGE_EXTRACT_AND_RUN=1
+            export STUDIO_QA_DELIVERY_MODE=appimage-extract-and-run
+          fi
+          echo "$STUDIO_QA_DELIVERY_MODE" | tee "$proof/installation/launch-mode.txt"
+          sha256sum "${files[0]}" | tee "$proof/installation/asset-sha256.txt"
+          asarHash=$(sha256sum candidate/release/linux-unpacked/resources/app.asar | cut -d ' ' -f1)
+          xvfb-run -a -s '-screen 0 1440x1000x24' node qa-tools/qa/desktop-install/drive.cjs distribution "${files[0]}" "$proof" "$asarHash"
+      - name: Keep Linux launch and generated score evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-linux-appimage-evidence
+          path: |
+            ${{ runner.temp }}/studio-linux-appimage/installation/*
+            ${{ runner.temp }}/studio-linux-appimage/results/*
+            ${{ runner.temp }}/studio-linux-appimage/files/*
           if-no-files-found: warn
