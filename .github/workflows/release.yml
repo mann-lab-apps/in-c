@@ -19,6 +19,7 @@ on:
           - linux
           - macos
           - rosetta
+          - rosetta-installed
 
 permissions:
   contents: read
@@ -101,11 +102,11 @@ jobs:
           if-no-files-found: warn
 
   dmg-macos:
-    if: inputs.tag == 'preflight' && (inputs.platform == 'macos' || inputs.platform == 'rosetta')
+    if: inputs.tag == 'preflight' && (inputs.platform == 'macos' || startsWith(inputs.platform, 'rosetta'))
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.platform == 'rosetta' && '[{"runner":"macos-15","arch":"arm64"}]' || '[{"runner":"macos-15","arch":"arm64"},{"runner":"macos-15-intel","arch":"x86_64"}]') }}
+        include: ${{ fromJSON(startsWith(inputs.platform, 'rosetta') && '[{"runner":"macos-15","arch":"arm64"}]' || '[{"runner":"macos-15","arch":"arm64"},{"runner":"macos-15-intel","arch":"x86_64"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
@@ -136,7 +137,10 @@ jobs:
           set -euo pipefail
           test "$(uname -m)" = "${{ matrix.arch }}"
           extra=()
-          if [ "$QA_PLATFORM" = rosetta ]; then extra+=(--rosetta); fi
+          case "$QA_PLATFORM" in
+            rosetta) extra+=(--rosetta) ;;
+            rosetta-installed) extra+=(--rosetta-installed) ;;
+          esac
           python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.45 "${extra[@]}"
       - name: Keep macOS installed app and asset proof
         if: always()

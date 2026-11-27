@@ -7,7 +7,7 @@ const { createHash } = require('node:crypto')
 const { fileURLToPath } = require('node:url')
 
 const [mode, executableArg, workArg, expectedAsar] = process.argv.slice(2)
-assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default', 'previous-read'].includes(mode))
+assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default', 'previous-read', 'startup'].includes(mode))
 const executable = path.resolve(executableArg)
 const work = path.resolve(workArg)
 const results = path.join(work, 'results')
@@ -85,8 +85,15 @@ async function connect(label, profile, action, sharedDefault = false) {
     environment.GTK_USE_PORTAL = '0'
     flags.push('--no-sandbox')
   }
-  flags.push('--disable-gpu', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=' + port)
-  const child = spawn(executable, flags, { env: environment, stdio: ['ignore', 'pipe', 'pipe'] })
+  const startupOnly = mode === 'startup'
+  const forceRosetta = startupOnly && process.env.STUDIO_QA_FORCE_ROSETTA === '1'
+  if (forceRosetta) assert.equal(process.platform, 'darwin')
+  if (!startupOnly) flags.push('--disable-gpu')
+  flags.push('--remote-debugging-address=127.0.0.1', '--remote-debugging-port=' + port)
+  const startedAt = Date.now()
+  const launch = forceRosetta ? '/usr/bin/arch' : executable
+  const args = forceRosetta ? ['-x86_64', executable, ...flags] : flags
+  const child = spawn(launch, args, { env: environment, stdio: ['ignore', 'pipe', 'pipe'] })
   const log = fs.createWriteStream(path.join(results, label + '-process.log'))
   child.stdout.pipe(log, { end: false })
   child.stderr.pipe(log, { end: false })
@@ -137,7 +144,8 @@ async function connect(label, profile, action, sharedDefault = false) {
       } catch {
         return undefined
       }
-    }, 'packaged renderer', 30000)
+    }, 'packaged renderer', startupOnly ? 120000 : 30000)
+    const rendererTargetMs = Date.now() - startedAt
     const mainPath = fileURLToPath(target.url)
     const asar = mainPath.slice(0, mainPath.indexOf('app.asar') + 'app.asar'.length)
     const appAsarSha256 = hash(asar)
@@ -165,7 +173,11 @@ async function connect(label, profile, action, sharedDefault = false) {
     await call('Page.enable')
     await call('Network.enable')
     await call('Network.setBlockedURLs', { urls: ['http://*', 'https://*'] })
-    await wait(() => evaluate(() => Boolean(document.querySelector('.start-actions'))), 'Studio start screen')
+    await wait(() => evaluate(requireVisible => {
+      const actions = document.querySelector('.start-actions')
+      return requireVisible ? actions?.checkVisibility() : Boolean(actions)
+    }, startupOnly), 'Studio start screen', startupOnly ? 45000 : undefined)
+    const startScreenMs = Date.now() - startedAt
     const click = value => wait(() => evaluate(label => {
       const element = [...document.querySelectorAll('button, [role=button], [role=menuitem]')].find(node =>
         node.checkVisibility() && !node.disabled && !node.closest('[inert]') &&
@@ -224,6 +236,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl, importMxl })
     report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
       arch: process.arch, mountType, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
+    if (startupOnly) Object.assign(report, { forceRosetta, rendererTargetMs, startScreenMs })
   } catch (error) {
     failure = error
     const latest = socket?.readyState === WebSocket.OPEN ? await state().catch(() => null) : null
@@ -277,6 +290,15 @@ function checkCopy(copy, snapshot, key) {
 }
 
 async function main() {
+  if (mode === 'startup') {
+    await connect('startup', path.join(work, 'profile-startup'), async qa => {
+      const current = await qa.state()
+      assert(current.startup && !current.recent.trim())
+      await qa.screenshot('start-screen')
+      return { startScreen: current.startup, emptyRecents: true, userDataIsolated: true }
+    })
+    return
+  }
   if (mode === 'previous-read') {
     for (const key of ['v2', 'v3']) {
       const source = copyFor('recovered-' + key)

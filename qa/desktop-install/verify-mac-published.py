@@ -8,6 +8,7 @@ import os
 import platform
 import plistlib
 import re
+from shutil import copytree
 import stat
 import subprocess
 import sys
@@ -20,7 +21,8 @@ root = Path(sys.argv[1]).resolve()
 release = json.loads((root / 'release.json').read_text())
 tag = sys.argv[2]
 check_rosetta = sys.argv[3:] == ['--rosetta']
-assert len(sys.argv) == 3 or check_rosetta
+check_installed = sys.argv[3:] == ['--rosetta-installed']
+assert len(sys.argv) == 3 or check_rosetta or check_installed
 version = tag.removeprefix('v')
 prefix = f'Ddirori-Studio-{version}-'
 repository = 'https://github.com/mann-lab-apps/in-c'
@@ -174,7 +176,38 @@ def verify_mac(mount):
         command = [*launch, executable, '--smoke-test', '--piano-audit', '--mute-audio']
         return run_smoke(root, f'mac-smoke-{name}', command, env, timeout=timeout)
 
-    if check_rosetta:
+    if check_installed:
+        assert native_cpu == 'arm64'
+        assert run('rosetta-host', ['/usr/bin/arch', '-x86_64', '/usr/sbin/sysctl', '-in',
+                                   'sysctl.proc_translated'], timeout=15).strip() == '1'
+        run('rosetta-host-macos', ['/usr/bin/sw_vers'])
+        copied = mount.parent / 'installed' / app.name
+        copied.parent.mkdir()
+        run('mac-ditto', ['/usr/bin/ditto', app, copied], timeout=60)
+        run('mac-installed-codesign', ['codesign', '--verify', '--deep', '--strict', copied])
+        copied_executable = copied / executable.relative_to(app)
+        asar = Path('Contents/Resources/app.asar')
+        assert disk_hash(copied_executable) == disk_hash(executable)
+        asar_digest = disk_hash(app / asar)
+        assert disk_hash(copied / asar) == asar_digest
+        installed = {}
+        for name, force in [('installed-arm64', '0'), ('installed-rosetta', '1')]:
+            env = {**os.environ, 'STUDIO_QA_APP_VERSION': version, 'STUDIO_QA_FORCE_ROSETTA': force}
+            work = mount.parent / name
+            env['TMPDIR'] = str(mount.parent) + '/'
+            try:
+                run(name, ['node', Path(__file__).with_name('drive.cjs'), 'startup',
+                           copied_executable, work, asar_digest], timeout=195, env=env)
+            finally:
+                if (work / 'results').exists():
+                    copytree(work / 'results', root / name)
+            result = json.loads((root / name / 'startup.json').read_text())
+            assert result['details']['startScreen'] and result['forceRosetta'] == (force == '1')
+            installed[name] = result
+        (root / 'mac-rosetta-installed.json').write_text(
+            json.dumps(installed, ensure_ascii=False, indent=2) + '\n')
+        smokes = {}
+    elif check_rosetta:
         assert native_cpu == 'arm64'
         translated = ['/usr/bin/arch', '-x86_64']
         assert run('rosetta-host', [*translated, '/usr/sbin/sysctl', '-in',
