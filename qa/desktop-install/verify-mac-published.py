@@ -14,9 +14,13 @@ import sys
 import time
 import unicodedata
 
+from mac_smoke import run_smoke
+
 root = Path(sys.argv[1]).resolve()
 release = json.loads((root / 'release.json').read_text())
 tag = sys.argv[2]
+check_rosetta = sys.argv[3:] == ['--rosetta']
+assert len(sys.argv) == 3 or check_rosetta
 version = tag.removeprefix('v')
 prefix = f'Ddirori-Studio-{version}-'
 repository = 'https://github.com/mann-lab-apps/in-c'
@@ -157,19 +161,42 @@ def verify_mac(mount):
     assert 'Notarized Developer ID' in gatekeeper
     native_cpu = platform.machine()
     assert native_cpu in {'arm64', 'x86_64'}
-    profile = mount.parent / f'profile-{native_cpu}'
-    profile.mkdir()
-    env = os.environ.copy()
-    env.pop('ELECTRON_RUN_AS_NODE', None)
-    env.pop('ELECTRON_RENDERER_URL', None)
-    env['DDIRORI_PIANO_QA_DATA'] = str(profile)
-    temporary = mount.parent / 'temp'
-    temporary.mkdir()
-    env['TMPDIR'] = str(temporary) + '/'
-    smoke_log = run(f'mac-smoke-{native_cpu}', [executable,
-                    '--smoke-test', '--piano-audit', '--mute-audio'], timeout=60, env=env)
-    marker = next(line for line in smoke_log.splitlines() if line.startswith('PACKAGED_APP_SMOKE_OK '))
-    smokes = {native_cpu: json.loads(marker.split(' ', 1)[1])}
+    def smoke(name, launch, timeout, legacy_temp=False):
+        profile = mount.parent / f'profile-{name}'
+        profile.mkdir()
+        temporary = profile if legacy_temp else mount.parent / f'temp-{name}'
+        temporary.mkdir(exist_ok=True)
+        env = os.environ.copy()
+        env.pop('ELECTRON_RUN_AS_NODE', None)
+        env.pop('ELECTRON_RENDERER_URL', None)
+        env['DDIRORI_PIANO_QA_DATA'] = str(profile)
+        env['TMPDIR'] = str(temporary) + '/'
+        command = [*launch, executable, '--smoke-test', '--piano-audit', '--mute-audio']
+        return run_smoke(root, f'mac-smoke-{name}', command, env, timeout=timeout)
+
+    if check_rosetta:
+        assert native_cpu == 'arm64'
+        translated = ['/usr/bin/arch', '-x86_64']
+        assert run('rosetta-host', [*translated, '/usr/sbin/sysctl', '-in',
+                                   'sysctl.proc_translated'], timeout=15).strip() == '1'
+        run('rosetta-host-macos', ['/usr/bin/sw_vers'])
+        probes = {
+            'arm64': smoke('arm64', ['/usr/bin/arch', '-arm64'], 60, legacy_temp=True),
+            'rosetta': smoke('rosetta', translated, 60, legacy_temp=True),
+            'rosetta-repeat': smoke('rosetta-repeat', translated, 120, legacy_temp=True),
+        }
+        (root / 'mac-rosetta-comparison.json').write_text(
+            json.dumps(probes, ensure_ascii=False, indent=2) + '\n')
+        for name, probe in probes.items():
+            print(f'{name}: timed out={probe["timedOut"]}, exit={probe["exitCode"]}, '
+                  f'elapsed={probe["elapsedSeconds"]}s, last stage={probe["lastStage"]}', flush=True)
+        assert all(not probe['timedOut'] and probe['exitCode'] == 0 and probe['smoke']
+                   for probe in probes.values()), 'Review the packaged smoke attempt evidence'
+        smokes = {name: probe['smoke'] for name, probe in probes.items()}
+    else:
+        probe = smoke(native_cpu, [], 60)
+        assert not probe['timedOut'] and probe['exitCode'] == 0 and probe['smoke'], probe
+        smokes = {native_cpu: probe['smoke']}
     hashes = mounted_hashes(app)
     return {
         'name': info['CFBundleDisplayName'], 'version': version, 'appId': info['CFBundleIdentifier'],

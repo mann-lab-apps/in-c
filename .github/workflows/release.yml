@@ -18,6 +18,7 @@ on:
           - windows
           - linux
           - macos
+          - rosetta
 
 permissions:
   contents: read
@@ -100,15 +101,11 @@ jobs:
           if-no-files-found: warn
 
   dmg-macos:
-    if: inputs.tag == 'preflight' && inputs.platform == 'macos'
+    if: inputs.tag == 'preflight' && (inputs.platform == 'macos' || inputs.platform == 'rosetta')
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: macos-15
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
+        include: ${{ fromJSON(inputs.platform == 'rosetta' && '[{"runner":"macos-15","arch":"arm64"}]' || '[{"runner":"macos-15","arch":"arm64"},{"runner":"macos-15-intel","arch":"x86_64"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
@@ -129,12 +126,18 @@ jobs:
           test "$(awk '$2 ~ /\^\{\}$/ {print $1}' "$proof/tag.txt")" = d05cae65fef5ded3b33902b8a13fc3f4fb05e343
           gh release view v0.1.0-alpha.45 --repo mann-lab-apps/in-c \
             --json tagName,isPrerelease,isDraft,publishedAt,url,assets > "$proof/release.json"
+      - name: Test packaged-app timeout evidence
+        run: python3 qa/desktop-install/test_mac_smoke.py
       - name: Check the downloaded DMG and ZIP and launch the mounted app
+        env:
+          QA_PLATFORM: ${{ inputs.platform }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(uname -m)" = "${{ matrix.arch }}"
-          python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.45
+          extra=()
+          if [ "$QA_PLATFORM" = rosetta ]; then extra+=(--rosetta); fi
+          python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.45 "${extra[@]}"
       - name: Keep macOS installed app and asset proof
         if: always()
         uses: actions/upload-artifact@v7
