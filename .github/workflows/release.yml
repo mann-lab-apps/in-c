@@ -20,6 +20,10 @@ on:
           - macos
           - rosetta
           - rosetta-installed
+      verify_runner:
+        description: Exercise verify:package on the installed EXE and AppImage
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,6 +40,7 @@ jobs:
           sparse-checkout: |
             qa/desktop-install
             qa/windows-save-boundaries/fixtures
+            scripts
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -45,9 +50,11 @@ jobs:
           node qa/desktop-install/published-assets.cjs windows (Join-Path $env:RUNNER_TEMP 'studio-public-assets') (Join-Path $env:RUNNER_TEMP 'studio-windows-install/installation')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install, upgrade, recover and launch the posted portable file
+        env:
+          VERIFY_RUNNER: ${{ inputs.verify_runner }}
         shell: pwsh
         run: |
-          & qa/desktop-install/windows-install.ps1 -Downloads (Join-Path $env:RUNNER_TEMP 'studio-public-assets') -Work (Join-Path $env:RUNNER_TEMP 'studio-windows-install')
+          & qa/desktop-install/windows-install.ps1 -Downloads (Join-Path $env:RUNNER_TEMP 'studio-public-assets') -Work (Join-Path $env:RUNNER_TEMP 'studio-windows-install') -VerifyRunner:($env:VERIFY_RUNNER -eq 'true')
       - name: Keep Windows installation and generated score evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -70,6 +77,7 @@ jobs:
           sparse-checkout: |
             qa/desktop-install
             qa/windows-save-boundaries/fixtures
+            scripts
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -90,6 +98,27 @@ jobs:
           export STUDIO_QA_DELIVERY_MODE=appimage-fuse
           unset APPIMAGE_EXTRACT_AND_RUN
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node qa/desktop-install/drive.cjs distribution "$launcher" "$proof"
+      - name: Run verify:package on the published AppImage
+        if: inputs.verify_runner
+        shell: bash
+        run: |
+          proof="$RUNNER_TEMP/studio-linux-appimage"
+          launcher="$RUNNER_TEMP/studio-public-assets/Ddirori-Studio-0.1.0-alpha.45-linux-x86_64.AppImage"
+          export XDG_CONFIG_HOME="$proof/config"
+          unset APPIMAGE_EXTRACT_AND_RUN
+          fuse_type="fuse.$(basename "$launcher")"
+          find_mount() {
+            findmnt -rn -o FSTYPE,TARGET | awk -v expected="$fuse_type" '$1 == expected { print; found = 1 } END { exit !found }'
+          }
+          if find_mount; then exit 1; fi
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node qa/desktop-install/run-delivered-smoke.cjs "$launcher" "$proof/installation" &
+          smoke_pid=$!
+          while kill -0 "$smoke_pid" 2>/dev/null; do
+            if find_mount > "$proof/installation/delivered-smoke-mount.txt"; then break; fi
+            sleep 0.2
+          done
+          wait "$smoke_pid"
+          test -s "$proof/installation/delivered-smoke-mount.txt"
       - name: Keep Linux launch and generated score evidence
         if: always()
         uses: actions/upload-artifact@v7

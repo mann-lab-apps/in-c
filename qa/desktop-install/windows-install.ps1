@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory)][string]$Downloads,
-    [Parameter(Mandatory)][string]$Work
+    [Parameter(Mandatory)][string]$Work,
+    [switch]$VerifyRunner
 )
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ARCH -ne 'X64') { throw 'Use a disposable Windows x64 Actions runner.' }
@@ -69,6 +70,11 @@ function Remove-Setup {
 
 Start-Setup $candidateSetup 'alpha45-fresh' $candidateVersion
 $asar = (Get-Content (Join-Path $evidence 'alpha45-fresh.json') -Raw | ConvertFrom-Json).appAsarSha256
+$runnerStatus = 0
+if ($VerifyRunner) {
+    node (Join-Path $PSScriptRoot 'run-delivered-smoke.cjs') $app $evidence
+    $runnerStatus = $LASTEXITCODE
+}
 Run-App 'fresh' $app (Join-Path $Work 'fresh') $asar $candidateVersion
 Remove-Setup
 
@@ -93,3 +99,5 @@ Run-App 'previous-read' $app (Join-Path $Work 'transition') $publicAsar $publish
     publishedVersion = $publishedVersion; candidateVersion = $candidateVersion
     publishedToCandidate = 'version upgrade'; appId = $appId } |
     ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $evidence 'summary.json')
+
+if ($runnerStatus -ne 0) { throw "Installed application smoke exited $runnerStatus." }
