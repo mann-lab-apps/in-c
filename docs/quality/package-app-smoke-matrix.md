@@ -1,5 +1,31 @@
 # 패키지 앱 운영체제별 smoke matrix
 
+## 패키지 스모크 자동 실행
+
+`npm run verify:package`는 현재 플랫폼에서 패키지 앱을 실행한다. 다른 경로의
+패키지는 `PACKAGE_DIRECTORY`로 지정한다. 기본 실행 한도는 20초다.
+Linux에서는 현재 아키텍처의 폴더(예: `linux-arm64-unpacked`)를 먼저 찾고
+기존 `linux-unpacked` 폴더를 확인한다.
+
+Rosetta를 사용할 수 있는 Apple Silicon Mac에서는 Universal 앱을 Intel 모드로
+실행할 수 있다. Rosetta 실행 한도는 5분이다.
+
+```sh
+PACKAGE_DIRECTORY=/path/to/package npm run verify:package -- --rosetta
+```
+
+설치된 앱 실행 파일이나 AppImage의 경로를 직접 지정할 수 있다. 이 경우
+`PACKAGE_DIRECTORY` 탐색을 건너뛴다. macOS Universal 앱은 같은 명령에
+`--rosetta`를 추가해 검증한다.
+
+```sh
+npm run verify:package -- --executable "/path/to/Studio launch file"
+```
+
+실행마다 임시 앱 프로필을 생성하고 프로세스가 종료되면 정리한다. 스모크 완료
+메시지와 종료 코드 0을 확인한다. 시간 초과나 앱 오류가 발생하면 로그에서 마지막
+스모크 단계를 확인할 수 있다.
+
 ## 2026-09-13 Native and Export Automation
 
 macOS arm64 unpacked app: export-copy IPC writes/reads a real file, does not add

@@ -31,6 +31,12 @@ npm run package:linux
 산출물은 `release/`에 생성된다. 파일 이름은 제품명, 버전, 운영체제와
 아키텍처를 포함한다.
 
+패키징 전에는 `npm ci`로 빌드 의존성까지 설치한다. Electron 메인·프리로드가
+실행 중 불러오는 패키지는 `dependencies`에 둔다. Studio 렌더러 번들이나
+사이트 빌드에서만 사용하는 패키지는 `devDependencies`에 둔다. 렌더러에
+번들된 외부 라이브러리의 라이선스는 배포 앱의 리소스 디렉터리 아래
+`licenses/`에 포함한다.
+
 ## GitHub Release
 
 배포 전에 [`docs/releases/checklist-template.md`](releases/checklist-template.md)를

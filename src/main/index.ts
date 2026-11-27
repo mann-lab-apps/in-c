@@ -573,6 +573,18 @@ const createWindow = (): void => {
       0x2f, 0x00
     ]
 
+    const waitForConditionSource = `async (predicate, message, timeoutMs = 1000) => {
+      const deadline = performance.now() + timeoutMs
+      while (!predicate()) {
+        if (performance.now() >= deadline) {
+          throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent +
+            '; visibility=' + document.visibilityState +
+            '; printing=' + !!document.querySelector('.app-shell--pdf-export'))
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+    }`
+
     let smokeExitCode = 0
     try {
       const result = await mainWindow.webContents.executeJavaScript(`
@@ -651,18 +663,7 @@ const createWindow = (): void => {
             }
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
           }
-          const waitForCondition = async (predicate, message, timeoutMs = 1000) => {
-            const deadline = performance.now() + timeoutMs
-            while (performance.now() < deadline) {
-              if (predicate()) {
-                return
-              }
-              await new Promise((resolve) => setTimeout(resolve, 50))
-            }
-            throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent +
-              '; visibility=' + document.visibilityState +
-              '; printing=' + !!document.querySelector('.app-shell--pdf-export'))
-          }
+          const waitForCondition = ${waitForConditionSource}
           const labels = [...document.querySelectorAll('.studio-new-score-form label')]
           const field = (name) =>
             (() => { const label=labels.find(label => label.textContent?.trim() === name);return label?.control || (label?.htmlFor ? document.getElementById(label.htmlFor) : null) || namedControl(name) })()
@@ -1047,7 +1048,17 @@ const createWindow = (): void => {
       validateSmokeMidi(savedMidi)
 
       console.log('PACKAGED_APP_SMOKE_STAGE backup-viewports')
-      await mainWindow.webContents.executeJavaScript(`document.querySelector('[aria-label="프로젝트 백업"]')?.click()`)
+      await mainWindow.webContents.executeJavaScript(`
+        (async () => {
+          const waitForCondition = ${waitForConditionSource}
+          document.querySelector('[aria-label="프로젝트 백업"]')?.click()
+          await waitForCondition(
+            () => Boolean(document.querySelector('.studio-backups dialog[open] [data-backup-id]')),
+            'Native backup list did not load',
+            10000
+          )
+        })()
+      `)
       for (const width of [960, 1400]) {
         mainWindow.setSize(width, 900)
         await new Promise(resolve => setTimeout(resolve, 400))

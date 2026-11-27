@@ -1,9 +1,24 @@
+import pretendardFontUrl from '../../../../docs/brand/ddirori-design-system/assets/PretendardVariable.woff2?no-inline'
 import type { PngPage } from '../../../image-export/png'
 import { PNG_LIMITS, withPngResolution } from '../../../image-export/png'
 import type { PrintLayoutPlan } from '../notation/print-layout'
 import { planPngPages, PngPageRangeError, type PngDpi } from './pages'
 
 const SVG = 'http://www.w3.org/2000/svg', HTML = 'http://www.w3.org/1999/xhtml'
+
+async function loadPretendardForImage(): Promise<string> {
+  const response = await fetch(pretendardFontUrl)
+  if (!response.ok) throw new Error('PNG 출력에 사용할 글꼴을 읽지 못했습니다.')
+
+  const font = new Blob([await response.arrayBuffer()], { type: 'font/woff2' })
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(font)
+  })
+}
+
 function clonePrintedPage(host: HTMLElement): HTMLElement {
   const clone = host.cloneNode(true) as HTMLElement
   const source = [host, ...host.querySelectorAll<HTMLElement | SVGElement>('*')]
@@ -29,7 +44,12 @@ export async function rasterizePngPages(root: HTMLElement, plan: PrintLayoutPlan
   if (selectedPage === 'all' && geometry.pageCount > PNG_LIMITS.pages) throw new Error('PNG 페이지가 너무 많습니다. 페이지를 나누어 저장해 주세요.')
   const numbers = selectedPage === 'all' ? Array.from({ length: geometry.pageCount }, (_, i) => i + 1) : [selectedPage]
   if (numbers.length > PNG_LIMITS.pages || numbers.some(n => !Number.isSafeInteger(n) || n < 1 || n > geometry.pageCount || n > 10000)) throw new PngPageRangeError(geometry.pageCount)
-  const fonts = (await import('virtual:studio-export-fonts')).default;check()
+  const { default: notationFonts } = await import('virtual:studio-export-fonts')
+  check()
+  // The SVG image needs embedded fonts. Reuse the screen font at export time.
+  const pretendard = await loadPretendardForImage()
+  check()
+  const fonts = notationFonts + "\n@font-face{font-family:'Ddirori Pretendard';font-style:normal;font-weight:100 900;font-display:block;src:url('" + pretendard + "') format('woff2');}"
   const clone = clonePrintedPage(host);clone.style.width = `${rect.width}px`;clone.style.height = `${rect.height}px`
   const pages: PngPage[] = [];let bytes = 0
   for (const [index, pageNumber] of numbers.entries()) {
