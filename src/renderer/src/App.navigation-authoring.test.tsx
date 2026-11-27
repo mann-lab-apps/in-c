@@ -5,9 +5,14 @@ import { expect, it, vi } from 'vitest'
 import { createMeasure, createNote, createPart, createScore, createStaff, createVoice, type Score } from '../../score-core'
 import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../project/schema'
 import { openNotationSettings, openStudioWorkspace, playbackMockState, registerAppTestHooks } from './App.test-harness'
+import { App } from './App'
 import { createPlaybackTimeline } from './playback/timeline'
 
 registerAppTestHooks()
+
+const segnoMark = { type: 'segno', label: 'segno', symbol: true } as const
+const fineMark = { type: 'fine', display: { words: 'Fine' } } as const
+const dsAlFineMark = { type: 'dalsegno', label: 'segno', display: { words: 'D.S. al Fine' } } as const
 
 function fixture(aligned = true) {
   return createScore({ title: '반복 이동의 원본', parts: ['primary', 'secondary'].map((id, partIndex) => createPart({
@@ -31,15 +36,16 @@ async function openScore(score: Score) {
     contents: encodeNativeProject(createNativeProject(score)),
     fileName: 'navigation.chromatics', filePath: '/fixture/navigation.chromatics'
   })
-  const { App } = await import('./App')
   render(<App />)
   openStudioWorkspace('파일')
-  fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+  const fileTools = within(screen.getByRole('group', { name: '파일 작업' }))
+  fireEvent.click(fileTools.getByRole('button', { name: '프로젝트 열기' }))
   await waitFor(() => expect(playbackMockState.lastScore).toEqual(score))
 }
 
 function openEditor(bar: number) {
-  fireEvent.click(screen.getByRole('button', { name: `primary-note-${bar} 선택` }))
+  const score = within(screen.getByTestId('notation-preview'))
+  fireEvent.click(score.getByRole('button', { name: `primary-note-${bar} 선택` }))
   openNotationSettings('repeat')
   const region = within(screen.getByRole('region', { name: '반복과 볼타' }))
   fireEvent.click(region.getByText('반복 이동', { selector: 'summary' }))
@@ -48,36 +54,66 @@ function openEditor(bar: number) {
 
 function select(scope: ReturnType<typeof within>, field: string, option: string | RegExp) {
   fireEvent.click(scope.getByRole('combobox', { name: field }))
-  fireEvent.click(within(screen.getByRole('listbox', { name: field })).getByRole('option', { name: option }))
+  fireEvent.click(within(scope.getByRole('listbox', { name: field })).getByRole('option', { name: option }))
 }
 
-it('authors a D.S. al Fine route, edits and removes its marker with exact undo and Native save', async () => {
+it.each([
+  { bar: 2, kind: '세뇨', mark: segnoMark },
+  { bar: 4, kind: 'Fine', mark: fineMark }
+])('authors the $kind destination through the navigation editor', async ({ bar, kind, mark }) => {
   const original = fixture()
   await openScore(original)
-  const segno = openEditor(2)
-  select(segno, '이동 표지 종류', '세뇨')
-  fireEvent.click(segno.getByRole('button', { name: '이동 표지 적용' }))
-  const fine = openEditor(4)
-  select(fine, '이동 표지 종류', 'Fine')
-  fireEvent.click(fine.getByRole('button', { name: '이동 표지 적용' }))
+  const editor = openEditor(bar)
+  select(editor, '이동 표지 종류', kind)
+  fireEvent.click(editor.getByRole('button', { name: '이동 표지 적용' }))
+
+  const authored = playbackMockState.lastScore!
+  expect(authored.parts[0].staves[0].measures[bar - 1].navigation).toEqual([mark])
+  expect(authored.parts[1]).toEqual(original.parts[1])
+  expect(playbackMockState.play).not.toHaveBeenCalled()
+})
+
+function dsAlFineDestinations() {
+  const score = fixture()
+  const measures = score.parts[0].staves[0].measures
+  measures[1].navigation = [segnoMark]
+  measures[3].navigation = [fineMark]
+  return score
+}
+
+it('authors and saves a D.S. al Fine jump to the existing destinations', async () => {
+  const original = dsAlFineDestinations()
+  await openScore(original)
   const ds = openEditor(6)
   select(ds, '이동 표지 종류', 'D.S.')
   fireEvent.change(ds.getByRole('textbox', { name: '악보 문구' }), { target: { value: 'D.S. al Fine' } })
   fireEvent.click(ds.getByRole('button', { name: '이동 표지 적용' }))
   const authored = structuredClone(playbackMockState.lastScore!)
-  expect(authored.parts[0].staves[0].measures[1].navigation).toEqual([{ type: 'segno', label: 'segno', symbol: true }])
-  expect(authored.parts[0].staves[0].measures[5].navigation).toEqual([{ type: 'dalsegno', label: 'segno', display: { words: 'D.S. al Fine' } }])
+  const measures = authored.parts[0].staves[0].measures
+  expect(measures[1].navigation).toEqual([segnoMark])
+  expect(measures[3].navigation).toEqual([fineMark])
+  expect(measures[5].navigation).toEqual([dsAlFineMark])
   expect(authored.parts[1]).toEqual(original.parts[1])
   expect(createPlaybackTimeline(authored).totalBeats).toBe(36)
   openStudioWorkspace('파일')
-  fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+  const fileTools = within(screen.getByRole('group', { name: '파일 작업' }))
+  fireEvent.click(fileTools.getByRole('button', { name: '프로젝트 저장' }))
   await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
   expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents).score).toEqual(authored)
+  expect(playbackMockState.play).not.toHaveBeenCalled()
+})
 
+it('removes and restores the Segno of a D.S. al Fine route with exact undo', async () => {
+  const authored = dsAlFineDestinations()
+  const measures = authored.parts[0].staves[0].measures
+  measures[5].navigation = [dsAlFineMark]
+  expect(createPlaybackTimeline(authored).totalBeats).toBe(36)
+  await openScore(authored)
   const marker = openEditor(2)
   select(marker, '편집할 이동 표지', /세뇨/)
   fireEvent.click(marker.getByRole('button', { name: '이동 표지 삭제' }))
   expect(marker.getByText(/돌아갈 세뇨가 없거나/)).toBeVisible()
+  expect(playbackMockState.lastScore?.parts[0].staves[0].measures[1].navigation).toBeUndefined()
   expect(createPlaybackTimeline(playbackMockState.lastScore!).totalBeats).toBe(24)
   fireEvent.keyDown(window, { key: 'z', code: 'KeyZ', ctrlKey: true })
   expect(playbackMockState.lastScore).toEqual(authored)

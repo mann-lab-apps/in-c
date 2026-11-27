@@ -40,6 +40,7 @@
     "package:win": "npm run clean:release && npm run build && electron-builder --win nsis portable --x64 --publish never",
     "package:linux": "npm run clean:release && npm run build && electron-builder --linux AppImage --x64 --publish never",
     "verify:package": "node scripts/verify-packaged-app.cjs",
+    "verify:package-content": "node scripts/verify-packaged-content.cjs",
     "verify:artifacts": "node scripts/verify-release-artifacts.cjs",
     "verify:release-tag": "node scripts/verify-release-tag.cjs",
     "site:dev": "vite site --host 127.0.0.1",
@@ -67,6 +68,7 @@
   },
   "devDependencies": {
     "@ddirori/ui": "file:packages/ddirori_web",
+    "@electron/asar": "3.4.1",
     "@supabase/supabase-js": "^2.110.9",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

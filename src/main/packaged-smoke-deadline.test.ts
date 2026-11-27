@@ -55,3 +55,63 @@ describe('packaged smoke wait', () => {
     expect(clock.requestedDelays).toEqual([50])
   })
 })
+
+function nativeOperationClock(completesAt: number, completion: string, initialStatus = '프로젝트를 저장하는 중입니다.') {
+  let elapsed = 0
+  const document = {
+    visibilityState: 'visible',
+    querySelector(selector: string) {
+      if (selector === '.studio-document__state') {
+        return { textContent: elapsed < completesAt ? '저장 중' : '변경 없음' }
+      }
+      if (selector.startsWith('.editor-status')) {
+        return { textContent: elapsed < completesAt ? initialStatus : completion }
+      }
+      return null
+    }
+  }
+  const wait = makeWait({ now: () => elapsed }, (wake: () => void, delay: number) => {
+    elapsed += delay
+    wake()
+  }, document) as WaitForCondition
+
+  return {
+    elapsed: () => elapsed,
+    run(message: string): Promise<void> {
+      const call = source.split('\n').find(line => line.includes(`'${message}'`))?.trim()
+      if (!call?.startsWith('await ')) throw new Error(`Packaged smoke operation not found: ${message}`)
+      const helper = source.match(/const waitForNativeFileStatus = [\s\S]*?(?=\n          const labels)/)?.[0] ?? ''
+      return new Function('waitForCondition', 'document', `${helper}\nreturn ${call.slice(6)}`)(wait, document)
+    }
+  }
+}
+
+describe('packaged Native file operation waits', () => {
+  it.each([
+    ['Native UI save did not complete', 'fixture.chromatics에 저장했습니다.'],
+    ['Native UI reopen did not complete', 'fixture.chromatics을 열었습니다.'],
+    ['Native backup UI recovery did not complete', '백업을 복구했습니다. 새 프로젝트 파일로 저장해 주세요.']
+  ])('observes completion even when %s would have fired after one second', async (message, completion) => {
+    const clock = nativeOperationClock(9100, completion)
+
+    await expect(clock.run(message)).resolves.toBeUndefined()
+    expect(clock.elapsed()).toBe(9100)
+  })
+
+  it('waits for the current save when the previous success message is still visible', async () => {
+    const completion = 'fixture.chromatics에 저장했습니다.'
+    const clock = nativeOperationClock(9100, completion, completion)
+
+    await expect(clock.run('Native UI save did not complete')).resolves.toBeUndefined()
+    expect(clock.elapsed()).toBe(9100)
+  })
+
+  it('retains a bounded failure with renderer diagnostics when a save stays pending', async () => {
+    const clock = nativeOperationClock(Infinity, '')
+
+    await expect(clock.run('Native UI save did not complete')).rejects.toThrow(
+      'Native UI save did not complete: 프로젝트를 저장하는 중입니다.; visibility=visible; printing=false'
+    )
+    expect(clock.elapsed()).toBe(15_000)
+  })
+})

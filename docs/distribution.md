@@ -37,6 +37,11 @@ npm run package:linux
 번들된 외부 라이브러리의 라이선스는 배포 앱의 리소스 디렉터리 아래
 `licenses/`에 포함한다.
 
+패키지 빌드 뒤 `npm run verify:package-content`로 앱의 ASAR와 라이선스를
+검사한다. 이 검사는 명시된 실행 의존성 누락, 잠금 파일에서 빌드 전용인
+모듈의 유입, 라이선스 누락 또는 원본과의 차이를 감지한다. Release 사전검증과
+정식 패키징에서도 실행한다.
+
 ## GitHub Release
 
 배포 전에 [`docs/releases/checklist-template.md`](releases/checklist-template.md)를
@@ -44,14 +49,29 @@ npm run package:linux
 
 후보 브랜치의 소스 SHA를 고정한다. 변경이 경로 필터에 해당하면 PR의
 `Release` 검사에서 세 플랫폼의 테스트·패키징·기본 실행을 확인할 수 있다.
+`Verify pull request release artifacts`는 세 플랫폼 패키징이 끝난 뒤 게시와
+같은 다운로드·파일 집합 검증·체크섬 생성을 실행한다. 이 작업은 읽기 전용이며
+검사 로그에 체크섬을 남긴다.
 Windows·Linux 기본 실행만 확인할 때는 수동 실행의 `tag=preflight`를 사용한다.
-두 경로 모두 게시 작업을 건너뛴다. PR의 macOS 패키지는 Developer ID 서명과
-공증을 생략한다.
+두 플랫폼은 실행 요청에 기록된 커밋 SHA를 체크아웃한다. 각 작업의
+`Verify preflight commit`에서 실제 체크아웃과 요청 SHA를 대조한다.
+PR 검사와 사전검증에서는 게시 작업을 건너뛴다. PR의 macOS 패키지는
+Developer ID 서명과 공증을 생략한다.
+
+정식 Release는 `Resolve release source`에서 실행에 사용할 커밋을 한 번 확정한다.
+PR은 head SHA, 태그 push와 후보 수동 실행은 이벤트 SHA, 기존 태그를 선택한
+수동 실행은 해당 태그의 커밋을 사용한다. 테스트·패키징·게시 작업은 이 SHA를
+체크아웃한다. 게시 직전에는 원격 태그를 다시 가져와 같은 커밋을 가리키는지
+확인한다. 태그가 없거나 커밋이 다르면 게시 작업이 실패한다.
 
 게시 승인 뒤에는 후보 SHA를 가리키는 `release/*` 브랜치에서 `Release`를
 수동 실행한다. `tag`에 `package.json` 버전과 일치하는 새 태그를 입력하고
 `candidate=true`를 선택한다. 워크플로가 세 플랫폼의 테스트·패키징·기본 실행과
 macOS 서명·공증을 마친 뒤 후보에 태그를 만들고 GitHub 프리릴리즈를 게시한다.
+게시 작업은 세 플랫폼의 산출물을 각각의 디렉터리에 내려받는다. 패키지
+설정이 요구하는 플랫폼별 파일 집합을 확인한 뒤 새 게시 디렉터리에 복사한다.
+누락·중복·예상 밖 파일, 빈 파일, 일반 파일이 아닌 항목은 체크섬을 만들기 전에
+차단한다.
 게시 파일과 `SHA256SUMS.txt`를 내려받아 확인한다.
 
 워크플로 실패 시 먼저 실행 SHA와 태그·릴리즈·산출물의 실제 상태를 조회하고
