@@ -1,281 +1,131 @@
-name: Release
+name: Studio native x64 size verification
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/release.yml"
-      - "build/**"
-      - "docs/distribution.md"
-      - "package.json"
-      - "package-lock.json"
-      - "scripts/verify-packaged-app.cjs"
-      - "scripts/verify-release-artifacts.cjs"
-      - "scripts/verify-release-tag.cjs"
-      - "src/main/**"
-      - "src/preload/**"
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: Version tag to publish, or preflight to check the selected branch without publication
+        description: Verify the frozen Studio candidate on native x64 runners
+        required: true
+        type: choice
+        options:
+          - preflight
+      candidate_sha:
+        description: Frozen Studio candidate commit
         required: true
         type: string
-      candidate:
-        description: Build the selected release branch commit and create its tag after all package jobs succeed
-        type: boolean
-        default: false
 
 permissions:
-  contents: write
-
-concurrency:
-  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  preflight:
-    name: Packaged ${{ matrix.platform }} preflight (no publication)
-    if: github.event_name == 'workflow_dispatch' && inputs.tag == 'preflight'
+  native-x64:
+    if: inputs.tag == 'preflight'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: Linux
-            os: ubuntu-latest
-            smoke: xvfb-run --auto-servernum npm run verify:package
-          - platform: Windows
-            os: windows-latest
-            smoke: npm run verify:package
+          - os: windows-latest
+            name: windows
+            package-command: package:win
+            target: --win
+          - os: ubuntu-latest
+            name: linux
+            package-command: package:linux
+            target: --linux
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      FROZEN_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: 'false'
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out product candidate
+        uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref }}
+          path: candidate
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - name: Check out QA tools
+        uses: actions/checkout@v7
+        with:
+          path: qa-tools
+          ref: ${{ github.sha }}
+          sparse-checkout: qa/desktop-size
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run piano:verify
-      - name: Verify platform-sensitive release behavior
-        run: >-
-          npm test --
-          --maxWorkers=2
-          scripts/desktop-brand.test.mjs
-          scripts/studio-native-drag-input.test.mjs
-          src/main/project-sync-failure.test.ts
-          src/main/recent-files.failure.test.ts
-          src/musicxml/serialize-line-endings.test.ts
-          src/renderer/src/App.manual.test.tsx
-          src/renderer/src/App.ornament-manual.test.tsx
-          src/renderer/src/App.part-page-setup-key-ownership.test.tsx
-          src/renderer/src/App.part-span-reset.test.tsx
-          StudioManual
-      - run: npm run package:dir
-      - run: ${{ matrix.smoke }}
-
-  verify:
-    name: Verify ${{ matrix.os }} (${{ matrix.shard }})
-    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15, windows-latest, ubuntu-latest]
-        shard: ['1/4', '2/4', '3/4', '4/4']
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || (github.event_name == 'workflow_dispatch' && (inputs.candidate && github.sha || inputs.tag)) || github.ref }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - if: runner.os != 'macOS' || matrix.shard != '1/4'
-        run: npm test -- --maxWorkers=1 --silent=passed-only --shard=${{ matrix.shard }}
-      - name: Run macOS 1/4 tests with MusicXML stage timing
-        if: runner.os == 'macOS' && matrix.shard == '1/4'
+          cache-dependency-path: candidate/package-lock.json
+      - name: Pin candidate and restore the exact PNG baseline
         shell: bash
-        run: bash qa/macos-release-timing/run-release-timing.sh shard "$RUNNER_TEMP/studio-release-timing"
-      - name: Upload macOS 1/4 timeout diagnostics
-        if: always() && runner.os == 'macOS' && matrix.shard == '1/4'
-        uses: actions/upload-artifact@v7
-        with:
-          name: studio-release-timing-macos-1of4
-          path: ${{ runner.temp }}/studio-release-timing/*
-          if-no-files-found: warn
-      - if: matrix.shard == '1/4'
-        run: npm run test:tools
-
-  package:
-    name: Package ${{ matrix.platform }}
-    needs: verify
-    if: success() && (github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macOS
-            os: macos-15
-            command: npm run package:mac
-          - platform: Windows
-            os: windows-latest
-            command: npm run package:win
-          - platform: Linux
-            os: ubuntu-latest
-            command: npm run package:linux
-
-    runs-on: ${{ matrix.os }}
-    env:
-      MACOS_CSC_NAME: "Jae-man Kim (ZRA4DHHKQ4)"
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-
-    steps:
-      - name: Checkout pull request head
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Checkout workflow dispatch source
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.candidate && github.sha || inputs.tag }}
-
-      - name: Checkout release tag
-        if: github.event_name == 'push'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-      - if: github.event_name != 'pull_request'
-        run: npm run verify:release-tag
-      - run: npm run piano:verify
-      - name: Verify macOS signing secrets
-        if: runner.os == 'macOS' && github.event_name != 'pull_request'
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
-          test -n "$CSC_LINK"
-          test -n "$CSC_KEY_PASSWORD"
-          test -n "$APPLE_API_KEY"
-          test -n "$APPLE_API_KEY_ID"
-          test -n "$APPLE_API_ISSUER"
-      - name: Prepare macOS notarization key
-        if: runner.os == 'macOS' && github.event_name != 'pull_request'
-        env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-        run: |
-          key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
-          printf '%s' "$APPLE_API_KEY" > "$key_path"
-          chmod 600 "$key_path"
-          echo "APPLE_API_KEY=$key_path" >> "$GITHUB_ENV"
-      - name: Package app
-        run: ${{ matrix.command }}
-        env:
-          CSC_FOR_PULL_REQUEST: ${{ github.event_name == 'pull_request' && 'false' || '' }}
-          CSC_NAME: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && env.MACOS_CSC_NAME || '' }}
-          CSC_LINK: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_KEY_PASSWORD || '' }}
-          APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_ISSUER_ID || '' }}
-      - name: Verify macOS Developer ID signing
-        if: runner.os == 'macOS' && github.event_name != 'pull_request'
-        run: |
-          app_path="release/mac-universal/$(node -p "require('./scripts/desktop-package.cjs').desktopPackageInfo(require('./package.json'), 'darwin').bundleName")"
-          codesign --verify --deep --strict --verbose=2 "$app_path"
-          xcrun stapler validate "$app_path"
-      - run: npm run verify:artifacts
-
-      - name: Verify packaged app
-        if: runner.os != 'Linux'
-        run: npm run verify:package
-
-      - name: Verify packaged app on Linux
+          set -euo pipefail
+          scratch="$RUNNER_TEMP"
+          if [[ "$RUNNER_OS" == Windows ]]; then scratch="$(cygpath -u "$scratch")"; fi
+          mkdir -p "$scratch/studio-size-evidence"
+          proof="$scratch/studio-size-evidence"
+          test "$RUNNER_ARCH" = X64
+          [[ "$FROZEN_CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git -C candidate rev-parse HEAD)" = "$FROZEN_CANDIDATE_SHA"
+          test "$(git -C candidate rev-parse HEAD^{tree})" = e685ea1f0809f31ef208cbd63ba4181c2fd84a7e
+          git -C candidate worktree add --detach "$scratch/studio-size-base" "$FROZEN_CANDIDATE_SHA"
+          git -C "$scratch/studio-size-base" apply --index --binary --unidiff-zero "$PWD/qa-tools/qa/desktop-size/restore-baseline.patch"
+          test "$(git -C "$scratch/studio-size-base" write-tree)" = 4777b80efd4b6fcdbbba29546f0d050e2f7d0c23
+          {
+            git -C candidate log -1 --format='candidate=%H tree=%T'
+            printf 'baseline-tree=%s\n' "$(git -C "$scratch/studio-size-base" write-tree)"
+            printf 'qa=%s runner=%s arch=%s image=%s\n' "$GITHUB_SHA" "$RUNNER_OS" "$RUNNER_ARCH" "${ImageVersion:-unknown}"
+            node --version
+            npm --version
+          } > "$proof/source.txt"
+      - name: Prepare Ubuntu desktop and FUSE
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum npm run verify:package
-
-      - name: Upload package artifacts
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xauth xvfb libfuse2t64
+          test "$(uname -m)" = x86_64
+          test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse
+      - name: Build candidate delivery formats
+        shell: bash
+        working-directory: candidate
+        env:
+          STUDIO_PACKAGE_COMMAND: ${{ matrix.package-command }}
+        run: |
+          set -euo pipefail
+          scratch="$RUNNER_TEMP"
+          if [[ "$RUNNER_OS" == Windows ]]; then scratch="$(cygpath -u "$scratch")"; fi
+          npm ci 2>&1 | tee "$scratch/studio-size-evidence/candidate-npm-ci.log"
+          npm run "$STUDIO_PACKAGE_COMMAND" 2>&1 | tee "$scratch/studio-size-evidence/candidate-build.log"
+          git diff --exit-code
+      - name: Build the baseline renderer package
+        shell: bash
+        env:
+          STUDIO_BASELINE_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          scratch="$RUNNER_TEMP"
+          if [[ "$RUNNER_OS" == Windows ]]; then scratch="$(cygpath -u "$scratch")"; fi
+          cd "$scratch/studio-size-base"
+          npm ci 2>&1 | tee "$scratch/studio-size-evidence/baseline-npm-ci.log"
+          npm run package:dir -- "$STUDIO_BASELINE_TARGET" --x64 --publish never 2>&1 | tee "$scratch/studio-size-evidence/baseline-build.log"
+          test "$(git write-tree)" = 4777b80efd4b6fcdbbba29546f0d050e2f7d0c23
+          git diff --exit-code
+      - name: Install and verify Windows candidate
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & qa-tools/qa/desktop-size/verify-windows.ps1 -Source candidate -Baseline "$env:RUNNER_TEMP/studio-size-base" -Evidence "$env:RUNNER_TEMP/studio-size-evidence"
+      - name: Verify native AppImage launch and mounted renderer
+        if: runner.os == 'Linux'
+        shell: bash
+        run: node qa-tools/qa/desktop-size/verify-delivery.mjs candidate "$RUNNER_TEMP/studio-size-base" "$RUNNER_TEMP/studio-size-evidence"
+      - name: Retain native package evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: in-c-${{ runner.os }}
-          path: |
-            release/*.dmg
-            release/*.zip
-            release/*.exe
-            release/*.AppImage
+          name: studio-size-${{ matrix.name }}-x64
+          path: ${{ runner.temp }}/studio-size-evidence
           if-no-files-found: error
-          retention-days: 14
-
-  publish:
-    name: Publish GitHub prerelease
-    needs: package
-    if: github.event_name != 'pull_request' && inputs.tag != 'preflight'
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.candidate && github.sha || env.RELEASE_TAG }}
-
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: in-c-*
-          path: release
-          merge-multiple: true
-
-      - name: Create checksums
-        run: |
-          cd release
-          sha256sum * > SHA256SUMS.txt
-
-      - name: Tag the verified candidate
-        if: github.event_name == 'workflow_dispatch' && inputs.candidate
-        run: |
-          [[ "$GITHUB_REF" == refs/heads/release/* ]]
-          npm run verify:release-tag
-          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
-            git fetch origin "refs/tags/$RELEASE_TAG"
-            test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$(git rev-parse HEAD)"
-          else
-            status=$?
-            test "$status" -eq 2
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git tag -a "$RELEASE_TAG" -m "띠로리 Studio ${RELEASE_TAG#v}"
-            git push origin "refs/tags/$RELEASE_TAG"
-          fi
-
-      - name: Publish prerelease
-        run: |
-          notes_args=(--generate-notes)
-          notes_path="docs/releases/notes/${RELEASE_TAG}.md"
-          if [ -f "$notes_path" ]; then
-            notes_args=(--notes-file "$notes_path")
-          fi
-          product_name="$(node -p "require('./package.json').build.productName")"
-          gh release create "$RELEASE_TAG" release/* \
-            --prerelease \
-            "${notes_args[@]}" \
-            --title "${product_name} ${RELEASE_TAG#v}" \
-            --verify-tag

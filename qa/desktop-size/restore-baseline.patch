@@ -1,0 +1,106 @@
+diff --git a/docs/quality/package-app-smoke-matrix.md b/docs/quality/package-app-smoke-matrix.md
+index d4b93df87..aa429d344 100644
+--- a/docs/quality/package-app-smoke-matrix.md
++++ b/docs/quality/package-app-smoke-matrix.md
+@@ -7,2 +6,0 @@
+-Linux에서는 현재 아키텍처의 폴더(예: `linux-arm64-unpacked`)를 먼저 찾고
+-기존 `linux-unpacked` 폴더를 확인한다.
+diff --git a/scripts/verify-packaged-app.cjs b/scripts/verify-packaged-app.cjs
+index 0302fbbf3..9bbda8d26 100644
+--- a/scripts/verify-packaged-app.cjs
++++ b/scripts/verify-packaged-app.cjs
+@@ -2 +2 @@ const { existsSync, readdirSync, mkdtempSync, rmSync, statSync } = require('node
+-const { basename, dirname, join, resolve } = require('node:path')
++const { join, resolve } = require('node:path')
+@@ -107 +107 @@ async function main() {
+-function findPackagedExecutable(directory, names, platform = process.platform, arch = process.arch) {
++function findPackagedExecutable(directory, names) {
+@@ -112 +112 @@ function findPackagedExecutable(directory, names, platform = process.platform, a
+-  if (platform === 'darwin') {
++  if (process.platform === 'darwin') {
+@@ -125 +125 @@ function findPackagedExecutable(directory, names, platform = process.platform, a
+-  if (platform === 'win32') {
++  if (process.platform === 'win32') {
+@@ -133 +133 @@ function findPackagedExecutable(directory, names, platform = process.platform, a
+-  const findInLinuxLayout = layout => findEntry(
++  return findEntry(
+@@ -135 +135,2 @@ function findPackagedExecutable(directory, names, platform = process.platform, a
+-    (name, fullPath) => name === names.executableName && basename(dirname(fullPath)) === layout
++    (name, fullPath) =>
++      name === names.executableName && fullPath.includes('linux-unpacked')
+@@ -137 +137,0 @@ function findPackagedExecutable(directory, names, platform = process.platform, a
+-  return findInLinuxLayout(`linux-${arch}-unpacked`) ?? findInLinuxLayout('linux-unpacked')
+@@ -160 +160 @@ function findEntry(directory, predicate) {
+-module.exports = { findPackagedExecutable, runPackagedSmoke }
++module.exports = { runPackagedSmoke }
+diff --git a/scripts/verify-packaged-app.test.mjs b/scripts/verify-packaged-app.test.mjs
+index 238dd0a71..c63b589b4 100644
+--- a/scripts/verify-packaged-app.test.mjs
++++ b/scripts/verify-packaged-app.test.mjs
+@@ -2 +2 @@ import { spawnSync } from 'node:child_process'
+-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
++import { existsSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+@@ -9 +9 @@ import verifier from './verify-packaged-app.cjs'
+-const { findPackagedExecutable, runPackagedSmoke } = verifier
++const { runPackagedSmoke } = verifier
+@@ -119,20 +118,0 @@ test('rejects a non-file explicit path before creating a profile', () => {
+-
+-test.each([
+-  ['arm64', ['linux-arm64-unpacked'], 'linux-arm64-unpacked'],
+-  ['arm64', ['linux-unpacked', 'linux-arm64-unpacked'], 'linux-arm64-unpacked'],
+-  ['x64', ['linux-arm64-unpacked', 'linux-unpacked'], 'linux-unpacked'],
+-  ['x64', ['linux-arm64-unpacked', 'linux-unpacked-old'], undefined]
+-])('selects the %s Linux executable from %j', (arch, layouts, expected) => {
+-  const release = mkdtempSync(join(tmpdir(), 'studio-smoke-layout-'))
+-  const names = { executableName: 'in-c' }
+-  try {
+-    for (const layout of layouts) {
+-      mkdirSync(join(release, layout))
+-      writeFileSync(join(release, layout, names.executableName), '', { mode: 0o755 })
+-    }
+-    expect(findPackagedExecutable(release, names, 'linux', arch))
+-      .toBe(expected ? join(release, expected, names.executableName) : undefined)
+-  } finally {
+-    rmSync(release, { recursive: true, force: true })
+-  }
+-})
+diff --git a/src/build/studio-export-fonts.ts b/src/build/studio-export-fonts.ts
+index 69de48e13..e42156014 100644
+--- a/src/build/studio-export-fonts.ts
++++ b/src/build/studio-export-fonts.ts
+@@ -6,2 +6,2 @@ import type { Plugin } from 'vite'
+-// Embed the notation fonts from the installed VexFlow package.
+-export function studioExportFontsPlugin(): Plugin {
++// Reuse the installed font assets at build time;no copied font sources or CDN.
++export function studioExportFontsPlugin(root = process.cwd()): Plugin {
+@@ -20,0 +21 @@ export function studioExportFontsPlugin(): Plugin {
++      faces.push({ family: 'Ddirori Pretendard', weight: '100 900', uri: 'data:font/woff2;base64,' + readFileSync(resolve(root, 'docs/brand/ddirori-design-system/assets/PretendardVariable.woff2')).toString('base64') })
+diff --git a/src/renderer/src/image-export/raster.ts b/src/renderer/src/image-export/raster.ts
+index 26b7a313a..0ab1bd67a 100644
+--- a/src/renderer/src/image-export/raster.ts
++++ b/src/renderer/src/image-export/raster.ts
+@@ -1 +0,0 @@
+-import pretendardFontUrl from '../../../../docs/brand/ddirori-design-system/assets/PretendardVariable.woff2?no-inline'
+@@ -8,14 +6,0 @@ const SVG = 'http://www.w3.org/2000/svg', HTML = 'http://www.w3.org/1999/xhtml'
+-
+-async function loadPretendardForImage(): Promise<string> {
+-  const response = await fetch(pretendardFontUrl)
+-  if (!response.ok) throw new Error('PNG 출력에 사용할 글꼴을 읽지 못했습니다.')
+-
+-  const font = new Blob([await response.arrayBuffer()], { type: 'font/woff2' })
+-  return new Promise((resolve, reject) => {
+-    const reader = new FileReader()
+-    reader.onload = () => resolve(reader.result as string)
+-    reader.onerror = () => reject(reader.error)
+-    reader.readAsDataURL(font)
+-  })
+-}
+-
+@@ -47,6 +32 @@ export async function rasterizePngPages(root: HTMLElement, plan: PrintLayoutPlan
+-  const { default: notationFonts } = await import('virtual:studio-export-fonts')
+-  check()
+-  // The SVG image needs embedded fonts. Reuse the screen font at export time.
+-  const pretendard = await loadPretendardForImage()
+-  check()
+-  const fonts = notationFonts + "\n@font-face{font-family:'Ddirori Pretendard';font-style:normal;font-weight:100 900;font-display:block;src:url('" + pretendard + "') format('woff2');}"
++  const fonts = (await import('virtual:studio-export-fonts')).default;check()
