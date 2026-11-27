@@ -9,6 +9,8 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/verify-packaged-app.cjs"
+      - "scripts/verify-packaged-content.cjs"
+      - "scripts/verify-packaged-content.test.mjs"
       - "scripts/verify-release-artifacts.cjs"
       - "scripts/verify-release-tag.cjs"
       - "src/main/**"
@@ -52,7 +54,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
+      - name: Verify preflight commit
+        shell: bash
+        run: |
+          checked_out_sha="$(git rev-parse HEAD)"
+          printf 'Preflight checkout %s (event %s)\n' "$checked_out_sha" "$GITHUB_SHA"
+          test "$checked_out_sha" = "$GITHUB_SHA"
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -74,9 +82,31 @@ jobs:
           src/renderer/src/App.part-span-reset.test.tsx
           StudioManual
       - run: npm run package:dir
+      - run: npm run verify:package-content
       - run: ${{ matrix.smoke }}
 
+  resolve-release-source:
+    name: Resolve release source
+    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || (github.event_name == 'workflow_dispatch' && (inputs.candidate && github.sha || format('refs/tags/{0}', inputs.tag))) || github.sha }}
+      - name: Record release source commit
+        id: source
+        shell: bash
+        run: |
+          sha="$(git rev-parse HEAD)"
+          printf 'Release source %s\n' "$sha"
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+
   verify:
+    needs: resolve-release-source
     name: Verify ${{ matrix.os }} (${{ matrix.shard }})
     if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
     permissions:
@@ -90,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || (github.event_name == 'workflow_dispatch' && (inputs.candidate && github.sha || inputs.tag)) || github.ref }}
+          ref: ${{ needs.resolve-release-source.outputs.sha }}
       - uses: actions/setup-node@v6
         with:
           node-version: 22
@@ -114,7 +144,7 @@ jobs:
 
   package:
     name: Package ${{ matrix.platform }}
-    needs: verify
+    needs: [resolve-release-source, verify]
     if: success() && (github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight')
     strategy:
       fail-fast: false
@@ -136,23 +166,9 @@ jobs:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
-      - name: Checkout pull request head
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Checkout workflow dispatch source
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.candidate && github.sha || inputs.tag }}
-
-      - name: Checkout release tag
-        if: github.event_name == 'push'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.resolve-release-source.outputs.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -203,6 +219,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app_path"
           xcrun stapler validate "$app_path"
       - run: npm run verify:artifacts
+      - run: npm run verify:package-content
 
       - name: Verify packaged app
         if: runner.os != 'Linux'
@@ -224,9 +241,40 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  verify-pr-artifacts:
+    name: Verify pull request release artifacts
+    needs: [resolve-release-source, package]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-release-source.outputs.sha }}
+          persist-credentials: false
+
+      - &download-platform-artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: in-c-*
+          path: release-artifacts
+          merge-multiple: false
+
+      - &stage-platform-artifacts
+        name: Stage verified platform artifacts
+        run: npm run verify:artifacts -- --stage-platform-artifacts release-artifacts
+
+      - &create-release-checksums
+        name: Create checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
   publish:
     name: Publish GitHub prerelease
-    needs: package
+    needs: [resolve-release-source, package]
     if: github.event_name != 'pull_request' && inputs.tag != 'preflight'
     runs-on: ubuntu-latest
     env:
@@ -236,18 +284,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.candidate && github.sha || env.RELEASE_TAG }}
+          ref: ${{ needs.resolve-release-source.outputs.sha }}
 
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: in-c-*
-          path: release
-          merge-multiple: true
-
-      - name: Create checksums
-        run: |
-          cd release
-          sha256sum * > SHA256SUMS.txt
+      - *download-platform-artifacts
+      - *stage-platform-artifacts
+      - *create-release-checksums
 
       - name: Tag the verified candidate
         if: github.event_name == 'workflow_dispatch' && inputs.candidate
@@ -265,6 +306,15 @@ jobs:
             git tag -a "$RELEASE_TAG" -m "띠로리 Studio ${RELEASE_TAG#v}"
             git push origin "refs/tags/$RELEASE_TAG"
           fi
+
+      - name: Verify release tag commit
+        shell: bash
+        run: |
+          git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
+          tag_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          source_commit="$(git rev-parse HEAD)"
+          printf 'Release tag %s at %s (source %s)\n' "$RELEASE_TAG" "$tag_commit" "$source_commit"
+          test "$tag_commit" = "$source_commit"
 
       - name: Publish prerelease
         run: |

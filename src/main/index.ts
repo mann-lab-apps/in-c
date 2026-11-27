@@ -664,6 +664,13 @@ const createWindow = (): void => {
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
           }
           const waitForCondition = ${waitForConditionSource}
+          // Native file operations span IPC, disk writes, recent files and recovery cleanup.
+          const waitForNativeFileStatus = (status, message) => waitForCondition(
+            () => document.querySelector('.editor-status__result:not(.is-error)')?.textContent?.includes(status) &&
+              document.querySelector('.studio-document__state')?.textContent !== '저장 중',
+            message,
+            15_000
+          )
           const labels = [...document.querySelectorAll('.studio-new-score-form label')]
           const field = (name) =>
             (() => { const label=labels.find(label => label.textContent?.trim() === name);return label?.control || (label?.htmlFor ? document.getElementById(label.htmlFor) : null) || namedControl(name) })()
@@ -828,7 +835,7 @@ const createWindow = (): void => {
           partTitleInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
           await waitForCondition(() => document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal', 'Part title edit did not commit')
           await menuCommand('파일', '프로젝트 저장')
-          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Native UI save did not complete')
+          await waitForNativeFileStatus('.chromatics에 저장했습니다.', 'Native UI save did not complete')
           const nativeRecent = (await window.inC.recentMusicXml.list()).find(file => file.format === 'native')
           if (!nativeRecent) throw new Error('Native recent entry was not persisted')
           const nativeDisk = await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })
@@ -845,14 +852,14 @@ const createWindow = (): void => {
           await new Promise(resolve => setTimeout(resolve, 50))
           await menuCommand('파일', '프로젝트 저장')
           await new Promise(resolve => setTimeout(resolve, 50))
-          await waitForCondition(() => document.querySelector('.studio-document__state')?.textContent !== '저장 중', 'Inserted score save did not finish')
+          await waitForNativeFileStatus('.chromatics에 저장했습니다.', 'Inserted score save did not finish')
           const insertedData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
           const hasScoreWideMeasureEdit = insertedData.score.parts.length === 4 && insertedData.score.parts.every(part => part.staves.every(staff => staff.measures.length === 5))
           window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }))
           await new Promise(resolve => setTimeout(resolve, 50))
           await menuCommand('파일', '프로젝트 저장')
           await new Promise(resolve => setTimeout(resolve, 50))
-          await waitForCondition(() => document.querySelector('.studio-document__state')?.textContent !== '저장 중', 'Measure undo save did not finish')
+          await waitForNativeFileStatus('.chromatics에 저장했습니다.', 'Measure undo save did not finish')
           nativeData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
           if (!nativeData.score.parts.every(part => part.staves.every(staff => staff.measures.length === 4))) throw new Error('Score-wide measure undo did not restore all parts')
           const celloLayout = nativeData.partLayouts.find(part => part.partId === 'cello')
@@ -874,25 +881,25 @@ const createWindow = (): void => {
           await menuCommand('파일', '파일 작업 열기')
           await new Promise(resolve => setTimeout(resolve, 50))
           await menuCommand('파일', '프로젝트 저장')
-          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Part page break save did not complete')
+          await waitForNativeFileStatus('.chromatics에 저장했습니다.', 'Part page break save did not complete')
           nativeData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
           if (!nativeData.partLayouts.find(part => part.partId === 'cello')?.layout.pageBreakBeforeMeasureIds?.includes(celloSecondMeasure) || nativeData.score.layout?.pageBreakBeforeMeasureIds?.length) throw new Error('Part page break leaked into full score or was not saved')
           await menuCommand('파일', '프로젝트 열기')
-          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics을 열었습니다.'), 'Native UI reopen did not complete')
+          await waitForNativeFileStatus('.chromatics을 열었습니다.', 'Native UI reopen did not complete')
           const hasNativeProjectRoundTrip = nativeData.format === 'chromatics-project' &&
             nativeData.score.parts.length === 4 && nativeData.score.title === 'Packaged Smoke Score' &&
             nativeData.view.mode === 'part' && nativeData.view.partId === 'cello' &&
             nativeData.partLayouts.find(part => part.partId === 'cello')?.layout.pageSetup.staffSizePercent === 90 &&
             document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal'
           await menuCommand('파일', '프로젝트 저장')
-          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Native second save did not complete')
+          await waitForNativeFileStatus('.chromatics에 저장했습니다.', 'Native second save did not complete')
           const backupEntry = (await window.inC.project.listBackups()).find(entry => entry.fileName.endsWith('in-c-packaged-smoke-${process.pid}.chromatics'))
           if (!backupEntry || backupEntry.error) throw new Error('Native backup was not discoverable')
           await menuCommand('파일', '프로젝트 백업')
           await waitForCondition(() => [...document.querySelectorAll('[data-backup-id]')].some(row => row.getAttribute('data-backup-id') === backupEntry.id), 'Backup UI did not list saved revision')
           const backupRow = [...document.querySelectorAll('[data-backup-id]')].find(row => row.getAttribute('data-backup-id') === backupEntry.id)
           backupRow.querySelector('button')?.click()
-          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('백업을 복구했습니다.'), 'Native backup UI recovery did not complete')
+          await waitForNativeFileStatus('백업을 복구했습니다.', 'Native backup UI recovery did not complete')
           const hasNativeBackupUiRecovery = !document.querySelector('.studio-backups dialog[open]') &&
             document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal'
           const partSystems = [...document.querySelectorAll('[data-measure-id][data-system-index]')]
