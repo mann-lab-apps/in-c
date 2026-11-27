@@ -197,7 +197,7 @@ def verify_mac(mount):
             env['TMPDIR'] = str(mount.parent) + '/'
             try:
                 run(name, ['node', Path(__file__).with_name('drive.cjs'), 'startup',
-                           copied_executable, work, asar_digest], timeout=195, env=env)
+                           copied_executable, work, asar_digest], timeout=240, env=env)
             finally:
                 if (work / 'results').exists():
                     copytree(work / 'results', root / name)

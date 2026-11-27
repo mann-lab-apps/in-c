@@ -27,8 +27,9 @@ fs.mkdirSync(files, { recursive: true })
 
 async function wait(test, label, timeout = 18000) {
   const deadline = Date.now() + timeout
-  while (Date.now() < deadline) {
-    const value = await test()
+  let remaining
+  while ((remaining = deadline - Date.now()) > 0) {
+    const value = await test(remaining)
     if (value) return value
     await pause(100)
   }
@@ -103,12 +104,13 @@ async function connect(label, profile, action, sharedDefault = false) {
   })
   let socket, id = 0
   const pending = new Map()
-  const call = (method, params = {}) => new Promise((resolve, reject) => {
+  const startup = { stage: 'renderer target' }
+  const call = (method, params = {}, timeoutMs = 15000) => new Promise((resolve, reject) => {
     const token = ++id
     const timeout = setTimeout(() => {
       pending.delete(token)
       reject(Error('CDP timed out: ' + method))
-    }, 15000)
+    }, timeoutMs)
     pending.set(token, message => {
       clearTimeout(timeout)
       if (message.error) reject(Error(JSON.stringify(message.error)))
@@ -116,11 +118,11 @@ async function connect(label, profile, action, sharedDefault = false) {
     })
     socket.send(JSON.stringify({ id: token, method, params }))
   })
-  const evaluate = async (fn, value) => {
+  const evaluate = async (fn, value, timeoutMs) => {
     const response = await call('Runtime.evaluate', {
       expression: '(' + fn.toString() + ')(' + (JSON.stringify(value) ?? '') + ')',
       awaitPromise: true, returnByValue: true, userGesture: true
-    })
+    }, timeoutMs)
     if (response.exceptionDetails) throw Error(JSON.stringify(response.exceptionDetails))
     return response.result.value
   }
@@ -146,6 +148,7 @@ async function connect(label, profile, action, sharedDefault = false) {
       }
     }, 'packaged renderer', startupOnly ? 120000 : 30000)
     const rendererTargetMs = Date.now() - startedAt
+    Object.assign(startup, { stage: 'DevTools setup', rendererTargetMs })
     const mainPath = fileURLToPath(target.url)
     const asar = mainPath.slice(0, mainPath.indexOf('app.asar') + 'app.asar'.length)
     const appAsarSha256 = hash(asar)
@@ -176,17 +179,20 @@ async function connect(label, profile, action, sharedDefault = false) {
       offline: true,
       matchedNetworkConditions: [{ urlPattern: '', latency: 0, downloadThroughput: -1, uploadThroughput: -1 }]
     })
-    await wait(() => evaluate(requireVisible => {
+    startup.stage = 'initial start screen'
+    await wait(remaining => evaluate(requireVisible => {
       const actions = document.querySelector('.start-actions')
       return requireVisible ? actions?.checkVisibility() : Boolean(actions)
-    }, startupOnly), 'Studio start screen', startupOnly ? 45000 : undefined)
+    }, startupOnly, startupOnly ? remaining : undefined), 'Studio start screen', startupOnly ? 45000 : undefined)
     const startScreenMs = Date.now() - startedAt
+    Object.assign(startup, { stage: 'offline reload', startScreenMs })
     let offlineStartScreen
     if (startupOnly) {
       // Reload after enabling offline mode so the screenshot covers a full offline document load.
       await call('Page.addScriptToEvaluateOnNewDocument', { source: 'globalThis.__studioQaOfflineReload = true' })
       await call('Page.reload', { ignoreCache: true })
-      offlineStartScreen = await wait(async () => {
+      startup.stage = 'offline image decode and visibility'
+      offlineStartScreen = await wait(async remaining => {
         try {
           return await evaluate(async () => {
             if (!globalThis.__studioQaOfflineReload) return null
@@ -195,7 +201,7 @@ async function connect(label, profile, action, sharedDefault = false) {
             await image.decode()
             if (!image.checkVisibility() || !image.naturalWidth || !image.naturalHeight) return null
             return { alt: image.alt, width: image.naturalWidth, height: image.naturalHeight }
-          })
+          }, undefined, remaining)
         } catch (error) {
           if (/Execution context was destroyed|Cannot find context/.test(error.message)) return null
           throw error
@@ -257,6 +263,7 @@ async function connect(label, profile, action, sharedDefault = false) {
       await chooser(() => click('MusicXML 내보내기'), 'MusicXML 내보내기', file)
       return status(path.basename(file) + '로 MusicXML을 내보냈습니다')
     }
+    startup.stage = 'start-screen screenshot'
     const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl, importMxl })
     report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
       arch: process.arch, mountType, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
@@ -264,7 +271,9 @@ async function connect(label, profile, action, sharedDefault = false) {
   } catch (error) {
     failure = error
     const latest = socket?.readyState === WebSocket.OPEN ? await state().catch(() => null) : null
-    fs.writeFileSync(path.join(results, label + '-failure.json'), JSON.stringify({ error: String(error), latest }, null, 2))
+    fs.writeFileSync(path.join(results, label + '-failure.json'), JSON.stringify({
+      error: String(error), latest, ...(startupOnly && { startup, elapsedMs: Date.now() - startedAt })
+    }, null, 2))
     if (process.platform === 'linux') {
       try {
         execFileSync('xwd', ['-root', '-silent', '-out', path.join(results, label + '-desktop.xwd')], { timeout: 2500 })
