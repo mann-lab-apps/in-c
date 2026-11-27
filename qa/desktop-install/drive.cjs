@@ -172,12 +172,36 @@ async function connect(label, profile, action, sharedDefault = false) {
     })
     await call('Page.enable')
     await call('Network.enable')
-    await call('Network.setBlockedURLs', { urls: ['http://*', 'https://*'] })
+    await call('Network.emulateNetworkConditionsByRule', {
+      offline: true,
+      matchedNetworkConditions: [{ urlPattern: '', latency: 0, downloadThroughput: -1, uploadThroughput: -1 }]
+    })
     await wait(() => evaluate(requireVisible => {
       const actions = document.querySelector('.start-actions')
       return requireVisible ? actions?.checkVisibility() : Boolean(actions)
     }, startupOnly), 'Studio start screen', startupOnly ? 45000 : undefined)
     const startScreenMs = Date.now() - startedAt
+    let offlineStartScreen
+    if (startupOnly) {
+      // Reload after enabling offline mode so the screenshot covers a full offline document load.
+      await call('Page.addScriptToEvaluateOnNewDocument', { source: 'globalThis.__studioQaOfflineReload = true' })
+      await call('Page.reload', { ignoreCache: true })
+      offlineStartScreen = await wait(async () => {
+        try {
+          return await evaluate(async () => {
+            if (!globalThis.__studioQaOfflineReload) return null
+            const image = document.querySelector('.start-screen img.dd-bach')
+            if (!image?.complete) return null
+            await image.decode()
+            if (!image.checkVisibility() || !image.naturalWidth || !image.naturalHeight) return null
+            return { alt: image.alt, width: image.naturalWidth, height: image.naturalHeight }
+          })
+        } catch (error) {
+          if (/Execution context was destroyed|Cannot find context/.test(error.message)) return null
+          throw error
+        }
+      }, 'decoded Bach illustration on the offline Studio start screen', 45000)
+    }
     const click = value => wait(() => evaluate(label => {
       const element = [...document.querySelectorAll('button, [role=button], [role=menuitem]')].find(node =>
         node.checkVisibility() && !node.disabled && !node.closest('[inert]') &&
@@ -236,7 +260,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl, importMxl })
     report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
       arch: process.arch, mountType, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
-    if (startupOnly) Object.assign(report, { forceRosetta, rendererTargetMs, startScreenMs })
+    if (startupOnly) Object.assign(report, { forceRosetta, rendererTargetMs, startScreenMs, offlineStartScreen })
   } catch (error) {
     failure = error
     const latest = socket?.readyState === WebSocket.OPEN ? await state().catch(() => null) : null
