@@ -106,7 +106,7 @@ try {
 
   const runtime = await main.evaluate(() => {
     const {app} = process.mainModule.require('electron')
-    const {readFileSync} = process.mainModule.require('node:fs')
+    const {readFileSync} = process.mainModule.require('original-fs')
     const {createHash} = process.mainModule.require('node:crypto')
     const paths = process.mainModule.require('node:path')
     const appDir = process.env.APPDIR ?? null
