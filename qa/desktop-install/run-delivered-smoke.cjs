@@ -9,6 +9,10 @@ const executable = resolve(executableArg)
 const evidence = resolve(evidenceArg)
 const launcher = resolve(__dirname, '../../scripts/verify-packaged-app.cjs')
 const profiles = join(evidence, '..', 'delivered-smoke-profiles')
+const smokeOutputNames = new Set([
+  'in-c-native-backups-960.png', 'in-c-native-backups-1400.png',
+  'in-c-native-part-layout.musicxml', 'in-c-native-part-layout.pdf'
+])
 
 async function main() {
   mkdirSync(profiles)
@@ -35,6 +39,13 @@ async function main() {
   const certificate = lines.find(line => line.startsWith(successPrefix))
   const hash = createHash('sha256')
   for await (const chunk of createReadStream(executable)) hash.update(chunk)
+  const temporaryEntries = readdirSync(profiles, { withFileTypes: true })
+  const smokeOutputs = temporaryEntries.filter(entry => entry.isFile() && smokeOutputNames.has(entry.name))
+    .map(entry => entry.name)
+  const remainingProfileEntries = temporaryEntries.filter(entry => entry.name.startsWith('studio-package-smoke-'))
+    .map(entry => entry.name)
+  const unexpectedTemporaryEntries = temporaryEntries.filter(entry => !smokeOutputs.includes(entry.name))
+    .map(entry => entry.name)
   const report = {
     executable,
     executableSha256: hash.digest('hex'),
@@ -46,13 +57,16 @@ async function main() {
     signal: result.signal,
     error: result.error?.message,
     lastStage: lines.filter(line => line.startsWith(stagePrefix)).at(-1)?.slice(stagePrefix.length),
-    remainingProfileEntries: readdirSync(profiles),
+    smokeOutputs,
+    remainingProfileEntries,
+    unexpectedTemporaryEntries,
     certificate: certificate ? JSON.parse(certificate.slice(successPrefix.length)) : null
   }
   writeFileSync(join(evidence, 'delivered-smoke.json'), JSON.stringify(report, null, 2) + '\n')
   assert.ifError(result.error)
   assert.equal(report.exitCode, 0)
   assert.deepEqual(report.remainingProfileEntries, [])
+  assert.deepEqual(report.unexpectedTemporaryEntries, [])
   assert.equal(report.lastStage, 'backup-viewports')
   for (const check of ['hasNativeProjectRoundTrip', 'hasNativeRecoveryRoundTrip', 'hasNativeBackupUiRecovery',
     'hasMxlRoundTrip', 'hasPartViewPdfFileWrite']) {
