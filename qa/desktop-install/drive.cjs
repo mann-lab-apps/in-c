@@ -518,7 +518,12 @@ async function main() {
               resolve({ openMs: visibleAt - start,
                 planCalls: performance.getEntriesByName('qa-print-layout').length - plansBefore,
                 layout: Object.fromEntries(attributes.sort().map(name => [name, page.getAttribute(name)])),
-                ...(phase && { openPhaseMs: {
+                ...(phase && {
+                  lyricWidthMs: performance.getEntriesByName('qa-text-widths')
+                    .filter(entry => entry.startTime >= start).map(entry => entry.duration),
+                  lyricWidthBeforeOpenMs: performance.getEntriesByName('qa-text-widths')
+                    .filter(entry => entry.startTime < start).map(entry => entry.duration),
+                  openPhaseMs: {
                   requestPreparation: phase['ipc-request'] - start,
                   ipcWait: phase['ipc-return'] - phase['ipc-request'],
                   rendererDecode: phase.decoded - phase['ipc-return'],
@@ -527,7 +532,8 @@ async function main() {
                   firstNoteAfterCommit: visibleAt - phase.commit,
                   planCallsMs: performance.getEntriesByName('qa-print-layout-duration')
                     .filter(entry => entry.startTime >= start).map(entry => entry.duration)
-                } }) })
+                  }
+                }) })
             } else if (performance.now() - start > budget) reject(new Error('First visible score timed out'))
             else requestAnimationFrame(frame)
           }

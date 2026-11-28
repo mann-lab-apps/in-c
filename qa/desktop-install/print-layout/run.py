@@ -90,6 +90,9 @@ def run(variant, label, roundtrip=False):
         assert abs(duration - measurements['openMs']) < 0.1
         assert len(renderer['planCallsMs']) == measurements['planCalls']
         assert len(measurements['startupPlanMs']) == measurements['startPlanCalls']
+        assert measurements['lyricWidthMs'], 'opening must measure the score minimum widths'
+        if os.environ.get('STUDIO_QA_LAYOUT_CANDIDATE') == 'plan-only':
+            assert measurements['lyricWidthBeforeOpenMs'], 'plan-only retains initial minimum width measurement'
     print('LAYOUT ' + json.dumps({'architecture': architecture, 'trial': label, 'variant': variant,
         **measurements}), flush=True)
     return measurements

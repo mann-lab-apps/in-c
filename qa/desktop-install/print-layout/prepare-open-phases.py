@@ -115,3 +115,19 @@ function resolvePrintLayoutPlanImpl(
 ): PrintLayoutPlan {
   const layout=resolveLayoutForPrimaryStaff(score)'''),
 ])
+
+inject('src/renderer/src/notation/use-lyric-layout.ts', [
+    ("""export function minimumTextScoreWidths(score:Score,widths:ReadonlyMap<string,number>,harmonies?:HarmonySpacingWidths):MeasureWidthRequirements {
+  if(!supportsAutomaticLyricSpacing(score))return empty""",
+     """export function minimumTextScoreWidths(score:Score,widths:ReadonlyMap<string,number>,harmonies?:HarmonySpacingWidths):MeasureWidthRequirements {
+  const start = performance.now()
+  try {
+    return minimumTextScoreWidthsImpl(score, widths, harmonies)
+  } finally {
+    performance.measure('qa-text-widths', { start })
+  }
+}
+
+function minimumTextScoreWidthsImpl(score:Score,widths:ReadonlyMap<string,number>,harmonies?:HarmonySpacingWidths):MeasureWidthRequirements {
+  if(!supportsAutomaticLyricSpacing(score))return empty"""),
+])

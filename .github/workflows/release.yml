@@ -20,6 +20,9 @@ on:
       measure_first_open:
         type: boolean
         default: false
+      plan_only:
+        type: boolean
+        default: false
       first_open_fixture:
         type: choice
         options: [both, original, larger]
@@ -113,6 +116,7 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
           STUDIO_QA_LAYOUT_PHASE: ${{ inputs.measure_first_open && 'timing' || matrix.phase }}
           STUDIO_QA_OPEN_PHASES: ${{ inputs.measure_first_open && '1' || '0' }}
+          STUDIO_QA_LAYOUT_CANDIDATE: ${{ inputs.plan_only && 'plan-only' || 'full' }}
           STUDIO_QA_SCORE_SIZE: ${{ matrix.phase == 'open-larger' && 'larger' || 'original' }}
           STUDIO_QA_LAYOUT_PAIRS: ${{ matrix.phase == 'open-larger' && '2' || '3' }}
         run: |

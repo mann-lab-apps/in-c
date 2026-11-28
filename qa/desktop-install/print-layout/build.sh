@@ -7,6 +7,20 @@ proof=$4
 export CSC_IDENTITY_AUTO_DISCOVERY=false
 cd "$scratch/product"
 mkdir -p "$scratch/packages" "$proof"
+case "${STUDIO_QA_LAYOUT_CANDIDATE:-full}" in
+  full)
+    patch_name=candidate.patch.gz
+    patch_sha=7d8e3b85379f50caadd164e24bb3e46f83ece28ee50eb2c741e16c3a8b5444cc
+    ;;
+  plan-only)
+    patch_name=plan-only.patch.gz
+    patch_sha=3f0741e90f50448fbefbfcf66e8363960d6d7a7b2ab7c0154e38db7d7a8bb78a
+    ;;
+  *) exit 2 ;;
+esac
+gzip -dc "$harness/$patch_name" > "$scratch/candidate.patch"
+test "$(shasum -a 256 "$scratch/candidate.patch" | cut -d ' ' -f1)" = "$patch_sha"
+printf '%s\n' "$patch_sha" > "$proof/candidate-patch-sha256.txt"
 
 if [ ! -f "$scratch/instrumented" ]; then
   cp src/renderer/src/App.tsx "$scratch/base-App.tsx"
@@ -27,8 +41,6 @@ for variant in base candidate; do
   fi
   cp "$scratch/base-App.tsx" src/renderer/src/App.tsx
   if [ "$variant" = candidate ]; then
-    gzip -dc "$harness/candidate.patch.gz" > "$scratch/candidate.patch"
-    test "$(shasum -a 256 "$scratch/candidate.patch" | cut -d ' ' -f1)" = 7d8e3b85379f50caadd164e24bb3e46f83ece28ee50eb2c741e16c3a8b5444cc
     git apply --whitespace=error "$scratch/candidate.patch"
   fi
   if [ ! -d "$scratch/built-$variant" ]; then
