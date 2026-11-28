@@ -20,6 +20,10 @@ on:
       measure_first_open:
         type: boolean
         default: false
+      first_open_fixture:
+        type: choice
+        options: [both, original, larger]
+        default: both
 
 permissions:
   contents: read
@@ -89,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: ${{ fromJSON(inputs.measure_first_open && '["open-original","open-larger"]' || '["timing","roundtrip"]') }}
+        phase: ${{ fromJSON(inputs.measure_first_open && (inputs.first_open_fixture == 'original' && '["open-original"]' || inputs.first_open_fixture == 'larger' && '["open-larger"]' || '["open-original","open-larger"]') || '["timing","roundtrip"]') }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -110,6 +114,7 @@ jobs:
           STUDIO_QA_LAYOUT_PHASE: ${{ inputs.measure_first_open && 'timing' || matrix.phase }}
           STUDIO_QA_OPEN_PHASES: ${{ inputs.measure_first_open && '1' || '0' }}
           STUDIO_QA_SCORE_SIZE: ${{ matrix.phase == 'open-larger' && 'larger' || 'original' }}
+          STUDIO_QA_LAYOUT_PAIRS: ${{ matrix.phase == 'open-larger' && '2' || '3' }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64

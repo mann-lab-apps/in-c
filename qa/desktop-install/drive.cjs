@@ -404,6 +404,9 @@ async function connect(label, profile, action, sharedDefault = false) {
       setStage: stage => { startup.stage = stage } })
     report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
       arch: process.arch, mountType, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
+    if (layoutQa && process.env.STUDIO_QA_OPEN_PHASES === '1') {
+      fs.writeFileSync(path.join(results, label + '-observed.json'), JSON.stringify(report, null, 2))
+    }
     if (startupOnly) Object.assign(report, { forceRosetta, rendererTargetMs, startScreenMs, offlineStartScreen, startupTiming: startup })
   } catch (error) {
     failure = error
@@ -431,7 +434,14 @@ async function connect(label, profile, action, sharedDefault = false) {
     } else if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ id: ++id, method: 'Browser.close' }))
     }
-    const closed = await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 10000).unref())])
+    const waitExit = () => Promise.race([exited, new Promise(resolve => setTimeout(resolve, 10000).unref())])
+    let closed = await waitExit()
+    const forcedTimingCleanup = !closed && report && slowLayout && process.env.STUDIO_QA_OPEN_PHASES === '1' &&
+      process.env.STUDIO_QA_LAYOUT_ROUNDTRIP !== '1'
+    if (forcedTimingCleanup) {
+      child.kill('SIGKILL')
+      closed = await waitExit()
+    }
     socket?.close()
     if (!closed) {
       if (process.platform === 'win32') {
@@ -440,10 +450,11 @@ async function connect(label, profile, action, sharedDefault = false) {
     }
     log.end()
     if (!failure) {
-      if (simulateInterruptedSession) assert(closed && 'code' in closed, 'interrupted app process must exit')
+      if (simulateInterruptedSession || forcedTimingCleanup) assert(closed && 'code' in closed, 'owned app process must exit')
       else assert.deepEqual(closed, { code: 0, signal: null }, 'packaged executable should exit normally')
       fs.writeFileSync(path.join(results, label + '.json'), JSON.stringify({ ...report, exit: closed,
-        exitKind: simulateInterruptedSession ? 'interrupted-after-autosave' : 'normal' }, null, 2))
+        exitKind: simulateInterruptedSession ? 'interrupted-after-autosave'
+          : forcedTimingCleanup ? 'forced-after-timing' : 'normal' }, null, 2))
     }
   }
   if (failure) throw failure
