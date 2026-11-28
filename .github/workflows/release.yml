@@ -9,6 +9,14 @@ on:
         type: choice
         options:
           - preflight
+      platform:
+        description: Select a runtime for follow-up verification
+        type: choice
+        default: both
+        options:
+          - both
+          - intel
+          - rosetta
 
 permissions:
   contents: read
@@ -19,13 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: macos-15-intel
-            mode: intel
-            arch: x86_64
-          - runner: macos-15
-            mode: rosetta
-            arch: arm64
+        include: ${{ fromJSON(inputs.platform == 'intel' && '[{"runner":"macos-15-intel","mode":"intel","arch":"x86_64"}]' || inputs.platform == 'rosetta' && '[{"runner":"macos-15","mode":"rosetta","arch":"arm64"}]' || '[{"runner":"macos-15-intel","mode":"intel","arch":"x86_64"},{"runner":"macos-15","mode":"rosetta","arch":"arm64"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
@@ -59,9 +61,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$(uname -m)" = "$QA_HOST_ARCH"
-          extra=()
-          if [ "$QA_MODE" = rosetta ]; then extra+=(--rosetta); fi
-          python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.46 "${extra[@]}"
+          set -- "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.46
+          if [ "$QA_MODE" = rosetta ]; then set -- "$@" --rosetta; fi
+          python3 qa/desktop-install/verify-mac-published.py "$@"
       - name: Keep launch and signed package evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
