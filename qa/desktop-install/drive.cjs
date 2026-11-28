@@ -8,7 +8,7 @@ const { fileURLToPath } = require('node:url')
 const { gzipSync } = require('node:zlib')
 
 const [mode, executableArg, workArg, expectedAsar] = process.argv.slice(2)
-assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default', 'previous-read', 'startup'].includes(mode))
+assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default', 'previous-read', 'startup', 'layout'].includes(mode))
 const executable = path.resolve(executableArg)
 const work = path.resolve(workArg)
 const results = path.join(work, 'results')
@@ -88,10 +88,12 @@ async function connect(label, profile, action, sharedDefault = false) {
     flags.push('--no-sandbox')
   }
   const startupOnly = mode === 'startup'
+  const layoutQa = mode === 'layout'
+  const measureStartup = startupOnly || layoutQa
   const profileReload = startupOnly && process.env.STUDIO_QA_PROFILE_RELOAD === '1'
-  const forceRosetta = startupOnly && process.env.STUDIO_QA_FORCE_ROSETTA === '1'
+  const forceRosetta = measureStartup && process.env.STUDIO_QA_FORCE_ROSETTA === '1'
   if (forceRosetta) assert.equal(process.platform, 'darwin')
-  if (!startupOnly) flags.push('--disable-gpu')
+  if (!measureStartup) flags.push('--disable-gpu')
   flags.push('--remote-debugging-address=127.0.0.1', '--remote-debugging-port=' + port)
   const startedAt = Date.now()
   const launch = forceRosetta ? '/usr/bin/arch' : executable
@@ -110,7 +112,7 @@ async function connect(label, profile, action, sharedDefault = false) {
   let startupStderr = ''
   let reloadTrace
   const parsedScripts = new Map()
-  if (startupOnly) {
+  if (measureStartup) {
     child.stderr.on('data', chunk => {
       if (startup.browserListeningMs !== null) return
       startupStderr = (startupStderr + chunk).slice(-500)
@@ -158,7 +160,7 @@ async function connect(label, profile, action, sharedDefault = false) {
       } catch {
         return undefined
       }
-    }, 'packaged renderer', startupOnly ? 120000 : 30000)
+    }, 'packaged renderer', measureStartup ? 120000 : 30000)
     const rendererTargetMs = Date.now() - startedAt
     Object.assign(startup, { stage: 'DevTools setup', rendererTargetMs })
     const mainPath = fileURLToPath(target.url)
@@ -212,13 +214,13 @@ async function connect(label, profile, action, sharedDefault = false) {
       const visible = await evaluate(requireVisible => {
         const actions = document.querySelector('.start-actions')
         return requireVisible ? Boolean(actions?.checkVisibility()) : Boolean(actions)
-      }, startupOnly, startupOnly ? remaining : undefined)
+      }, measureStartup, measureStartup ? remaining : undefined)
       if (startup.firstUiProbeReturnedMs === undefined) {
         startup.firstUiProbeReturnedMs = Date.now() - startedAt
         startup.visibleAtFirstProbe = visible
       }
       return visible
-    }, 'Studio start screen', startupOnly ? 45000 : undefined)
+    }, 'Studio start screen', measureStartup ? 60000 : undefined)
     const startScreenMs = Date.now() - startedAt
     Object.assign(startup, { stage: 'offline reload', startScreenMs })
 
@@ -354,7 +356,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     const menu = async label => { await click('파일'); await click(label) }
     const chooser = async (clickAction, title, file) => {
       await clickAction()
-      await dialog(title, file)
+      if (!layoutQa) await dialog(title, file)
     }
     const open = async file => {
       if (!(await state()).startup) await menu('파일 작업 열기')
@@ -395,7 +397,8 @@ async function connect(label, profile, action, sharedDefault = false) {
       return status(path.basename(file) + '로 MusicXML을 내보냈습니다')
     }
     startup.stage = 'start-screen screenshot'
-    const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl, importMxl })
+    const details = await action({ state, click, menu, open, save, status, screenshot, edit, exportMxl, importMxl,
+      evaluate, startScreenMs, browserListeningMs: startup.browserListeningMs })
     report = { executable, packagePath: asar, appAsarSha256, expectedAppVersion: version, profile, sharedDefault, platform: process.platform,
       arch: process.arch, mountType, deliveryMode: process.env.STUDIO_QA_DELIVERY_MODE ?? null, details }
     if (startupOnly) Object.assign(report, { forceRosetta, rendererTargetMs, startScreenMs, offlineStartScreen, startupTiming: startup })
@@ -403,7 +406,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     failure = error
     const latest = socket?.readyState === WebSocket.OPEN ? await state().catch(() => null) : null
     fs.writeFileSync(path.join(results, label + '-failure.json'), JSON.stringify({
-      error: String(error), latest, ...(startupOnly && { startup, elapsedMs: Date.now() - startedAt })
+      error: String(error), latest, ...(measureStartup && { startup, elapsedMs: Date.now() - startedAt })
     }, null, 2))
     if (process.platform === 'linux') {
       try {
@@ -420,7 +423,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     } else if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ id: ++id, method: 'Browser.close' }))
     }
-    const closed = await Promise.race([exited, pause(10000).then(() => undefined)])
+    const closed = await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 10000).unref())])
     socket?.close()
     if (!closed) {
       if (process.platform === 'win32') {
@@ -454,6 +457,83 @@ function checkCopy(copy, snapshot, key) {
 }
 
 async function main() {
+  if (mode === 'layout') {
+    const profile = path.join(work, 'profile-layout')
+    const source = path.join(files, 'input.chromatics')
+    const original = hash(source)
+    const trial = process.env.STUDIO_QA_LAYOUT_VARIANT
+    assert(['base', 'candidate'].includes(trial))
+    assert.equal(process.env.STUDIO_QA_PRINT_DIR, files)
+    const layoutReady = await connect('first-open', profile, async qa => {
+      const startup = await wait(async () => qa.evaluate(() => {
+        const fcp = performance.getEntriesByName('first-contentful-paint')[0]
+        return fcp && { fcpMs: fcp.startTime, planCalls: performance.getEntriesByName('qa-print-layout').length }
+      }), 'startup first contentful paint', 30000)
+      assert(trial === 'base' ? startup.planCalls > 0 : startup.planCalls === 0)
+      const ready = await qa.evaluate(async () => {
+        const plansBefore = performance.getEntriesByName('qa-print-layout').length
+        const start = performance.now()
+        const button = [...document.querySelectorAll('button')].find(node =>
+          node.textContent.trim() === '프로젝트 열기' && node.checkVisibility() && !node.disabled)
+        if (!button) throw new Error('Open project button unavailable')
+        button.click()
+        return new Promise((resolve, reject) => {
+          const frame = () => {
+            const page = document.querySelector('.score-page[data-pdf-page-size]')
+            const note = page?.querySelector('.notation-event')
+            if (note?.checkVisibility()) {
+              const attributes = page.getAttributeNames().filter(name => name.startsWith('data-pdf-'))
+              resolve({ openMs: performance.now() - start,
+                planCalls: performance.getEntriesByName('qa-print-layout').length - plansBefore,
+                layout: Object.fromEntries(attributes.sort().map(name => [name, page.getAttribute(name)])) })
+            } else if (performance.now() - start > 25000) reject(new Error('First visible score timed out'))
+            else requestAnimationFrame(frame)
+          }
+          requestAnimationFrame(frame)
+        })
+      }, undefined, 40000)
+      await qa.status('input.chromatics을 열었습니다')
+      assert(ready.planCalls > 0)
+      assert.equal(hash(source), original)
+      const result = { ...ready, fcpMs: startup.fcpMs, startPlanCalls: startup.planCalls,
+        screenWallMs: qa.startScreenMs, devtoolsWallMs: qa.browserListeningMs }
+      if (process.env.STUDIO_QA_LAYOUT_ROUNDTRIP !== '1') return result
+      const { recovery, snapshot } = await qa.edit(pitch(read(source).score))
+      fs.copyFileSync(recovery, path.join(results, 'autosave.json'))
+      return { ...result, autosaveSha256: hash(recovery), editedPitch: pitch(snapshot.score) }
+    })
+    if (process.env.STUDIO_QA_LAYOUT_ROUNDTRIP !== '1') return
+    const autosave = path.join(profile, 'autosave/recovery.json')
+    assert.equal(hash(autosave), layoutReady.autosaveSha256)
+    await connect('recovered', profile, async qa => {
+      await qa.click('복구본 열기')
+      await qa.status('프로젝트 복구본을 열었습니다')
+      const recovered = path.join(files, 'recovered.chromatics')
+      await qa.save(recovered)
+      const snapshot = read(path.join(results, 'autosave.json'))
+      const saved = checkCopy(recovered, snapshot, 'v3')
+      assert.deepEqual(read(recovered).score, snapshot.score)
+      assert(!fs.existsSync(autosave))
+      assert.equal(hash(source), original)
+      await qa.menu('내보내기 설정')
+      await qa.click('PDF 변환')
+      await qa.status('score.pdf')
+      await qa.menu('PNG 출력 설정')
+      await qa.click('PNG 내보내기')
+      await qa.status('score.png')
+      for (const name of ['recovered.chromatics', 'score.pdf', 'score.png']) {
+        fs.copyFileSync(path.join(files, name), path.join(results, name))
+      }
+      return { ...saved, original, pdfSha256: hash(path.join(files, 'score.pdf')), pngSha256: hash(path.join(files, 'score.png')) }
+    })
+    process.env.STUDIO_QA_INPUT = 'recovered.chromatics'
+    await connect('reopened', profile, async qa => {
+      await qa.open(path.join(files, 'recovered.chromatics'))
+      assert.equal(hash(source), original)
+      return { reopened: true }
+    })
+    return
+  }
   if (mode === 'startup') {
     await connect('startup', path.join(work, 'profile-startup'), async qa => {
       const current = await qa.state()

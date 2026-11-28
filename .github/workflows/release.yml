@@ -14,13 +14,16 @@ on:
       profile_callbacks:
         type: boolean
         default: false
+      compare_print_layout:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   rosetta-renderer:
-    if: inputs.tag == 'preflight' && !inputs.analyze_previous
+    if: inputs.tag == 'preflight' && !inputs.analyze_previous && !inputs.compare_print_layout
     runs-on: macos-15
     timeout-minutes: 25
     steps:
@@ -44,7 +47,7 @@ jobs:
           if-no-files-found: warn
 
   analyze-published-trace:
-    if: inputs.tag == 'preflight' && inputs.analyze_previous
+    if: inputs.tag == 'preflight' && inputs.analyze_previous && !inputs.compare_print_layout
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -75,3 +78,46 @@ jobs:
         with:
           name: rosetta-renderer-analysis
           path: ${{ runner.temp }}/renderer-evidence/verification.json
+
+  compare-print-layout:
+    if: inputs.tag == 'preflight' && inputs.compare_print_layout
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: qa/desktop-install
+      - uses: actions/checkout@v7
+        with:
+          ref: 2a14068892434d0c76d619c16f831a6dfaed1c1a
+          path: product-src
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.22.0
+      - name: Build and compare the x64 packages under Rosetta
+        shell: bash
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          test "$(/usr/bin/arch -x86_64 /usr/sbin/sysctl -in sysctl.proc_translated)" = 1
+          scratch="$RUNNER_TEMP/print-layout-work"
+          proof="$RUNNER_TEMP/print-layout-results"
+          harness="$PWD/qa/desktop-install/print-layout"
+          driver="$PWD/qa/desktop-install/drive.cjs"
+          mkdir -p "$scratch/product" "$proof"
+          git -C product-src rev-parse HEAD > "$scratch/product-sha"
+          git -C product-src archive HEAD | tar -xC "$scratch/product"
+          cd "$scratch/product"
+          npm ci --ignore-scripts > "$proof/npm-ci.log" 2>&1
+          bash "$harness/build.sh" x64 "$harness" "$scratch" "$proof"
+          python3 "$harness/run.py" x64 "$scratch" "$proof" "$driver"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: studio-print-layout-rosetta
+          path: ${{ runner.temp }}/print-layout-results
+          if-no-files-found: error
