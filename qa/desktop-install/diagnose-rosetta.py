@@ -22,8 +22,6 @@ def command(*args, timeout=90):
 
 
 proof = Path(sys.argv[1]).resolve()
-first = sys.argv[2]
-assert first in {'app-first', 'node-first'}
 proof.mkdir(parents=True)
 assert platform.machine() == 'arm64'
 translated = ['/usr/bin/arch', '-x86_64']
@@ -37,7 +35,7 @@ expected_executable = '724bcaed613ee58ec193db179c53b3bb86932329bfc7b17c0dc506739
 ref = f'refs/tags/v{version}^{{}}'
 assert command('git', 'ls-remote', 'https://github.com/mann-lab-apps/in-c.git', ref).split()[0] == '2a14068892434d0c76d619c16f831a6dfaed1c1a'
 
-report = {'order': first, 'host': command('/usr/bin/sw_vers'), 'sha256': expected_dmg, 'probes': {}}
+report = {'host': command('/usr/bin/sw_vers'), 'sha256': expected_dmg, 'probes': {}}
 with TemporaryDirectory(dir=os.environ.get('RUNNER_TEMP')) as tmp:
     work = Path(tmp)
     dmg, mount = work / name, work / 'mount'
@@ -77,34 +75,21 @@ with TemporaryDirectory(dir=os.environ.get('RUNNER_TEMP')) as tmp:
         assert startup['offlineStartScreen']['width'] == 150 and startup['appAsarSha256'] == expected_asar
         timing = startup['startupTiming']
         assert timing['browserListeningMs'] is not None
-        report['probes'][label] = {
-            'browserListeningMs': timing['browserListeningMs'], 'rendererTargetMs': startup['rendererTargetMs'],
-            'startScreenMs': startup['startScreenMs'], 'documentTiming': timing['documentTiming'], 'samples': timing['samples'],
-        }
-        print('STARTUP ' + json.dumps({label: report['probes'][label]}), flush=True)
+        assert timing['documentTiming']['paints']['first-contentful-paint'] > 0
+        assert timing['reloadTiming']['actionVisibleMs'] >= timing['reloadTiming']['actionInsertedMs']
+        report['probes'][label] = timing
+        print('TIMING ' + json.dumps({
+            'trial': label, 'browserListeningMs': timing['browserListeningMs'],
+            'rendererTargetMs': timing['rendererTargetMs'], 'startScreenMs': timing['startScreenMs'],
+            'navigationStartMs': timing['documentTiming']['navigationStartMs'],
+            'firstContentfulPaintMs': timing['documentTiming']['paints']['first-contentful-paint'],
+            'reloadActionsMs': timing['reloadTiming']['actionVisibleMs'],
+            'reloadLongTasks': len(timing['reloadTiming']['longTasks']),
+        }), flush=True)
 
-    def node_trial(label, rosetta):
-        profile = work / label
-        profile.mkdir()
-        prefix = translated if rosetta else []
-        program = '''console.log("PACKAGED_APP_SMOKE_OK " + JSON.stringify({
-            arch: process.arch, electron: process.versions.electron, node: process.versions.node
-        }));'''
-        result = run_smoke(proof, label, [*prefix, executable, '-e', program, '--', '--piano-audit'],
-                           {**env, 'ELECTRON_RUN_AS_NODE': '1', 'DDIRORI_PIANO_QA_DATA': str(profile)}, timeout=150)
-        assert not result['timedOut'] and result['exitCode'] == 0 and result['smoke'], result
-        assert result['smoke']['arch'] == ('x64' if rosetta else 'arm64')
-        report['probes'][label] = {'elapsedSeconds': result['elapsedSeconds'], **result['smoke']}
-        print('STARTUP ' + json.dumps({label: report['probes'][label]}), flush=True)
-
-    if first == 'app-first':
-        app_trial('rosetta-app-first', True)
-        app_trial('rosetta-app-repeat', True)
-        node_trial('rosetta-node-after-app', True)
-    else:
-        node_trial('rosetta-node-first', True)
-        app_trial('rosetta-app-after-node', True)
+    app_trial('rosetta-app-first', True)
+    app_trial('rosetta-app-repeat', True)
+    app_trial('rosetta-app-repeat-2', True)
     app_trial('native-app', False)
-    node_trial('native-node', False)
 
 (proof / 'comparison.json').write_text(json.dumps(report, indent=2) + '\n')

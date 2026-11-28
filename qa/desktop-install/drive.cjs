@@ -2,9 +2,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const net = require('node:net')
-const { spawn, execFile, execFileSync } = require('node:child_process')
+const { spawn, execFileSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
 const { fileURLToPath } = require('node:url')
+const { gzipSync } = require('node:zlib')
 
 const [mode, executableArg, workArg, expectedAsar] = process.argv.slice(2)
 assert(['fresh', 'prepare', 'recover', 'distribution', 'portable-default', 'previous-read', 'startup'].includes(mode))
@@ -104,32 +105,15 @@ async function connect(label, profile, action, sharedDefault = false) {
   })
   let socket, id = 0
   const pending = new Map()
-  const startup = { stage: 'renderer target', browserListeningMs: null, samples: [] }
+  const startup = { stage: 'renderer target', browserListeningMs: null }
   let startupStderr = ''
-  const sampling = []
-  const sampleTimers = []
-  if (startupOnly && process.platform === 'darwin') {
+  let reloadTrace
+  if (startupOnly) {
     child.stderr.on('data', chunk => {
       if (startup.browserListeningMs !== null) return
       startupStderr = (startupStderr + chunk).slice(-500)
       if (startupStderr.includes('DevTools listening on')) startup.browserListeningMs = Date.now() - startedAt
     })
-    for (const delay of [5000, 20000, 45000]) {
-      const timer = setTimeout(() => {
-        if (!child.pid || child.exitCode !== null) return
-        const result = { startedMs: Date.now() - startedAt, file: label + '-sample-' + delay + '.txt' }
-        startup.samples.push(result)
-        sampling.push(new Promise(resolve => {
-          execFile('/usr/bin/sample', [String(child.pid), '1', '1', '-file', path.join(results, result.file)],
-            { timeout: 7000 }, (error, _stdout, stderr) => {
-              result.finishedMs = Date.now() - startedAt
-              if (error) result.error = stderr.trim() || String(error)
-              resolve()
-            })
-        }))
-      }, delay)
-      sampleTimers.push(timer)
-    }
   }
   const call = (method, params = {}, timeoutMs = 15000) => new Promise((resolve, reject) => {
     const token = ++id
@@ -190,6 +174,11 @@ async function connect(label, profile, action, sharedDefault = false) {
     })
     socket.addEventListener('message', ({ data }) => {
       const message = JSON.parse(data)
+      if (reloadTrace && message.method === 'Tracing.dataCollected') {
+        for (const event of message.params.value) reloadTrace.events.push(event)
+      } else if (reloadTrace && message.method === 'Tracing.tracingComplete') {
+        reloadTrace.complete.resolve(message.params)
+      }
       if (message.method === 'Page.javascriptDialogOpening') {
         call('Page.handleJavaScriptDialog', { accept: true }).catch(error => log.write(String(error) + '\n'))
       }
@@ -199,38 +188,100 @@ async function connect(label, profile, action, sharedDefault = false) {
         handle(message)
       }
     })
-    await call('Page.enable')
-    await call('Network.enable')
-    await call('Network.emulateNetworkConditionsByRule', {
-      offline: true,
-      matchedNetworkConditions: [{ urlPattern: '', latency: 0, downloadThroughput: -1, uploadThroughput: -1 }]
-    })
-    startup.stage = 'initial start screen'
-    await wait(remaining => evaluate(requireVisible => {
-      const actions = document.querySelector('.start-actions')
-      return requireVisible ? actions?.checkVisibility() : Boolean(actions)
-    }, startupOnly, startupOnly ? remaining : undefined), 'Studio start screen', startupOnly ? 45000 : undefined)
-    const startScreenMs = Date.now() - startedAt
-    for (const timer of sampleTimers) clearTimeout(timer)
-    if (startupOnly) {
-      startup.documentTiming = await evaluate(() => {
-        const timing = performance.getEntriesByType('navigation')[0]
-        return { timeOrigin: performance.timeOrigin, domInteractive: timing?.domInteractive ?? null,
-          domContentLoaded: timing?.domContentLoadedEventEnd ?? null }
+    startup.debuggerAttachedMs = Date.now() - startedAt
+    const setOffline = async () => {
+      await call('Network.enable')
+      await call('Network.emulateNetworkConditionsByRule', {
+        offline: true,
+        matchedNetworkConditions: [{ urlPattern: '', latency: 0, downloadThroughput: -1, uploadThroughput: -1 }]
       })
-      startup.documentTiming.navigationStartMs = Math.round(startup.documentTiming.timeOrigin - startedAt)
     }
+    await call('Page.enable')
+    if (!startupOnly) await setOffline()
+    startup.stage = 'initial start screen'
+    startup.firstUiProbeStartedMs = Date.now() - startedAt
+    await wait(async remaining => {
+      const visible = await evaluate(requireVisible => {
+        const actions = document.querySelector('.start-actions')
+        return requireVisible ? Boolean(actions?.checkVisibility()) : Boolean(actions)
+      }, startupOnly, startupOnly ? remaining : undefined)
+      if (startup.firstUiProbeReturnedMs === undefined) {
+        startup.firstUiProbeReturnedMs = Date.now() - startedAt
+        startup.visibleAtFirstProbe = visible
+      }
+      return visible
+    }, 'Studio start screen', startupOnly ? 45000 : undefined)
+    const startScreenMs = Date.now() - startedAt
     Object.assign(startup, { stage: 'offline reload', startScreenMs })
+
     let offlineStartScreen
     if (startupOnly) {
-      // Reload after enabling offline mode so the screenshot covers a full offline document load.
-      await call('Page.addScriptToEvaluateOnNewDocument', { source: 'globalThis.__studioQaOfflineReload = true' })
+      const timingSnapshot = () => {
+        const nav = performance.getEntriesByType('navigation')[0]
+        const paints = Object.fromEntries(performance.getEntriesByType('paint').map(paint => [paint.name, paint.startTime]))
+        if (paints['first-contentful-paint'] === undefined) return null
+        const resources = performance.getEntriesByType('resource')
+          .filter(resource => resource.name.startsWith('file:'))
+          .map(resource => ({
+            name: resource.name.split('/').at(-1),
+            initiator: resource.initiatorType,
+            responseEndMs: resource.responseEnd,
+            durationMs: resource.duration
+          }))
+          .sort((a, b) => b.durationMs - a.durationMs)
+          .slice(0, 8)
+        const probe = globalThis.__studioQaStartup
+        return {
+          timeOrigin: performance.timeOrigin,
+          domInteractive: nav?.domInteractive ?? null,
+          domContentLoaded: nav?.domContentLoadedEventEnd ?? null,
+          paints, resources,
+          actionInsertedMs: probe?.actionInsertedMs ?? null,
+          actionVisibleMs: probe?.actionVisibleMs ?? null,
+          longTasks: probe?.longTasks ?? []
+        }
+      }
+      startup.documentTiming = await wait(remaining => evaluate(timingSnapshot, undefined, remaining),
+        'initial first contentful paint timing', 45000)
+      startup.documentTiming.navigationStartMs = Math.round(startup.documentTiming.timeOrigin - startedAt)
+      await setOffline()
+      const installObserver = () => {
+        const probe = { actionInsertedMs: null, actionVisibleMs: null, longTasks: [] }
+        globalThis.__studioQaStartup = probe
+        const tasks = new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) {
+            probe.longTasks.push({ startMs: entry.startTime, durationMs: entry.duration })
+          }
+        })
+        tasks.observe({ type: 'longtask', buffered: true })
+        const observer = new MutationObserver(() => {
+          const actions = document.querySelector('.start-actions')
+          if (!actions) return
+          observer.disconnect()
+          probe.actionInsertedMs = performance.now()
+          const visible = () => {
+            if (actions.checkVisibility()) probe.actionVisibleMs = performance.now()
+            else requestAnimationFrame(visible)
+          }
+          requestAnimationFrame(visible)
+        })
+        observer.observe(document, { childList: true, subtree: true })
+      }
+      await call('Page.addScriptToEvaluateOnNewDocument', { source: '(' + installObserver.toString() + ')()' })
+      reloadTrace = { events: [], complete: Promise.withResolvers() }
+      await call('Tracing.start', {
+        transferMode: 'ReportEvents',
+        traceConfig: {
+          recordMode: 'record-until-full',
+          includedCategories: ['devtools.timeline', 'v8', 'v8.execute', 'loading', 'blink.user_timing', 'toplevel']
+        }
+      })
       await call('Page.reload', { ignoreCache: true })
       startup.stage = 'offline image decode and visibility'
       offlineStartScreen = await wait(async remaining => {
         try {
           return await evaluate(async () => {
-            if (!globalThis.__studioQaOfflineReload) return null
+            if (globalThis.__studioQaStartup?.actionVisibleMs == null) return null
             const image = document.querySelector('.start-screen img.dd-bach')
             if (!image?.complete) return null
             await image.decode()
@@ -241,7 +292,22 @@ async function connect(label, profile, action, sharedDefault = false) {
           if (/Execution context was destroyed|Cannot find context/.test(error.message)) return null
           throw error
         }
-      }, 'decoded Bach illustration on the offline Studio start screen', 45000)
+      }, 'decoded Bach illustration on the offline Studio start screen', 60000)
+      startup.reloadTiming = await wait(remaining => evaluate(timingSnapshot, undefined, remaining),
+        'offline first contentful paint timing', 45000)
+      await call('Tracing.end')
+      let timeout
+      try {
+        const completed = await Promise.race([reloadTrace.complete.promise, new Promise((_resolve, reject) => {
+          timeout = setTimeout(() => reject(Error('Timed out collecting the reload trace')), 25000)
+        })])
+        assert(!completed.dataLossOccurred, 'reload trace buffer overflow')
+        assert(reloadTrace.events.length > 0)
+      } finally {
+        clearTimeout(timeout)
+      }
+      const trace = gzipSync(JSON.stringify({ traceEvents: reloadTrace.events }))
+      fs.writeFileSync(path.join(results, label + '-reload-trace.json.gz'), trace)
     }
     const click = value => wait(() => evaluate(label => {
       const element = [...document.querySelectorAll('button, [role=button], [role=menuitem]')].find(node =>
@@ -315,8 +381,6 @@ async function connect(label, profile, action, sharedDefault = false) {
       } catch (captureError) { log.write(String(captureError) + '\n') }
     }
   } finally {
-    for (const timer of sampleTimers) clearTimeout(timer)
-    await Promise.all(sampling)
     const simulateInterruptedSession = mode === 'prepare' && process.platform === 'win32' && !failure
     if (simulateInterruptedSession) {
       // The auto-saved bytes have already been read and copied. Stop our old

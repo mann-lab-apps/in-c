@@ -1,4 +1,4 @@
-name: Studio alpha.46 Rosetta startup QA
+name: Studio alpha.46 Rosetta renderer QA
 
 on:
   workflow_dispatch:
@@ -13,12 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  rosetta-startup:
+  rosetta-renderer:
     if: inputs.tag == 'preflight'
-    strategy:
-      fail-fast: false
-      matrix:
-        order: [app-first, node-first]
     runs-on: macos-15
     timeout-minutes: 25
     steps:
@@ -29,14 +25,12 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Measure the signed alpha.46 app and Node-only control
+      - name: Measure first paint and trace the offline reload
         shell: bash
-        env:
-          QA_ORDER: ${{ matrix.order }}
-        run: python3 qa/desktop-install/diagnose-rosetta.py "$RUNNER_TEMP/rosetta-startup" "$QA_ORDER"
+        run: python3 qa/desktop-install/diagnose-rosetta.py "$RUNNER_TEMP/rosetta-renderer"
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
-          name: rosetta-startup-${{ matrix.order }}
-          path: ${{ runner.temp }}/rosetta-startup
+          name: rosetta-renderer
+          path: ${{ runner.temp }}/rosetta-renderer
           if-no-files-found: warn
