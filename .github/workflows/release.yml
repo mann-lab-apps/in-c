@@ -11,6 +11,9 @@ on:
       analyze_previous:
         type: boolean
         default: false
+      profile_callbacks:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,6 +32,8 @@ jobs:
         with:
           node-version: 22
       - name: Measure first paint and trace the offline reload
+        env:
+          STUDIO_QA_PROFILE_RELOAD: ${{ inputs.profile_callbacks && '1' || '0' }}
         shell: bash
         run: python3 qa/desktop-install/diagnose-rosetta.py "$RUNNER_TEMP/rosetta-renderer"
       - uses: actions/upload-artifact@v7

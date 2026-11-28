@@ -88,6 +88,7 @@ async function connect(label, profile, action, sharedDefault = false) {
     flags.push('--no-sandbox')
   }
   const startupOnly = mode === 'startup'
+  const profileReload = startupOnly && process.env.STUDIO_QA_PROFILE_RELOAD === '1'
   const forceRosetta = startupOnly && process.env.STUDIO_QA_FORCE_ROSETTA === '1'
   if (forceRosetta) assert.equal(process.platform, 'darwin')
   if (!startupOnly) flags.push('--disable-gpu')
@@ -108,6 +109,7 @@ async function connect(label, profile, action, sharedDefault = false) {
   const startup = { stage: 'renderer target', browserListeningMs: null }
   let startupStderr = ''
   let reloadTrace
+  const parsedScripts = new Map()
   if (startupOnly) {
     child.stderr.on('data', chunk => {
       if (startup.browserListeningMs !== null) return
@@ -178,6 +180,12 @@ async function connect(label, profile, action, sharedDefault = false) {
         for (const event of message.params.value) reloadTrace.events.push(event)
       } else if (reloadTrace && message.method === 'Tracing.tracingComplete') {
         reloadTrace.complete.resolve(message.params)
+      }
+      if (profileReload && message.method === 'Debugger.scriptParsed') {
+        const { scriptId, url } = message.params
+        if (url.includes('/app.asar/out/renderer/assets/') && url.endsWith('.js')) {
+          parsedScripts.set(url, scriptId)
+        }
       }
       if (message.method === 'Page.javascriptDialogOpening') {
         call('Page.handleJavaScriptDialog', { accept: true }).catch(error => log.write(String(error) + '\n'))
@@ -276,6 +284,11 @@ async function connect(label, profile, action, sharedDefault = false) {
           includedCategories: ['devtools.timeline', 'v8', 'v8.execute', 'loading', 'blink.user_timing', 'toplevel']
         }
       })
+      if (profileReload) {
+        await call('Profiler.enable')
+        await call('Profiler.setSamplingInterval', { interval: 5000 })
+        await call('Profiler.start')
+      }
       await call('Page.reload', { ignoreCache: true })
       startup.stage = 'offline image decode and visibility'
       offlineStartScreen = await wait(async remaining => {
@@ -295,6 +308,7 @@ async function connect(label, profile, action, sharedDefault = false) {
       }, 'decoded Bach illustration on the offline Studio start screen', 60000)
       startup.reloadTiming = await wait(remaining => evaluate(timingSnapshot, undefined, remaining),
         'offline first contentful paint timing', 45000)
+      const cpu = profileReload ? (await call('Profiler.stop')).profile : undefined
       await call('Tracing.end')
       let timeout
       try {
@@ -308,6 +322,22 @@ async function connect(label, profile, action, sharedDefault = false) {
       }
       const trace = gzipSync(JSON.stringify({ traceEvents: reloadTrace.events }))
       fs.writeFileSync(path.join(results, label + '-reload-trace.json.gz'), trace)
+      if (cpu) {
+        assert(cpu.samples.length > 0 && cpu.samples.length === cpu.timeDeltas.length)
+        fs.writeFileSync(path.join(results, label + '-reload-cpu.json.gz'), gzipSync(JSON.stringify(cpu)))
+        await call('Debugger.enable')
+        const sources = []
+        const profiledUrls = new Set(cpu.nodes.map(({ callFrame }) => callFrame.url))
+        for (const [url, scriptId] of parsedScripts) {
+          if (!profiledUrls.has(url)) continue
+          const { scriptSource } = await call('Debugger.getScriptSource', { scriptId })
+          sources.push({ scriptId, file: url.split('/').at(-1),
+            bytes: Buffer.byteLength(scriptSource), sha256: createHash('sha256').update(scriptSource).digest('hex') })
+        }
+        assert(sources.length > 0, 'CPU profile must include at least one packaged renderer script')
+        fs.writeFileSync(path.join(results, label + '-bundle-sources.json'), JSON.stringify(sources, null, 2) + '\n')
+        await call('Debugger.disable')
+      }
     }
     const click = value => wait(() => evaluate(label => {
       const element = [...document.querySelectorAll('button, [role=button], [role=menuitem]')].find(node =>

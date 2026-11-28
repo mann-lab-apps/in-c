@@ -89,7 +89,8 @@ with TemporaryDirectory(dir=os.environ.get('RUNNER_TEMP')) as tmp:
 
     app_trial('rosetta-app-first', True)
     app_trial('rosetta-app-repeat', True)
-    app_trial('rosetta-app-repeat-2', True)
+    if os.environ.get('STUDIO_QA_PROFILE_RELOAD') != '1':
+        app_trial('rosetta-app-repeat-2', True)
     app_trial('native-app', False)
 
 (proof / 'comparison.json').write_text(json.dumps(report, indent=2) + '\n')
