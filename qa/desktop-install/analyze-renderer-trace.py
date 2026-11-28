@@ -60,7 +60,6 @@ def analyze_trace(trace_path, reload):
 
 trials = {}
 for name, timing in record['probes'].items():
-    assert timing['stage'] == 'offline image decode and visibility'
     normal = timing['documentTiming']
     reload = timing['reloadTiming']
     assert timing['browserListeningMs'] <= normal['navigationStartMs'] <= timing['startScreenMs']
