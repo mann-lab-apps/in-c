@@ -470,18 +470,20 @@ async function main() {
     const source = path.join(files, 'input.chromatics')
     const original = hash(source)
     const trial = process.env.STUDIO_QA_LAYOUT_VARIANT
+    const measureOpenPhases = process.env.STUDIO_QA_OPEN_PHASES === '1'
     assert(['base', 'candidate'].includes(trial))
     assert.equal(process.env.STUDIO_QA_PRINT_DIR, files)
     const layoutReady = await connect('first-open', profile, async qa => {
       qa.setStage('first contentful paint')
       const startup = await wait(async () => qa.evaluate(() => {
         const fcp = performance.getEntriesByName('first-contentful-paint')[0]
-        return fcp && { fcpMs: fcp.startTime, planCalls: performance.getEntriesByName('qa-print-layout').length }
+        return fcp && { fcpMs: fcp.startTime, planCalls: performance.getEntriesByName('qa-print-layout').length,
+          startupPlanMs: performance.getEntriesByName('qa-print-layout-duration').map(entry => entry.duration) }
       }), 'startup first contentful paint', qa.observeLayout ?? 30000)
       assert(trial === 'base' ? startup.planCalls > 0 : startup.planCalls === 0)
       qa.setStage('first visible score')
       const openBudget = qa.observeLayout ?? 25000
-      const ready = await qa.evaluate(async budget => {
+      const ready = await qa.evaluate(async ({ budget, measureOpenPhases }) => {
         const plansBefore = performance.getEntriesByName('qa-print-layout').length
         const start = performance.now()
         const button = [...document.querySelectorAll('button')].find(node =>
@@ -493,21 +495,40 @@ async function main() {
             const page = document.querySelector('.score-page[data-pdf-page-size]')
             const note = page?.querySelector('.notation-event')
             if (note?.checkVisibility()) {
+              const visibleAt = performance.now()
+              const phase = measureOpenPhases ? Object.fromEntries(
+                ['ipc-request', 'ipc-return', 'decoded', 'state-queued', 'commit'].map(name =>
+                  [name, performance.getEntriesByName('qa-open-' + name).at(-1)?.startTime ?? null])) : undefined
+              if (phase && Object.values(phase).some(value => value === null)) {
+                reject(new Error('Missing file open timing mark: ' + JSON.stringify(phase)))
+                return
+              }
               const attributes = page.getAttributeNames().filter(name => name.startsWith('data-pdf-'))
-              resolve({ openMs: performance.now() - start,
+              resolve({ openMs: visibleAt - start,
                 planCalls: performance.getEntriesByName('qa-print-layout').length - plansBefore,
-                layout: Object.fromEntries(attributes.sort().map(name => [name, page.getAttribute(name)])) })
+                layout: Object.fromEntries(attributes.sort().map(name => [name, page.getAttribute(name)])),
+                ...(phase && { openPhaseMs: {
+                  requestPreparation: phase['ipc-request'] - start,
+                  ipcWait: phase['ipc-return'] - phase['ipc-request'],
+                  rendererDecode: phase.decoded - phase['ipc-return'],
+                  statePreparation: phase['state-queued'] - phase.decoded,
+                  editorCommit: phase.commit - phase['state-queued'],
+                  firstNoteAfterCommit: visibleAt - phase.commit,
+                  planCallsMs: performance.getEntriesByName('qa-print-layout-duration')
+                    .filter(entry => entry.startTime >= start).map(entry => entry.duration)
+                } }) })
             } else if (performance.now() - start > budget) reject(new Error('First visible score timed out'))
             else requestAnimationFrame(frame)
           }
           requestAnimationFrame(frame)
         })
-      }, openBudget, openBudget + 15000)
+      }, { budget: openBudget, measureOpenPhases }, openBudget + 15000)
       await qa.status('input.chromatics을 열었습니다')
       assert(ready.planCalls > 0)
       assert.equal(hash(source), original)
       const result = { ...ready, fcpMs: startup.fcpMs, startPlanCalls: startup.planCalls,
-        screenWallMs: qa.startScreenMs, devtoolsWallMs: qa.browserListeningMs }
+        screenWallMs: qa.startScreenMs, devtoolsWallMs: qa.browserListeningMs,
+        ...(measureOpenPhases && { startupPlanMs: startup.startupPlanMs }) }
       if (process.env.STUDIO_QA_LAYOUT_ROUNDTRIP !== '1') return result
       qa.setStage('edit and autosave')
       const { recovery, snapshot } = await qa.edit(pitch(read(source).score))

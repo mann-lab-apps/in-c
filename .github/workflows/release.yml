@@ -17,6 +17,9 @@ on:
       compare_print_layout:
         type: boolean
         default: false
+      measure_first_open:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -86,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: [timing, roundtrip]
+        phase: ${{ fromJSON(inputs.measure_first_open && '["open-original","open-larger"]' || '["timing","roundtrip"]') }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -104,7 +107,9 @@ jobs:
         shell: bash
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-          STUDIO_QA_LAYOUT_PHASE: ${{ matrix.phase }}
+          STUDIO_QA_LAYOUT_PHASE: ${{ inputs.measure_first_open && 'timing' || matrix.phase }}
+          STUDIO_QA_OPEN_PHASES: ${{ inputs.measure_first_open && '1' || '0' }}
+          STUDIO_QA_SCORE_SIZE: ${{ matrix.phase == 'open-larger' && 'larger' || 'original' }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64

@@ -12,7 +12,11 @@ if [ ! -f "$scratch/instrumented" ]; then
   cp src/renderer/src/App.tsx "$scratch/base-App.tsx"
   grep -q '^2a14068892434d0c76d619c16f831a6dfaed1c1a$' "$scratch/product-sha"
   python3 "$harness/prepare.py"
-  node "$harness/make-fixture.cjs" "$proof/fixture.chromatics" "$scratch/fixture.cjs"
+  if [ "${STUDIO_QA_OPEN_PHASES:-0}" = 1 ]; then
+    python3 "$harness/prepare-open-phases.py"
+    cp src/renderer/src/App.tsx "$scratch/base-App.tsx"
+  fi
+  node "$harness/make-fixture.cjs" "$proof/fixture.chromatics" "$scratch/fixture.cjs" "${STUDIO_QA_SCORE_SIZE:-original}"
   touch "$scratch/instrumented"
 fi
 

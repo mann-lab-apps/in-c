@@ -14,6 +14,7 @@ scratch, proof, driver = Path(scratch_dir), Path(proof_dir), Path(driver_file)
 assert architecture in {'x64', 'arm64'}
 phase = os.environ.get('STUDIO_QA_LAYOUT_PHASE', 'both')
 assert phase in {'both', 'timing', 'roundtrip'}
+measure_open_phases = os.environ.get('STUDIO_QA_OPEN_PHASES') == '1'
 
 
 def sha(path):
@@ -79,6 +80,16 @@ def run(variant, label, roundtrip=False):
             if (work / 'results').exists():
                 copytree(work / 'results', saved, dirs_exist_ok=True)
     measurements = json.loads((saved / 'first-open.json').read_text())['details']
+    if measure_open_phases:
+        data = (saved / 'first-open-process.log').read_text().splitlines()
+        prefix = 'QA_NATIVE_OPEN '
+        line, = (line for line in data if line.startswith(prefix))
+        measurements['mainOpenMs'] = json.loads(line.removeprefix(prefix))
+        renderer = measurements['openPhaseMs']
+        duration = sum(value for key, value in renderer.items() if key != 'planCallsMs')
+        assert abs(duration - measurements['openMs']) < 0.1
+        assert len(renderer['planCallsMs']) == measurements['planCalls']
+        assert len(measurements['startupPlanMs']) == measurements['startPlanCalls']
     print('LAYOUT ' + json.dumps({'architecture': architecture, 'trial': label, 'variant': variant,
         **measurements}), flush=True)
     return measurements
@@ -95,7 +106,14 @@ if phase in {'both', 'timing'}:
         assert pair['base']['layout'] == pair['candidate']['layout']
         pairs.append(pair)
     proof_file = proof / f'{architecture}-comparison.json'
+    fixture_path = proof / 'fixture.chromatics'
+    fixture = json.loads(fixture_path.read_text())
+    staves = [staff for part in fixture['score']['parts'] for staff in part['staves']]
     report = {'architecture': architecture, 'host': check_output('sw_vers'),
+        'fixture': {'sha256': sha(fixture_path), 'bytes': fixture_path.stat().st_size,
+            'measuresPerStaff': [len(staff['measures']) for staff in staves],
+            'eventCount': sum(len(voice['events']) for staff in staves for measure in staff['measures']
+                for voice in measure['voices'])},
         'pairs': pairs, 'medians': {variant: {key: statistics.median(pair[variant][key] for pair in pairs)
             for key in ['fcpMs', 'openMs', 'screenWallMs', 'devtoolsWallMs', 'startPlanCalls', 'planCalls']}
             for variant in ['base', 'candidate']}}
