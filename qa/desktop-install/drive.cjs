@@ -342,7 +342,7 @@ async function connect(label, profile, action, sharedDefault = false) {
       }
     }
     const click = value => wait(() => evaluate(label => {
-      const element = [...document.querySelectorAll('button, [role=button], [role=menuitem]')].find(node =>
+      const element = [...document.querySelectorAll('button, [role=button], [role=menuitem], [role=option]')].find(node =>
         node.checkVisibility() && !node.disabled && !node.closest('[inert]') &&
         (node.getAttribute('aria-label') === label || node.textContent.trim() === label))
       if (!element) return false
@@ -524,6 +524,13 @@ async function main() {
       await qa.click('PDF 변환')
       await qa.status('score.pdf')
       await qa.menu('PNG 출력 설정')
+      await wait(() => qa.evaluate(() => {
+        const control = document.activeElement
+        if (!control?.matches('.studio-export-tools [role="combobox"]')) return false
+        control.click()
+        return true
+      }), 'focused PNG page scope')
+      await qa.click('페이지 선택')
       await qa.click('PNG 내보내기')
       await qa.status('score.png')
       for (const name of ['recovered.chromatics', 'score.pdf', 'score.png']) {
