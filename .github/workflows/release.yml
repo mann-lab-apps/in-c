@@ -8,13 +8,16 @@ on:
         type: choice
         options:
           - preflight
+      analyze_previous:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   rosetta-renderer:
-    if: inputs.tag == 'preflight'
+    if: inputs.tag == 'preflight' && !inputs.analyze_previous
     runs-on: macos-15
     timeout-minutes: 25
     steps:
@@ -34,3 +37,36 @@ jobs:
           name: rosetta-renderer
           path: ${{ runner.temp }}/rosetta-renderer
           if-no-files-found: warn
+
+  analyze-published-trace:
+    if: inputs.tag == 'preflight' && inputs.analyze_previous
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: qa/desktop-install
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: 46125356580
+          name: rosetta-renderer
+          path: ${{ runner.temp }}/renderer-evidence/runner
+      - name: Analyze the exact Rosetta renderer run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$RUNNER_TEMP/renderer-evidence"
+          gh run view 46125356580 -R mann-lab-apps/in-c --json conclusion,headSha,url > "$proof/run.json"
+          test "$(jq -r .headSha "$proof/run.json")" = 6791c195a6038eff293adcfdca77ebc58722b2d4
+          python3 qa/desktop-install/analyze-renderer-trace.py "$proof"
+          jq -c . "$proof/verification.json" | sed 's/^/RENDERER_VERIFIED /'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rosetta-renderer-analysis
+          path: ${{ runner.temp }}/renderer-evidence/verification.json
