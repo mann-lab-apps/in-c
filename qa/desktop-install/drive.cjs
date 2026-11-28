@@ -414,12 +414,17 @@ async function connect(label, profile, action, sharedDefault = false) {
       } catch (captureError) { log.write(String(captureError) + '\n') }
     }
   } finally {
-    const simulateInterruptedSession = mode === 'prepare' && process.platform === 'win32' && !failure
+    const simulateInterruptedSession = !failure && ((mode === 'prepare' && process.platform === 'win32') ||
+      (layoutQa && label === 'first-open' && process.env.STUDIO_QA_LAYOUT_ROUNDTRIP === '1'))
     if (simulateInterruptedSession) {
       // The auto-saved bytes have already been read and copied. Stop our old
       // process to simulate a session interrupted before the installer runs.
       assert.equal(child.exitCode, null)
-      execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { timeout: 5000, windowsHide: true })
+      if (process.platform === 'win32') {
+        execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { timeout: 5000, windowsHide: true })
+      } else {
+        child.kill('SIGKILL')
+      }
     } else if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ id: ++id, method: 'Browser.close' }))
     }

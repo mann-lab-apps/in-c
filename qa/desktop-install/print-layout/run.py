@@ -88,7 +88,7 @@ for variant in ['base', 'candidate']:
 pairs = []
 for i in range(int(os.environ.get('STUDIO_QA_LAYOUT_PAIRS', '3'))):
     order = ['base', 'candidate'] if i % 2 == 0 else ['candidate', 'base']
-    pair = {variant: run(variant, f'pair{i+1}', roundtrip=i == 0) for variant in order}
+    pair = {variant: run(variant, f'pair{i+1}') for variant in order}
     assert pair['base']['layout'] == pair['candidate']['layout']
     pairs.append(pair)
 proof_file = proof / f'{architecture}-comparison.json'
@@ -97,3 +97,5 @@ report = {'architecture': architecture, 'host': check_output('sw_vers'),
         for key in ['fcpMs', 'openMs', 'screenWallMs', 'devtoolsWallMs', 'startPlanCalls', 'planCalls']}
         for variant in ['base', 'candidate']}}
 proof_file.write_text(json.dumps(report, indent=2) + '\n')
+for variant in ['base', 'candidate']:
+    run(variant, 'roundtrip', roundtrip=True)
