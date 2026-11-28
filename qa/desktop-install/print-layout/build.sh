@@ -16,6 +16,10 @@ case "${STUDIO_QA_LAYOUT_CANDIDATE:-full}" in
     patch_name=plan-only.patch.gz
     patch_sha=3f0741e90f50448fbefbfcf66e8363960d6d7a7b2ab7c0154e38db7d7a8bb78a
     ;;
+  auto-print)
+    patch_name=auto-print.patch.gz
+    patch_sha=3efaf3f1c6b876836c531fd2655fa3bece33a075444700b60c965096a529bee9
+    ;;
   *) exit 2 ;;
 esac
 gzip -dc "$harness/$patch_name" > "$scratch/candidate.patch"

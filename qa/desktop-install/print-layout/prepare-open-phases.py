@@ -47,6 +47,10 @@ inject('src/main/project-files.ts', [
 ])
 
 inject('src/main/index.ts', [
+    ("  void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))",
+     """  const qaPrintOptions = printQaDirectory && process.env.STUDIO_QA_AUTOMATIC_PAGES === '1'
+    ? { query: { qaAutomaticPages: '1' } } : undefined
+  void mainWindow.loadFile(join(__dirname, '../renderer/index.html'), qaPrintOptions)"""),
     ("ipcMain.handle('project:open', async () => {",
      """ipcMain.handle('project:open', async () => {
   const qaStarted = performance.now()
@@ -67,6 +71,10 @@ inject('src/main/index.ts', [
 ])
 
 inject('src/renderer/src/App.tsx', [
+    ("""    () => resolvePrintLayoutPlan(printScore, pdfTargetPageCount ?? 1, lyricMinimumWidths),""",
+     """    () => resolvePrintLayoutPlan(printScore,
+      new URLSearchParams(window.location.search).has('qaAutomaticPages') ? 'auto' : pdfTargetPageCount ?? 1,
+      lyricMinimumWidths),"""),
     ("""  const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -100,13 +108,20 @@ inject('src/renderer/src/App.tsx', [
 ])
 
 inject('src/renderer/src/notation/print-layout.ts', [
+    ('export function resolvePrintLayoutPlan(',
+     """let qaCandidateEvaluations = 0
+
+export function resolvePrintLayoutPlan("""),
     ('  performance.mark("qa-print-layout")\n  const layout=resolveLayoutForPrimaryStaff(score)',
      '''  performance.mark('qa-print-layout')
+  const initialEvaluations = qaCandidateEvaluations
   const start = performance.now()
   try {
     return resolvePrintLayoutPlanImpl(score, targetPages, minimumMeasureWidths)
   } finally {
-    performance.measure('qa-print-layout-duration', { start })
+    performance.measure('qa-print-layout-duration', {
+      start, detail: { evaluations: qaCandidateEvaluations - initialEvaluations, targetPages }
+    })
   }
 }
 
@@ -114,6 +129,10 @@ function resolvePrintLayoutPlanImpl(
   score: Score, targetPages: PrintPageTarget, minimumMeasureWidths?: ReadonlyMap<string, number>
 ): PrintLayoutPlan {
   const layout=resolveLayoutForPrimaryStaff(score)'''),
+    ('): PrintLayoutPlan {\n  const normalizedCandidate = normalizePrintLayoutCandidate(',
+     '''): PrintLayoutPlan {
+  qaCandidateEvaluations += 1
+  const normalizedCandidate = normalizePrintLayoutCandidate('''),
 ])
 
 inject('src/renderer/src/notation/use-lyric-layout.ts', [

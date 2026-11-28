@@ -482,16 +482,18 @@ async function main() {
     const original = hash(source)
     const trial = process.env.STUDIO_QA_LAYOUT_VARIANT
     const measureOpenPhases = process.env.STUDIO_QA_OPEN_PHASES === '1'
+    const optimizePrint = process.env.STUDIO_QA_LAYOUT_CANDIDATE === 'auto-print'
     assert(['base', 'candidate'].includes(trial))
     assert.equal(process.env.STUDIO_QA_PRINT_DIR, files)
     const layoutReady = await connect('first-open', profile, async qa => {
       qa.setStage('first contentful paint')
       const startup = await wait(async () => qa.evaluate(() => {
         const fcp = performance.getEntriesByName('first-contentful-paint')[0]
+        const plans = performance.getEntriesByName('qa-print-layout-duration')
         return fcp && { fcpMs: fcp.startTime, planCalls: performance.getEntriesByName('qa-print-layout').length,
-          startupPlanMs: performance.getEntriesByName('qa-print-layout-duration').map(entry => entry.duration) }
+          startupPlanMs: plans.map(entry => entry.duration), startupPlanDetails: plans.map(entry => entry.detail) }
       }), 'startup first contentful paint', qa.observeLayout ?? 30000)
-      assert(trial === 'base' ? startup.planCalls > 0 : startup.planCalls === 0)
+      assert(trial === 'base' || optimizePrint ? startup.planCalls > 0 : startup.planCalls === 0)
       qa.setStage('first visible score')
       const openBudget = qa.observeLayout ?? 25000
       const ready = await qa.evaluate(async ({ budget, measureOpenPhases }) => {
@@ -515,6 +517,7 @@ async function main() {
                 return
               }
               const attributes = page.getAttributeNames().filter(name => name.startsWith('data-pdf-'))
+              const plans = performance.getEntriesByName('qa-print-layout-duration').filter(entry => entry.startTime >= start)
               resolve({ openMs: visibleAt - start,
                 planCalls: performance.getEntriesByName('qa-print-layout').length - plansBefore,
                 layout: Object.fromEntries(attributes.sort().map(name => [name, page.getAttribute(name)])),
@@ -523,6 +526,7 @@ async function main() {
                     .filter(entry => entry.startTime >= start).map(entry => entry.duration),
                   lyricWidthBeforeOpenMs: performance.getEntriesByName('qa-text-widths')
                     .filter(entry => entry.startTime < start).map(entry => entry.duration),
+                  openPlanDetails: plans.map(entry => entry.detail),
                   openPhaseMs: {
                   requestPreparation: phase['ipc-request'] - start,
                   ipcWait: phase['ipc-return'] - phase['ipc-request'],
@@ -530,8 +534,7 @@ async function main() {
                   statePreparation: phase['state-queued'] - phase.decoded,
                   editorCommit: phase.commit - phase['state-queued'],
                   firstNoteAfterCommit: visibleAt - phase.commit,
-                  planCallsMs: performance.getEntriesByName('qa-print-layout-duration')
-                    .filter(entry => entry.startTime >= start).map(entry => entry.duration)
+                  planCallsMs: plans.map(entry => entry.duration)
                   }
                 }) })
             } else if (performance.now() - start > budget) reject(new Error('First visible score timed out'))
@@ -545,7 +548,8 @@ async function main() {
       assert.equal(hash(source), original)
       const result = { ...ready, fcpMs: startup.fcpMs, startPlanCalls: startup.planCalls,
         screenWallMs: qa.startScreenMs, devtoolsWallMs: qa.browserListeningMs,
-        ...(measureOpenPhases && { startupPlanMs: startup.startupPlanMs }) }
+        ...(measureOpenPhases && { startupPlanMs: startup.startupPlanMs,
+          startupPlanDetails: startup.startupPlanDetails }) }
       if (process.env.STUDIO_QA_LAYOUT_ROUNDTRIP !== '1') return result
       qa.setStage('edit and autosave')
       const { recovery, snapshot } = await qa.edit(pitch(read(source).score))

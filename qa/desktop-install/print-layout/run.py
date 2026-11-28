@@ -93,6 +93,14 @@ def run(variant, label, roundtrip=False):
         assert measurements['lyricWidthMs'], 'opening must measure the score minimum widths'
         if os.environ.get('STUDIO_QA_LAYOUT_CANDIDATE') == 'plan-only':
             assert measurements['lyricWidthBeforeOpenMs'], 'plan-only retains initial minimum width measurement'
+        if os.environ.get('STUDIO_QA_LAYOUT_CANDIDATE') == 'auto-print':
+            plan_details = measurements['startupPlanDetails'] + measurements['openPlanDetails']
+            assert len(plan_details) == len(measurements['startupPlanMs']) + len(renderer['planCallsMs'])
+            if os.environ.get('STUDIO_QA_AUTOMATIC_PAGES') == '1':
+                expected = 4 if variant == 'base' else 1
+                assert all(plan == {'evaluations': expected, 'targetPages': 'auto'} for plan in plan_details)
+            else:
+                assert all(plan['targetPages'] == 2 and plan['evaluations'] >= 1 for plan in plan_details)
     print('LAYOUT ' + json.dumps({'architecture': architecture, 'trial': label, 'variant': variant,
         **measurements}), flush=True)
     return measurements
