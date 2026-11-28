@@ -82,7 +82,11 @@ jobs:
   compare-print-layout:
     if: inputs.tag == 'preflight' && inputs.compare_print_layout
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [timing, roundtrip]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -100,6 +104,7 @@ jobs:
         shell: bash
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+          STUDIO_QA_LAYOUT_PHASE: ${{ matrix.phase }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64
@@ -118,6 +123,6 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
-          name: studio-print-layout-rosetta
+          name: studio-print-layout-rosetta-${{ matrix.phase }}
           path: ${{ runner.temp }}/print-layout-results
           if-no-files-found: error

@@ -12,6 +12,8 @@ import sys
 architecture, scratch_dir, proof_dir, driver_file = sys.argv[1:]
 scratch, proof, driver = Path(scratch_dir), Path(proof_dir), Path(driver_file)
 assert architecture in {'x64', 'arm64'}
+phase = os.environ.get('STUDIO_QA_LAYOUT_PHASE', 'both')
+assert phase in {'both', 'timing', 'roundtrip'}
 
 
 def sha(path):
@@ -72,7 +74,7 @@ def run(variant, label, roundtrip=False):
     with (saved / 'driver.log').open('wb') as log:
         try:
             subprocess.run(['node', driver, 'layout', info['executable'], work, info['asarSha256']],
-                check=True, stdout=log, stderr=subprocess.STDOUT, env=trial_env, timeout=300)
+                check=True, stdout=log, stderr=subprocess.STDOUT, env=trial_env, timeout=900 if roundtrip else 400)
         finally:
             if (work / 'results').exists():
                 copytree(work / 'results', saved, dirs_exist_ok=True)
@@ -82,20 +84,23 @@ def run(variant, label, roundtrip=False):
     return measurements
 
 
-# Prime both executable paths, then alternate the pairing order.
-for variant in ['base', 'candidate']:
-    run(variant, 'prime')
-pairs = []
-for i in range(int(os.environ.get('STUDIO_QA_LAYOUT_PAIRS', '3'))):
-    order = ['base', 'candidate'] if i % 2 == 0 else ['candidate', 'base']
-    pair = {variant: run(variant, f'pair{i+1}') for variant in order}
-    assert pair['base']['layout'] == pair['candidate']['layout']
-    pairs.append(pair)
-proof_file = proof / f'{architecture}-comparison.json'
-report = {'architecture': architecture, 'host': check_output('sw_vers'),
-    'pairs': pairs, 'medians': {variant: {key: statistics.median(pair[variant][key] for pair in pairs)
-        for key in ['fcpMs', 'openMs', 'screenWallMs', 'devtoolsWallMs', 'startPlanCalls', 'planCalls']}
-        for variant in ['base', 'candidate']}}
-proof_file.write_text(json.dumps(report, indent=2) + '\n')
-for variant in ['base', 'candidate']:
-    run(variant, 'roundtrip', roundtrip=True)
+if phase in {'both', 'timing'}:
+    # Prime both executable paths, then alternate the pairing order.
+    for variant in ['base', 'candidate']:
+        run(variant, 'prime')
+    pairs = []
+    for i in range(int(os.environ.get('STUDIO_QA_LAYOUT_PAIRS', '3'))):
+        order = ['base', 'candidate'] if i % 2 == 0 else ['candidate', 'base']
+        pair = {variant: run(variant, f'pair{i+1}') for variant in order}
+        assert pair['base']['layout'] == pair['candidate']['layout']
+        pairs.append(pair)
+    proof_file = proof / f'{architecture}-comparison.json'
+    report = {'architecture': architecture, 'host': check_output('sw_vers'),
+        'pairs': pairs, 'medians': {variant: {key: statistics.median(pair[variant][key] for pair in pairs)
+            for key in ['fcpMs', 'openMs', 'screenWallMs', 'devtoolsWallMs', 'startPlanCalls', 'planCalls']}
+            for variant in ['base', 'candidate']}}
+    proof_file.write_text(json.dumps(report, indent=2) + '\n')
+
+if phase in {'both', 'roundtrip'}:
+    for variant in ['base', 'candidate']:
+        run(variant, 'roundtrip', roundtrip=True)
