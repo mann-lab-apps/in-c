@@ -1,331 +1,71 @@
-name: Release
+name: Studio alpha.46 published macOS delivery QA
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/release.yml"
-      - "build/**"
-      - "docs/distribution.md"
-      - "package.json"
-      - "package-lock.json"
-      - "scripts/verify-packaged-app.cjs"
-      - "scripts/verify-packaged-content.cjs"
-      - "scripts/verify-packaged-content.test.mjs"
-      - "scripts/verify-release-artifacts.cjs"
-      - "scripts/verify-release-tag.cjs"
-      - "src/main/**"
-      - "src/preload/**"
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: Version tag to publish, or preflight to check the selected branch without publication
+        description: Verify the published alpha.46 package
         required: true
-        type: string
-      candidate:
-        description: Build the selected release branch commit and create its tag after all package jobs succeed
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - preflight
 
 permissions:
-  contents: write
-
-concurrency:
-  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  preflight:
-    name: Packaged ${{ matrix.platform }} preflight (no publication)
-    if: github.event_name == 'workflow_dispatch' && inputs.tag == 'preflight'
+  macos-delivery:
+    if: inputs.tag == 'preflight'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: Linux
-            os: ubuntu-latest
-            smoke: xvfb-run --auto-servernum npm run verify:package
-          - platform: Windows
-            os: windows-latest
-            smoke: npm run verify:package
-    runs-on: ${{ matrix.os }}
+          - runner: macos-15-intel
+            mode: intel
+            arch: x86_64
+          - runner: macos-15
+            mode: rosetta
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
-      - name: Verify preflight commit
-        shell: bash
-        run: |
-          checked_out_sha="$(git rev-parse HEAD)"
-          printf 'Preflight checkout %s (event %s)\n' "$checked_out_sha" "$GITHUB_SHA"
-          test "$checked_out_sha" = "$GITHUB_SHA"
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run piano:verify
-      - name: Verify platform-sensitive release behavior
-        run: >-
-          npm test --
-          --maxWorkers=2
-          scripts/desktop-brand.test.mjs
-          scripts/studio-native-drag-input.test.mjs
-          src/main/project-sync-failure.test.ts
-          src/main/recent-files.failure.test.ts
-          src/musicxml/serialize-line-endings.test.ts
-          src/renderer/src/App.manual.test.tsx
-          src/renderer/src/App.ornament-manual.test.tsx
-          src/renderer/src/App.part-page-setup-key-ownership.test.tsx
-          src/renderer/src/App.part-span-reset.test.tsx
-          StudioManual
-      - run: npm run package:dir
-      - run: npm run verify:package-content
-      - run: ${{ matrix.smoke }}
-
-  resolve-release-source:
-    name: Resolve release source
-    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      sha: ${{ steps.source.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || (github.event_name == 'workflow_dispatch' && (inputs.candidate && github.sha || format('refs/tags/{0}', inputs.tag))) || github.sha }}
-      - name: Record release source commit
-        id: source
-        shell: bash
-        run: |
-          sha="$(git rev-parse HEAD)"
-          printf 'Release source %s\n' "$sha"
-          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
-
-  verify:
-    needs: resolve-release-source
-    name: Verify ${{ matrix.os }} (${{ matrix.shard }})
-    if: github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight'
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15, windows-latest, ubuntu-latest]
-        shard: ['1/4', '2/4', '3/4', '4/4']
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve-release-source.outputs.sha }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - if: runner.os != 'macOS' || matrix.shard != '1/4'
-        run: npm test -- --maxWorkers=1 --silent=passed-only --shard=${{ matrix.shard }}
-      - name: Run macOS 1/4 tests with MusicXML stage timing
-        if: runner.os == 'macOS' && matrix.shard == '1/4'
-        shell: bash
-        run: bash qa/macos-release-timing/run-release-timing.sh shard "$RUNNER_TEMP/studio-release-timing"
-      - name: Upload macOS 1/4 timeout diagnostics
-        if: always() && runner.os == 'macOS' && matrix.shard == '1/4'
-        uses: actions/upload-artifact@v7
-        with:
-          name: studio-release-timing-macos-1of4
-          path: ${{ runner.temp }}/studio-release-timing/*
-          if-no-files-found: warn
-      - if: matrix.shard == '1/4'
-        run: npm run test:tools
-
-  package:
-    name: Package ${{ matrix.platform }}
-    needs: [resolve-release-source, verify]
-    if: success() && (github.event_name != 'workflow_dispatch' || inputs.tag != 'preflight')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macOS
-            os: macos-15
-            command: npm run package:mac
-          - platform: Windows
-            os: windows-latest
-            command: npm run package:win
-          - platform: Linux
-            os: ubuntu-latest
-            command: npm run package:linux
-
-    runs-on: ${{ matrix.os }}
-    env:
-      MACOS_CSC_NAME: "Jae-man Kim (ZRA4DHHKQ4)"
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve-release-source.outputs.sha }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-      - if: github.event_name != 'pull_request'
-        run: npm run verify:release-tag
-      - run: npm run piano:verify
-      - name: Verify macOS signing secrets
-        if: runner.os == 'macOS' && github.event_name != 'pull_request'
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
-        run: |
-          test -n "$CSC_LINK"
-          test -n "$CSC_KEY_PASSWORD"
-          test -n "$APPLE_API_KEY"
-          test -n "$APPLE_API_KEY_ID"
-          test -n "$APPLE_API_ISSUER"
-      - name: Prepare macOS notarization key
-        if: runner.os == 'macOS' && github.event_name != 'pull_request'
-        env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-        run: |
-          key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
-          printf '%s' "$APPLE_API_KEY" > "$key_path"
-          chmod 600 "$key_path"
-          echo "APPLE_API_KEY=$key_path" >> "$GITHUB_ENV"
-      - name: Package app
-        run: ${{ matrix.command }}
-        env:
-          CSC_FOR_PULL_REQUEST: ${{ github.event_name == 'pull_request' && 'false' || '' }}
-          CSC_NAME: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && env.MACOS_CSC_NAME || '' }}
-          CSC_LINK: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_KEY_PASSWORD || '' }}
-          APPLE_API_KEY_ID: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_ISSUER_ID || '' }}
-      - name: Verify macOS Developer ID signing
-        if: runner.os == 'macOS' && github.event_name != 'pull_request'
-        run: |
-          app_path="release/mac-universal/$(node -p "require('./scripts/desktop-package.cjs').desktopPackageInfo(require('./package.json'), 'darwin').bundleName")"
-          codesign --verify --deep --strict --verbose=2 "$app_path"
-          xcrun stapler validate "$app_path"
-      - run: npm run verify:artifacts
-      - run: npm run verify:package-content
-
-      - name: Verify packaged app
-        if: runner.os != 'Linux'
-        run: npm run verify:package
-
-      - name: Verify packaged app on Linux
-        if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum npm run verify:package
-
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: in-c-${{ runner.os }}
-          path: |
-            release/*.dmg
-            release/*.zip
-            release/*.exe
-            release/*.AppImage
-          if-no-files-found: error
-          retention-days: 14
-
-  verify-pr-artifacts:
-    name: Verify pull request release artifacts
-    needs: [resolve-release-source, package]
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve-release-source.outputs.sha }}
           persist-credentials: false
-
-      - &download-platform-artifacts
-        uses: actions/download-artifact@v8
+          sparse-checkout: qa/desktop-install
+      - uses: actions/setup-node@v6
         with:
-          pattern: in-c-*
-          path: release-artifacts
-          merge-multiple: false
-
-      - &stage-platform-artifacts
-        name: Stage verified platform artifacts
-        run: npm run verify:artifacts -- --stage-platform-artifacts release-artifacts
-
-      - &create-release-checksums
-        name: Create checksums
-        run: |
-          cd release
-          sha256sum * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-  publish:
-    name: Publish GitHub prerelease
-    needs: [resolve-release-source, package]
-    if: github.event_name != 'pull_request' && inputs.tag != 'preflight'
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve-release-source.outputs.sha }}
-
-      - *download-platform-artifacts
-      - *stage-platform-artifacts
-      - *create-release-checksums
-
-      - name: Tag the verified candidate
-        if: github.event_name == 'workflow_dispatch' && inputs.candidate
-        run: |
-          [[ "$GITHUB_REF" == refs/heads/release/* ]]
-          npm run verify:release-tag
-          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
-            git fetch origin "refs/tags/$RELEASE_TAG"
-            test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$(git rev-parse HEAD)"
-          else
-            status=$?
-            test "$status" -eq 2
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git tag -a "$RELEASE_TAG" -m "띠로리 Studio ${RELEASE_TAG#v}"
-            git push origin "refs/tags/$RELEASE_TAG"
-          fi
-
-      - name: Verify release tag commit
+          node-version: 22
+      - name: Verify the public tag and capture release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
-          tag_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
-          source_commit="$(git rev-parse HEAD)"
-          printf 'Release tag %s at %s (source %s)\n' "$RELEASE_TAG" "$tag_commit" "$source_commit"
-          test "$tag_commit" = "$source_commit"
-
-      - name: Publish prerelease
+          set -euo pipefail
+          proof="$RUNNER_TEMP/studio-mac-published"
+          mkdir -p "$proof"
+          ref='refs/tags/v0.1.0-alpha.46'
+          git ls-remote origin "$ref" "$ref^{}" > "$proof/tag.txt"
+          test "$(awk '$2 ~ /\^\{\}$/ {print $1}' "$proof/tag.txt")" = 2a14068892434d0c76d619c16f831a6dfaed1c1a
+          gh release view v0.1.0-alpha.46 --repo mann-lab-apps/in-c \
+            --json tagName,isPrerelease,isDraft,publishedAt,url,assets > "$proof/release.json"
+      - name: Test packaged-app timeout evidence
+        run: python3 qa/desktop-install/test_mac_smoke.py
+      - name: Verify and launch the signed public Mac app
+        env:
+          QA_MODE: ${{ matrix.mode }}
+          QA_HOST_ARCH: ${{ matrix.arch }}
+        shell: bash
         run: |
-          notes_args=(--generate-notes)
-          notes_path="docs/releases/notes/${RELEASE_TAG}.md"
-          if [ -f "$notes_path" ]; then
-            notes_args=(--notes-file "$notes_path")
-          fi
-          product_name="$(node -p "require('./package.json').build.productName")"
-          gh release create "$RELEASE_TAG" release/* \
-            --prerelease \
-            "${notes_args[@]}" \
-            --title "${product_name} ${RELEASE_TAG#v}" \
-            --verify-tag
+          set -euo pipefail
+          test "$(uname -m)" = "$QA_HOST_ARCH"
+          extra=()
+          if [ "$QA_MODE" = rosetta ]; then extra+=(--rosetta); fi
+          python3 qa/desktop-install/verify-mac-published.py "$RUNNER_TEMP/studio-mac-published" v0.1.0-alpha.46 "${extra[@]}"
+      - name: Keep launch and signed package evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-macos-published-evidence-${{ matrix.mode }}
+          path: ${{ runner.temp }}/studio-mac-published/*
+          if-no-files-found: warn
