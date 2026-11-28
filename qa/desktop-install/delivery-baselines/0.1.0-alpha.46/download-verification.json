@@ -1,0 +1,21 @@
+{
+  "tag": "v0.1.0-alpha.46",
+  "sourceSha": "2a14068892434d0c76d619c16f831a6dfaed1c1a",
+  "verifiedAssets": [
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.46-windows-x64-setup.exe",
+      "sha256": "48d61ceba2ec2819d8be4b554aa1ebffe370deeec501d1853b468159ded6b3a3",
+      "bytes": 119844819
+    },
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.46-windows-x64-portable.exe",
+      "sha256": "40ca240a200c6c94c39526dfa605e26ad7ddc1ee597e59301a3280d0cc3c4563",
+      "bytes": 119632281
+    },
+    {
+      "name": "Ddirori-Studio-0.1.0-alpha.46-linux-x86_64.AppImage",
+      "sha256": "2759b3148a7b65ad3c5d977660a453cb8ff4be5aa2315d45ac01631d7a090a7f",
+      "bytes": 145810302
+    }
+  ]
+}

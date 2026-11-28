@@ -1,0 +1,5 @@
+2759b3148a7b65ad3c5d977660a453cb8ff4be5aa2315d45ac01631d7a090a7f  Ddirori-Studio-0.1.0-alpha.46-linux-x86_64.AppImage
+6c415659fec6c352eae675977a49559ecd1d5d4a52750ecd0326fc3fe51facdc  Ddirori-Studio-0.1.0-alpha.46-mac-universal.dmg
+7da019c9ef6cc7fd83a6ae875c1f362596e51bc441c65ee386b8dab584761b38  Ddirori-Studio-0.1.0-alpha.46-mac-universal.zip
+40ca240a200c6c94c39526dfa605e26ad7ddc1ee597e59301a3280d0cc3c4563  Ddirori-Studio-0.1.0-alpha.46-windows-x64-portable.exe
+48d61ceba2ec2819d8be4b554aa1ebffe370deeec501d1853b468159ded6b3a3  Ddirori-Studio-0.1.0-alpha.46-windows-x64-setup.exe

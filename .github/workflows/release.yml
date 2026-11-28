@@ -154,4 +154,4 @@ jobs:
             sudo apt-get install -y -qq libxml2-utils
           fi
           python3 qa/desktop-install/verify-evidence.py evidence/windows evidence/linux . \
-            qa/desktop-install/references/0.1.0-alpha.45 qa/desktop-install/references/0.1.0-alpha.46
+            qa/desktop-install/delivery-baselines/0.1.0-alpha.45 qa/desktop-install/delivery-baselines/0.1.0-alpha.46
